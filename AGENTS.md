@@ -54,7 +54,8 @@ cameras, renders) whose engine is Kition's own, in Rust.
   through the host. Never run the engine on the page's thread.
 - Code, comments, docs, tests, fixtures, and commit messages are English. No host paths, user
   names, or secrets in tracked files.
-- No CI workflows in this repository.
+- No CI workflows in this repository besides the Package workflow (`.github/workflows/package.yml`),
+  which Kition's reusable workflow runs to publish the kit's package.
 
 ## Never crash
 

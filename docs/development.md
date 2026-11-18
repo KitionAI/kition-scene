@@ -96,6 +96,11 @@ path tracer's noise stays small). `made-1.png` … `made-4.png` are copies of sh
 
 ## Publish
 
-Kition ships the kit's package (`kition-scene-<version>.tgz`, a release asset of this repository
-tagged `package-v<version>`, pinned in Kition's `kits/kits.lock.json`). Publish it from a Kition
-checkout with `scripts/publish-kit.sh scene` (see `docs/kits.md` there).
+Kition ships the kit's package, `kition-scene-<version>.tgz` (the `scene-ui/` folder), a release
+asset of this repository tagged `package-v<version>`. It is built on GitHub, never on a developer
+machine: the Package workflow (`.github/workflows/package.yml`, which calls Kition's reusable
+`kit-package.yml`) builds the commit it is started on, with `gh workflow run package.yml -R
+KitionAI/kition-scene`, and publishes the Release with the package's lock entry,
+`kition-scene-<version>.json`. Kition pins it with `node scripts/pin-kits.mjs scene` (see
+`docs/kits.md` there). A version is published once: bump `version` in `kit.json` to publish a
+change.

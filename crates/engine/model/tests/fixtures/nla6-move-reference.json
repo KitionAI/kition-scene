@@ -1,0 +1,90 @@
+{
+  "version": "5.2.3 LTS",
+  "states": {
+    "initial": [
+      {
+        "kind": "action",
+        "start": 1.0,
+        "end": 11.0
+      },
+      {
+        "kind": "transition",
+        "start": 11.0,
+        "end": 31.0
+      },
+      {
+        "kind": "action",
+        "start": 31.0,
+        "end": 41.0
+      }
+    ],
+    "leftMoved": [
+      {
+        "kind": "action",
+        "start": 12.0,
+        "end": 22.0
+      },
+      {
+        "kind": "transition",
+        "start": 22.0,
+        "end": 31.0
+      },
+      {
+        "kind": "action",
+        "start": 31.0,
+        "end": 41.0
+      }
+    ],
+    "leftScaled": [
+      {
+        "kind": "action",
+        "start": 12.0,
+        "end": 17.0
+      },
+      {
+        "kind": "transition",
+        "start": 17.0,
+        "end": 31.0
+      },
+      {
+        "kind": "action",
+        "start": 31.0,
+        "end": 41.0
+      }
+    ],
+    "rightMoved": [
+      {
+        "kind": "action",
+        "start": 12.0,
+        "end": 17.0
+      },
+      {
+        "kind": "transition",
+        "start": 17.0,
+        "end": 24.0
+      },
+      {
+        "kind": "action",
+        "start": 24.0,
+        "end": 34.0
+      }
+    ],
+    "metaMoved": [
+      {
+        "kind": "meta",
+        "start": 18.0,
+        "end": 23.0
+      },
+      {
+        "kind": "transition",
+        "start": 23.0,
+        "end": 24.0
+      },
+      {
+        "kind": "action",
+        "start": 24.0,
+        "end": 34.0
+      }
+    ]
+  }
+}

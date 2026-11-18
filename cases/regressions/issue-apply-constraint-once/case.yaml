@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-apply-constraint-once
+feature: scene.rigging.armature
+intent: >-
+  Apply Constraint bakes that constraint's effect alone into the transform and removes it; the
+  constraints before it stay and act once (they are not baked in as well and then act again,
+  moving the object).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: apply_constraint_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

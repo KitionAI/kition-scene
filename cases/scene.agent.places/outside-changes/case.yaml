@@ -1,0 +1,24 @@
+format: 1
+id: scene.agent.places/outside-changes
+feature: scene.agent.places
+intent: >-
+  The premise guard with real outside changes (a colleague's engine and a bare rewrite of the
+  file): unrelated changes apply, a changed, deleted or moved target and a changed mesh under a
+  write by element index are refused, a file saved again unchanged is no change, fifty mixed rounds
+  apply no write wrongly; the outcomes the SDK does not reach yet are pinned as wrongly.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/outside.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: outside
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 900

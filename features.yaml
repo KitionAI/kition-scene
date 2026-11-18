@@ -1,0 +1,556 @@
+format: 1
+kit: scene
+updated: "2026-11-17"
+gate_budget_s: 600
+protected:
+  - bindings/wasm/tests/fixtures/released-0.17.0.kscene
+  - crates/engine/physics/tests/fixtures/weights10-reference.json
+  - crates/engine/nodes/tests/fixtures/curves10-reference.json
+  - crates/engine/nodes/tests/fixtures/curves10-consumers-reference.json
+  - crates/engine/nodes/tests/fixtures/curves10-vector-reference.json
+  - crates/engine/nodes/tests/fixtures/curves10-boundary-reference.json
+  - crates/formats/usd/tests/fixtures/camera9-boundary.json
+  - crates/engine/model/tests/fixtures/camera9-extreme-reference.json
+  - crates/engine/model/tests/fixtures/camera9-reference.json
+  - crates/formats/blend/tests/fixtures/camera9.blend
+  - crates/formats/blend/tests/fixtures/camera9-formats.json
+  - bindings/wasm/tests/fixtures/released-0.16.0.kscene
+  - crates/engine/particles/tests/fixtures/boids9-*.json
+  - crates/engine/physics/tests/fixtures/motors8-reference.json
+  - bindings/wasm/tests/fixtures/released-0.15.0.kscene
+  - crates/engine/model/tests/fixtures/multires8-reference.json
+  - crates/render/trace/tests/fixtures/viewport7/**
+  - crates/engine/model/tests/fixtures/uv7-*.json
+  - crates/engine/model/tests/fixtures/nla6-reference.json
+  - crates/engine/model/tests/fixtures/nla6-move-reference.json
+  - bindings/wasm/tests/fixtures/released-0.13.0.kscene
+  - crates/formats/usd/tests/fixtures/usdc6/**
+features:
+  - id: scene.mesh.smooth-by-angle
+    title: Shade Smooth by Angle (split normals at sharp edges)
+    dimension: [function, fidelity, conversion]
+    priority: P1
+    status: has
+    commands: [object.shadeSmoothByAngle, object.shadeSmooth, object.shadeFlat]
+    paths: [crates/engine/model/src/mesh.rs, crates/engine/model/src/tangents.rs, crates/kdm/kdm-model/src/mesh_blob.rs, crates/render/raster/src/cache.rs, crates/render/raster/src/lib.rs, crates/render/trace/src/lib.rs, bindings/wasm/src/gl.rs, crates/formats/exchange/src/gltf.rs, crates/formats/fbx/src/export.rs, crates/formats/usd/src/export.rs, web/src/SidePanel.tsx]
+    target: Blender 5.2.3 LTS
+    gap: The angle is a mesh setting rather than the reference's Smooth by Angle modifier or marked sharp edges; no Keep Sharp Edges option, and imports do not read sharp edges. Normals are area-weighted, as plain smooth shading here.
+    cases: [scene.mesh.smooth-by-angle/split-normals]
+    since: "2026-11-17"
+  - id: scene.render.ambient-occlusion
+    title: Ambient occlusion settings for fast renders
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    commands: [render.set, render.image]
+    paths: [crates/engine/model/src/scene.rs, crates/render/raster/src/lib.rs, crates/render/raster/src/ao.rs, bindings/wasm/src/commands.rs, web/src/SidePanel.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Screen-space estimate from the depth picture; the automatic distance (6 % of the scene's diagonal, 0.05 to 2 m) stays the default rather than the reference's fixed 0.2 m, so existing renders keep their look. No bent normals or bounce approximation; path-traced renders ignore these settings.
+    cases: [scene.render.ambient-occlusion/settings]
+    since: "2026-11-17"
+  - id: scene.render.color-management
+    title: Colour management of renders (view transform, look, exposure)
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    commands: [render.set, render.image, render.trace.start]
+    paths: [crates/engine/model/src/color.rs, crates/render/raster/src/lib.rs, crates/render/trace/src/lib.rs, bindings/wasm/src/commands_compositor.rs, bindings/wasm/src/commands_render.rs, web/src/SidePanel.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Standard stays the default (the reference's new files use AgX). AgX is a published polynomial approximation rather than the reference's configuration; no Filmic, False Color, Raw, display gamma, white balance, or curves. Only the rendered viewport and final renders are colour managed, not the material view.
+    cases: [scene.render.color-management/view-transforms]
+    since: "2026-11-17"
+  - id: scene.nodes.spline-types
+    title: Geometry-node Catmull-Rom and NURBS splines
+    dimension: [function, fidelity, conversion, robustness, performance]
+    priority: P1
+    status: has
+    commands: [nodes.describe, nodes.addNode, nodes.setValue, nodes.link]
+    paths: [crates/engine/nodes/src/**, crates/engine/model/src/node_tree.rs, web/src/NodeEditor.tsx, web/src/NodeEditorStrings.ts]
+    target: Blender 5.2.3 LTS
+    gap: NURBS to Bezier requires cubic Bezier knots from a prior Bezier or Catmull-Rom conversion and equal positive weights; other NURBS must be resampled to Poly first. NURBS order is limited to 16, weights to 100000000, and new spline coordinates, radius and tilt to magnitude 1000000000000. No custom knot vectors or object-curve type changes.
+    cases: [scene.nodes.spline-types/blender-and-commands, scene.nodes.spline-types/editor-flow, regressions/issue-curves10-vector-trim]
+    since: "2026-11-17"
+  - id: scene.physics.effector-weights
+    title: Independent cloth and soft-body field weights
+    dimension: [function, fidelity, conversion, collab, robustness]
+    priority: P1
+    status: has
+    commands: [physics.cloth.add, physics.cloth.set, physics.softBody.add, physics.softBody.set, physics.bake, physics.bakeStep, physics.free]
+    paths: [crates/engine/model/src/physics_weights.rs, crates/engine/model/src/physics.rs, crates/engine/physics/src/bake.rs, crates/engine/physics/src/cloth.rs, crates/engine/physics/src/soft.rs, bindings/wasm/src/commands_field_weights.rs, bindings/wasm/src/commands_physics.rs, bindings/wasm/src/described.rs, web/src/EffectorWeights.tsx, web/src/PhysicsInfo.ts, web/src/PhysicsPanel.tsx, web/src/PhysicsPanel.css]
+    target: Blender 5.2.3 LTS
+    gap: Cloth and soft bodies only, for the five existing field kinds; weight-transfer identities match public observations while the existing solvers retain their trajectory and flow limitations. No particle, hair, rigid-world, fluid, collection-filter or unsupported-field weights.
+    cases: [scene.physics.effector-weights/blender-and-round-trip, scene.physics.effector-weights/collaborative-settings, scene.physics.effector-weights/editor-flow, scene.physics.effector-weights/released-spline-editing, regressions/issue-fields10-extreme, regressions/issue-fields10-grid, regressions/issue-fields10-schema, regressions/issue-fields10-failure-ui]
+    since: "2026-11-17"
+  - id: scene.camera.sensor-fit
+    title: Camera sensor fit and sensor height
+    dimension: [function, fidelity, conversion, collab, robustness]
+    priority: P1
+    status: has
+    commands: [camera.set]
+    paths: [crates/engine/model/src/scene.rs, crates/render/raster/src/view.rs, crates/render/raster/src/lib.rs, crates/formats/blend/src/lib.rs, crates/formats/exchange/src/gltf.rs, crates/formats/fbx/src/**, crates/formats/usd/src/**, bindings/wasm/src/commands.rs, bindings/wasm/src/commands_compositor.rs, bindings/wasm/src/gl.rs, bindings/wasm/src/inspect.rs, web/src/SidePanel.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Square pixels only. Exchange formats preserve the fitted frame at matching output aspect, not the editable fit policy or original sensor identity; FBX import retains its existing focal-length limits. Blender 5.2.3 imports native USD orthographic apertures at 10 times their specified span.
+    cases: [scene.camera.sensor-fit/blender-and-round-trip, scene.camera.sensor-fit/editor-flow, scene.camera.sensor-fit/peer-register, regressions/issue-camera9-defocus, regressions/issue-camera9-extreme, regressions/issue-camera9-fbx-gate, regressions/issue-camera9-picking, regressions/issue-camera9-portrait-usd]
+    since: "2026-11-17"
+  - id: scene.particles.boids
+    title: Airborne boids with averaged steering rules
+    dimension: [function, fidelity, conversion, collab, robustness, performance]
+    priority: P1
+    status: has
+    commands: [particles.add, particles.set, particles.stats, particles.convert]
+    paths: [crates/engine/particles/src/boids.rs, crates/engine/particles/src/settings.rs, crates/engine/particles/src/sim.rs, crates/engine/model/src/particles.rs, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/commands_boids.rs, bindings/wasm/src/commands_particles.rs, web/src/Boids.tsx, web/src/Particles.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Average airborne Goal/Avoid/Separate/Flock only; at-rest births, current target snapshots, bounded neighborhoods and deterministic turns differ from Blender's hidden seed state; no ground, scene forces, collisions, volume emission or cross-system flocking.
+    cases: [scene.particles.boids/blender-and-round-trip, scene.particles.boids/collaborative-settings, scene.particles.boids/editor-flow, scene.particles.boids/released-camera-framing, regressions/issue-boids9-fractional-events, regressions/issue-boids9-rule-target, regressions/issue-boids9-schema]
+    since: "2026-11-17"
+  - id: scene.sculpt.multires-recovery
+    title: Multiresolution Unsubdivide and Rebuild Subdivisions
+    dimension: [function, fidelity, conversion, collab, robustness]
+    priority: P1
+    status: has
+    commands: [multires.unsubdivide, multires.rebuildSubdivisions]
+    paths: [crates/engine/model/src/multires*, bindings/wasm/src/commands_multires.rs, web/src/SculptPanel.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Complete manifold quad subdivisions with an identifying corner or extraordinary vertex per component only; up to six levels, 100000 base faces and 250000 highest-level faces. Nonlinear UV detail, groups, shape keys, masks, face sets, hiding, seams and pins are refused. Intermediate recovered surfaces may differ from Blender.
+    cases: [scene.sculpt.multires-recovery/blender-and-round-trip, scene.sculpt.multires-recovery/editor-flow, scene.sculpt.multires-recovery/mesh-merge]
+    since: "2026-11-17"
+  - id: scene.animation.nla-groups
+    title: NLA transition and meta strips
+    dimension: [function, fidelity, conversion, collab]
+    priority: P1
+    status: has
+    commands: [nla.addTransition, nla.makeMeta, nla.dissolveMeta, nla.setStrip]
+    paths: [crates/engine/model/src/nla*, crates/kdm/kdm-model/src/read.rs, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/commands_nla.rs, web/src/NlaEditor.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Editing children inside a meta requires ungrouping it first.
+    cases: [scene.animation.nla-groups/blender-and-round-trip, regressions/issue-nla6-endpoint]
+    since: "2026-11-17"
+  - id: scene.animation.keyframes
+    title: Keyframe insertion through the command bridge
+    dimension: [function, performance]
+    priority: P0
+    status: has
+    commands: [anim.insertKey]
+    paths: [crates/kdm/kdm-model/src/write.rs]
+    cases: [regressions/issue-anim-insertkey-cost, scene.animation.keyframes/save-reopen]
+    since: "2026-11-17"
+  - id: scene.animation.limits
+    title: F-curve Limits modifier
+    dimension: [function, fidelity, conversion]
+    priority: P1
+    status: has
+    commands: [graph.addModifier, graph.setModifier, graph.removeModifier]
+    paths: [crates/engine/model/src/fmodifier.rs, web/src/FModifierPanel.tsx]
+    target: Blender 5.2.3 LTS
+    cases: [scene.animation.limits/blender-and-round-trip]
+    since: "2026-11-17"
+  - id: scene.agent.observe
+    title: An agent reads the scene and places objects from it
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [scene.agent.observe/under-the-light]
+    since: "2026-11-17"
+  - id: scene.agent.act
+    title: An agent replaces a material (assign, then delete the old one)
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [scene.agent.act/red-material, regressions/issue-deterministic-save]
+    since: "2026-11-17"
+  - id: scene.agent.recover
+    title: An agent fixes what the check reports
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [scene.agent.recover/inside-out, regressions/issue-unknown-params]
+    since: "2026-11-17"
+  - id: scene.agent.conversation
+    title: An agent builds a modifier stack over a conversation
+    dimension: [ai]
+    priority: P1
+    status: has
+    requirements: [AX13]
+    cases: [scene.agent.conversation/modifier-stack]
+    since: "2026-11-17"
+  - id: scene.agent.preview
+    title: An agent previews the scene from a named view or a camera at a time, in a pass, or a sheet of views or times, whatever the editor shows
+    dimension: [ai]
+    priority: P1
+    status: has
+    commands: [file.render]
+    paths: [bindings/wasm/src/render.rs, crates/render/raster/src/label.rs, crates/render/raster/src/view.rs, bindings/headless/src/main.rs, kit.json, agent/guide.md]
+    cases: [scene.agent.preview/explicit-view, scene.agent.preview/headless-agent-view]
+    since: "2026-11-17"
+  - id: scene.agent.context
+    title: An agent's call names the objects, time and mesh elements it acts on, and leaves the editor's selection, active object, mode, current frame and viewport as they were
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [material.assign, anim.insertKey, mesh.extrude, select.objects, mode.set, frame.set]
+    paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/acts.rs, bindings/wasm/src/reads.json, bindings/wasm/src/context.rs, bindings/wasm/src/commands.rs, bindings/headless/src/main.rs, bindings/headless/tests/context.rs, bindings/wasm/tests/context.rs, bindings/wasm/tests/acts.rs]
+    requirements: [AX13]
+    cases: [scene.agent.context/explicit-call-context, scene.agent.context/reads-declared, scene.agent.context/three-objects-one-run, regressions/issue-inspect-editor-state]
+    since: "2026-11-17"
+  - id: scene.agent.ids
+    title: One id space at the agent's tools; the scene in memory is the scene its saved file opens as
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [object.rename, object.hide, material.assign]
+    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/params.rs, bindings/wasm/src/lib.rs, bindings/headless/tests/ids.rs, bindings/wasm/tests/saved.rs, crates/kdm/kdm-model/tests/tool_ids.rs, bindings/wasm/tests/typed_failure.rs]
+    requirements: [AX13]
+    cases: [scene.agent.ids/one-id-space, scene.agent.ids/tool-ids-in-replicas, scene.agent.ids/in-memory-is-saved, regressions/issue-saved-multires, regressions/issue-receipt-keys, regressions/issue-digit-names]
+    since: "2026-11-17"
+  - id: scene.agent.places
+    title: World points, element indexes and names are places; a write by them is refused after others changed what they name
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [mesh.extrude, object.rename]
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/src/commands.rs, crates/kdm/kdm-model/model/schema.json, bindings/headless/tests/outside.rs, bindings/wasm/tests/places.rs, agent/guide.md]
+    requirements: [AX13]
+    cases: [scene.agent.places/place-premise, scene.agent.places/outside-changes]
+    since: "2026-11-17"
+  - id: scene.agent.receipts
+    title: Compact equal-offset receipts and carried world transforms
+    dimension: [ai]
+    priority: P1
+    status: has
+    commands: [object.translate, object.rotate, object.scale]
+    paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/place.rs, bindings/headless/tests/land9.rs, bindings/headless/tests/ids.rs, bindings/headless/tests/outside.rs, agent/guide.md]
+    requirements: [AX13]
+    cases: [scene.agent.receipts/compact-and-carried]
+    since: "2026-11-17"
+  - id: scene.agent.premises
+    title: Each call holds what it reads or replaces, for every write command; object parameters are marked; derived topology and bounds
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [object.translate, object.rename, object.hide, material.assign, material.set, modifier.set, constraint.set, vertexGroup.assign, anim.insertKey, light.set, camera.set, object.parent, mesh.extrude]
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/src/rests.rs, bindings/wasm/src/reads.json, bindings/wasm/src/params.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/commands_anim2.rs, bindings/wasm/src/commands_nodes.rs, crates/kdm/kdm-model/model/schema.json, bindings/headless/tests/premises.rs, bindings/headless/tests/land9.rs, bindings/wasm/tests/object_params.rs, bindings/wasm/tests/saved.rs, bindings/wasm/src/collab.rs, bindings/wasm/src/context.rs, bindings/wasm/tests/reread.rs, agent/guide.md]
+    requirements: [AX13]
+    cases: [scene.agent.premises/per-call, scene.agent.premises/object-parameters, scene.agent.premises/independent-reading, scene.agent.premises/independent-writes, scene.agent.places/outside-changes, regressions/issue-c8-land-9c, regressions/issue-c8-land-9c-review, regressions/issue-c8-land-11c, regressions/issue-c8-land-12-scene, regressions/issue-c8-scene-pin-reread, regressions/issue-driven-value-sources, regressions/issue-session-object-held]
+    since: "2026-11-17"
+  - id: scene.files.usdc
+    title: Export binary USD layers with typed scene data
+    dimension: [conversion, function, fidelity, robustness, performance]
+    priority: P1
+    status: has
+    commands: [file.export]
+    paths:
+      - crates/formats/usd/src/**
+      - bindings/wasm/src/formats.rs
+      - web/src/App.tsx
+    cases:
+      - scene.files.usdc/blender-roundtrip
+      - scene.files.usdc/editor-export
+      - scene.files.usdc/typed-values
+      - scene.files.usdc/table-compression
+    since: "2026-11-17"
+  - id: scene.viewport.rendered
+    title: Progressive rendered shading in the viewport
+    dimension: [function, fidelity, performance, conversion]
+    priority: P1
+    status: has
+    commands: [view.shading, view.rendered, view.renderedStep]
+    paths: [crates/render/trace/src/**, crates/render/raster/src/**, bindings/wasm/src/viewport_trace.rs, web/src/RenderedViewport.tsx]
+    target: Blender 5.2.3 LTS
+    gap: CPU previews use at most 512 pixels per side and 256 samples; motion blur and compositing are final-render features.
+    cases: [scene.viewport.rendered/engine-and-reference, scene.viewport.rendered/editor-progress, regressions/issue-3]
+    since: "2026-11-17"
+  - id: scene.uv.minimum-stretch
+    title: Minimum-stretch UV unwrapping
+    dimension: [function, fidelity, conversion, robustness]
+    priority: P1
+    status: has
+    commands: [uv.unwrap]
+    paths: [crates/engine/model/src/minimum_stretch.rs, crates/engine/model/src/unwrap.rs, bindings/wasm/src/commands_uvedit.rs, web/src/UvEditor.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Importance weights and optional flips are not exposed. Nondegenerate orientable charts are required; a noninjective pinned initialization is rejected. At most 128 islands and 20000 chart vertices per operation.
+    cases: [scene.uv.minimum-stretch/blender-and-atomicity]
+    since: "2026-11-17"
+  - id: scene.uv.live-unwrap
+    title: Live relaxation while pinned UVs move
+    dimension: [function, fidelity, conversion, robustness]
+    priority: P1
+    status: has
+    commands: [uv.liveUnwrap, uv.preview, uv.translate, uv.rotate, uv.scale]
+    paths: [crates/engine/model/src/unwrap.rs, bindings/wasm/src/commands_uvedit.rs, bindings/wasm/src/lib.rs, web/src/UvEditor.tsx]
+    target: Blender 5.2.3 LTS
+    gap: UV selection remains synchronized with the mesh. Live unwrap is the UV Editor option; automatic seam or mesh-edit unwrapping in the 3D viewport is not implemented.
+    cases: [scene.uv.live-unwrap/commands-and-reference, scene.uv.live-unwrap/editor-flow, scene.uv.live-unwrap/mesh-merge, regressions/issue-uv7-rendered-preview]
+    since: "2026-11-17"
+  - id: scene.physics.motors
+    title: Rigid body constraint motors
+    dimension: [function, fidelity, conversion, collab, robustness]
+    priority: P1
+    status: has
+    commands: [physics.constraint.add, physics.constraint.set, physics.constraint.connect, physics.bake]
+    paths: [crates/engine/model/src/physics.rs, crates/engine/physics/src/joint.rs, bindings/wasm/src/commands_physics.rs, web/src/PhysicsLinks.tsx]
+    target: Blender 5.2.3 LTS
+    gap: Motor targets are static settings; animated target velocities and maximum impulses are not exposed.
+    cases: [scene.physics.motors/blender-and-round-trip, scene.physics.motors/editor-controls, scene.physics.motors/released-sculpt-recovery]
+    since: "2026-11-17"
+  - id: scene.object.basics
+    title: Add cubes, cylinders and spheres, delete objects, and place, turn and size them
+    dimension: [function, conversion, data-safety]
+    priority: P0
+    status: has
+    commands: [add.cube, add.cylinder, add.uvSphere, object.transform, edit.delete]
+    paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/scene.rs, bindings/wasm/tests/round_trip.rs]
+    target: Blender 5.2.3 LTS
+    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references]
+    since: "2026-11-17"
+  - id: scene.material.basics
+    title: Make, rename, colour and assign materials (roughness, transmission, IOR)
+    dimension: [function, conversion, data-safety]
+    priority: P0
+    status: has
+    commands: [material.new, material.set, material.assign]
+    paths: [bindings/wasm/src/commands.rs, bindings/wasm/tests/round_trip.rs]
+    target: Blender 5.2.3 LTS
+    cases: [scene.material.basics/save-reopen]
+    since: "2026-11-17"
+  - id: scene.modifier.basics
+    title: Add, change and reorder modifiers (subdivision, bevel, mirror)
+    dimension: [function, conversion, data-safety]
+    priority: P0
+    status: has
+    commands: [modifier.add, modifier.set, modifier.move]
+    paths: [bindings/wasm/src/commands.rs, bindings/wasm/tests/round_trip.rs]
+    target: Blender 5.2.3 LTS
+    cases: [scene.modifier.basics/save-reopen, regressions/issue-armature-modifier-operand]
+    since: "2026-11-17"
+  - id: scene.mesh.basics
+    title: Select faces in edit mode, inset and extrude them
+    dimension: [function, conversion, data-safety]
+    priority: P0
+    status: has
+    commands: [mesh.select, mesh.inset, mesh.extrude]
+    paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/mesh.rs, bindings/wasm/tests/round_trip.rs]
+    target: Blender 5.2.3 LTS
+    cases: [scene.mesh.basics/save-reopen, regressions/issue-extrude-offset]
+    since: "2026-11-17"
+  - id: scene.edit.history
+    title: "Undo, redo, delete, duplicate and selection"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [edit.undo, edit.redo, edit.duplicate, select.all, select.none, select.objects]
+    paths: [bindings/wasm/src/commands_rig.rs, bindings/wasm/examples/bench.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/examples/conformance.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-undo-holds-its-step]
+    since: "2026-11-17"
+  - id: scene.object.add
+    title: "Add meshes, curves, lights, cameras and empties"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [add.plane, add.circle, add.icoSphere, add.cone, add.torus, add.grid, add.light, add.camera, add.empty, add.armature, add.curveBezier, add.curveCircle, add.curvePath, add.text, add.lattice]
+    paths: [bindings/wasm/src/commands_curve.rs, bindings/wasm/src/check.rs, bindings/wasm/examples/bench.rs, bindings/wasm/examples/sculpt_bench.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.object.transform
+    title: "Object transforms, parenting, origins and visibility"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [object.translate, object.rotate, object.scale, object.applyTransform, object.originToGeometry, object.order, object.rename, object.parent, object.clearParent, object.hide, object.reveal, object.join, object.setCamera, object.lookAt, object.parentArmature, object.convertToMesh]
+    paths: [bindings/wasm/src/check.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/src/commands_rig.rs]
+    cases: [regressions/issue-origin-to-geometry, regressions/issue-gates-named-objects, regressions/issue-parent-frame, regressions/issue-reparent-keeps-world, regressions/issue-clear-parent-own-constraints, regressions/issue-scale-selected-children, regressions/issue-promo-parent-space, regressions/issue-append-keeps-data, regressions/issue-apply-transform-keys]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.mode.switch
+    title: "Object, Edit, Pose, Sculpt and Weight Paint modes"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [mode.toggle, mode.set, mode.armature, mode.pose, mode.weightPaint, mode.sculpt, mode.particleEdit, mode.shape]
+    paths: [bindings/wasm/src/commands_particles.rs, bindings/wasm/src/commands_sculpt.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/src/commands_rig2.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.mesh.edit
+    title: "Mesh editing: select modes, extrude, inset, bevel, loop cut and the other Edit Mode tools"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [mesh.selectMode, mesh.selectVertexMode, mesh.selectEdgeMode, mesh.selectFaceMode, mesh.bevel, mesh.subdivide, mesh.loopCut, mesh.merge, mesh.deleteFaces, mesh.deleteVertices, mesh.fill, mesh.flip, mesh.recalculateNormals, mesh.translate, mesh.scale, mesh.setGeometry, mesh.extrudeIndividual, mesh.dissolveVertices, mesh.dissolveEdges, mesh.dissolveFaces, mesh.bridge, mesh.bisect, mesh.separate, mesh.symmetrize, mesh.spin, mesh.bevelVertices, mesh.rotate, mesh.proportional, mesh.markSeam, mesh.clearSeam, mesh.knife, mesh.edgeSlide]
+    paths: [bindings/wasm/src/commands_model.rs, bindings/wasm/src/commands_uvedit.rs, bindings/wasm/src/tools.rs, bindings/wasm/examples/conformance.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-edit-mode-named-object, regressions/issue-bisect-symmetrize-whole-mesh, regressions/issue-elements-faces-exact, regressions/issue-fill-uvs, regressions/issue-edit-face-sets]
+    since: "2026-11-17"
+  - id: scene.modifier.stack
+    title: "Modifier stack"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [modifier.remove, modifier.apply, modifier.setImage]
+    paths: [bindings/wasm/examples/bench.rs, bindings/wasm/src/commands_uv.rs, bindings/wasm/src/files.rs, bindings/wasm/src/lib.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.material.manage
+    title: "Materials"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [material.clear, material.delete, material.setTexture]
+    paths: [bindings/wasm/examples/conformance.rs, bindings/wasm/src/check.rs, bindings/wasm/src/commands_uv.rs, bindings/wasm/src/files.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-4]
+    since: "2026-11-17"
+  - id: scene.render.lights-world
+    title: "Lights, cameras, world and render settings"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [light.set, world.set, world.setImage, render.trace.step, render.trace.image, render.trace.cancel, render.animation]
+    paths: [bindings/wasm/src/commands_render.rs, bindings/wasm/src/commands_anim.rs, bindings/wasm/src/commands_world.rs, bindings/wasm/src/files.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.file.import-export
+    title: "Import and export"
+    dimension: [conversion, function]
+    priority: P1
+    status: partial
+    commands: [file.import]
+    paths: [bindings/wasm/src/files.rs, bindings/wasm/src/lib.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.view.viewport
+    title: "Viewport shading, views and overlays"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [view.wireframe, view.solid, view.material, view.front, view.right, view.top, view.camera, view.perspective, view.frameAll, view.frameSelected, view.grid, view.overlays, view.orbit, view.pan, view.zoom, view.set, view.resize]
+    paths: [bindings/wasm/examples/bench.rs, bindings/wasm/examples/sculpt_bench.rs, bindings/wasm/src/viewport_trace.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-1, regressions/issue-2]
+    since: "2026-11-17"
+  - id: scene.uv.editing
+    title: "UV projections and UV editing"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [uv.smartProject, uv.cubeProject, uv.cylinderProject, uv.sphereProject, uv.planarProject, uv.reset, uv.clear, uv.stitch, uv.pin, uv.unpin, uv.layout]
+    paths: [bindings/wasm/src/commands_uv.rs, bindings/wasm/src/commands_uvedit.rs, bindings/wasm/examples/conformance.rs, bindings/wasm/src/check.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.animation.timeline
+    title: "Keyframes, frames, drivers, keying sets, actions, NLA and the graph editor"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [anim.deleteKey, anim.clear, anim.setInterpolation, frame.set, frame.next, frame.previous, frame.start, frame.end, anim.nextKey, anim.previousKey, frame.range, driver.add, driver.set, driver.remove, keyingSet.new, keyingSet.remove, keyingSet.addPaths, keyingSet.removePath, keyingSet.setActive, action.new, action.assign, action.remove, action.rename, nla.pushDown, nla.addTrack, nla.removeTrack, nla.setTrack, nla.addStrip, nla.removeStrip, nla.setAction, nla.tweak, nla.tweakExit, graph.moveKey, graph.deleteKey, graph.setInterpolation]
+    paths: [bindings/wasm/src/commands_anim2.rs, bindings/wasm/src/commands_anim.rs, bindings/wasm/src/commands_nla.rs, bindings/wasm/src/commands_rig.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-interpolation-tweak-frame, regressions/issue-action-remove-tweak]
+    since: "2026-11-17"
+  - id: scene.rigging.armature
+    title: "Bones, poses, vertex groups, shape keys and constraints"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [bone.add, bone.extrude, bone.set, bone.select, pose.set, pose.clear, pose.insertKey, pose.deleteKey, vertexGroup.add, vertexGroup.remove, vertexGroup.assign, vertexGroup.unassign, vertexGroup.select, shapeKey.add, shapeKey.remove, shapeKey.set, shapeKey.offset, shapeKey.insertKey, constraint.add, constraint.set, constraint.remove, constraint.move, constraint.apply, constraint.setInverse, constraint.clearInverse]
+    paths: [bindings/wasm/src/commands_rig.rs, bindings/wasm/src/commands_rig2.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-bone-set-named-armature, regressions/issue-apply-constraint-once]
+    since: "2026-11-17"
+  - id: scene.sculpt.paint
+    title: "Sculpting, multiresolution and weight painting"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [paint.group, paint.brush, paint.tool, paint.sample, paint.gradient, paint.stroke, paint.vertices, paint.normalizeAll, sculpt.brush, sculpt.stroke, sculpt.maskInvert, sculpt.maskClear, sculpt.maskFill, sculpt.maskSmooth, sculpt.tool, sculpt.dyntopo, sculpt.detailFlood, sculpt.gesture, sculpt.faceSetsFromMask, sculpt.faceSetsFromVisible, sculpt.faceSetsFromLooseParts, sculpt.faceSetsClear, sculpt.faceSetVisibility, sculpt.hideFaceSet, sculpt.isolateFaceSet, sculpt.showAllFaces, sculpt.remesh, multires.subdivide, multires.deleteHigher, multires.applyBase, multires.reshape]
+    paths: [bindings/wasm/src/commands_sculpt.rs, bindings/wasm/src/commands_sculpt2.rs, bindings/wasm/src/commands_rig2.rs, bindings/wasm/src/commands_multires.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-paint-named-mesh-group, regressions/issue-dyntopo-multires-levels]
+    since: "2026-11-17"
+  - id: scene.particles.hair
+    title: "Particle systems and grooming"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [particles.remove, particleEdit.brush, particleEdit.stroke, particleEdit.reset]
+    paths: [bindings/wasm/src/commands_particles.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-removed-index]
+    since: "2026-11-17"
+  - id: scene.collab.presence
+    title: "Presence of other people in the scene"
+    dimension: [collab, function]
+    priority: P1
+    status: partial
+    commands: [presence.local, presence.peers, presence.place]
+    paths: [bindings/wasm/src/commands_presence.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.curve.text-lattice
+    title: "Curves, text objects and lattices"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [curve.set, text.set, curve.setSplines, curve.select, curve.translate, curve.extrude, curve.subdivide, curve.toggleCyclic, curve.setHandleType, curve.deletePoints, text.insert, text.delete, text.caret, lattice.set, lattice.movePoints, lattice.select]
+    paths: [bindings/wasm/src/commands_curve.rs, bindings/wasm/src/commands_lattice.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-named-object-modes]
+    since: "2026-11-17"
+  - id: scene.physics.simulation
+    title: "Rigid bodies, cloth, soft bodies, fields and constraints"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [physics.world.set, physics.rigidBody.add, physics.rigidBody.set, physics.rigidBody.remove, physics.cloth.remove, physics.softBody.remove, physics.collision.add, physics.collision.remove, physics.field.new, physics.field.add, physics.field.set, physics.field.remove, physics.constraint.remove]
+    paths: [bindings/wasm/src/commands_physics.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.nodes.geometry
+    title: "Geometry node groups"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [nodes.newGroup, nodes.removeGroup, nodes.renameGroup, nodes.removeNodes, nodes.moveNodes, nodes.unlink, nodes.addInput, nodes.removeInput, nodes.addOutput, nodes.removeOutput, nodes.addZoneItem, nodes.removeZoneItem]
+    paths: [bindings/wasm/src/commands_nodes.rs, bindings/wasm/examples/conformance.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    since: "2026-11-17"
+  - id: scene.compositor.nodes
+    title: "Compositor"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [compositor.new, compositor.set, compositor.setImage, compositor.pickMatte, compositor.preview]
+    paths: [bindings/wasm/src/commands_compositor.rs, bindings/wasm/src/files.rs, bindings/wasm/src/lib.rs]
+    target: "Blender 5.2.3 LTS"
+    gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
+    cases: [regressions/issue-matte-pick-place]
+    since: "2026-11-17"
+  - id: scene.editor.display-modes
+    title: The editor in each display mode (Menus, Single line, Classic, Focus); Focus shows the viewport alone
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/App.tsx, web/src/scene.ts, web/tests/modes.mjs, web/tests/focus.mjs]
+    cases: [regressions/issue-focus-shows-timeline]
+    since: "2026-11-17"

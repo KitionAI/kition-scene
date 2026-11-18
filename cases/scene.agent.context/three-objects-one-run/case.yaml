@@ -1,0 +1,56 @@
+format: 1
+id: scene.agent.context/three-objects-one-run
+feature: scene.agent.context
+intent: >-
+  The scene has Cube (selected), Left and Right. In one scene_run the agent gives a new material to
+  the three cubes, keys Right's location at 2 seconds and extrudes Left's face 0, naming what each
+  step acts on (`on` or `objects`, `at.time`, an edit-mode command's `elements`) instead of
+  selecting, going to a frame or entering edit mode first; each step changes exactly what it names
+  (the key lands on frame 49: frame 1 at 0 s, 24 fps).
+layer: eval
+source:
+  kind: synthetic
+  from: 'the starter scene with two more cubes, which the scene engine wrote'
+  license: owned
+input: [input/scene.kscene]
+steps:
+  - task:
+      prompt: >-
+        In scene.kscene, in one scene_run call: give Cube, Left and Right a new material named
+        "Blue" (pure blue), key Right's location at 2 seconds, and extrude face 0 of Left by
+        0.5 m. Change nothing else.
+      max_turns: 20
+  - inspect: { path: scene.kscene, as: after }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      details.materials: { count: 2 }
+      details.materials.1.name: Blue
+      details.materials.1.users: 3
+      details.materials.1.baseColor.2: { approx: 1, tol: 0.01 }
+      details.objects.3.name: Left
+      details.objects.3.mesh.faces: 10
+      details.animation.channels: { count: 3 }
+      details.animation.channels.0.property: location
+      details.animation.channels.0.keys.0.frame: 49
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      details.objects.0.name: Cube
+      details.objects.0.mesh.faces: 6
+      details.objects.4.name: Right
+      details.objects.4.mesh.faces: 6
+      details.objects.4.location: [3, 0, 0]
+solution:
+  - tool: scene_run
+    args:
+      path: scene.kscene
+      steps:
+        - { command: material.new, params: { name: Blue, baseColor: [0, 0, 1], assign: false } }
+        - { command: material.assign, on: [Cube, Left, Right], params: { material: Blue } }
+        - { command: anim.insertKey, at: { time: 2 }, params: { objects: Right, properties: [location] } }
+        - { command: mesh.extrude, params: { elements: { object: Left, faces: [0] }, distance: 0.5 } }
+since: "2026-11-17"
+timeout_s: 600

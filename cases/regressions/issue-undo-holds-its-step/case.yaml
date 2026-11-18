@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-undo-holds-its-step
+feature: scene.edit.history
+intent: >-
+  An agent's undo or redo rests on the objects the steps it may take back wrote, not on the whole
+  scene: a run that renames a cube and undoes the rename still applies after a colleague moved
+  another cube, and is refused after the colleague renamed the same cube; what is not known (a
+  model batch's step) holds the whole scene.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+  - cargo-test:
+      package: kition-scene
+      test: independent
+      filter: an_undo_holds_the_objects_its_step_wrote
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 600

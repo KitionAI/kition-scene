@@ -1,0 +1,7 @@
+/* The Shrinkwrap modifier's projection directions: one per line, so long labels fit the panel. */
+.scene-checks-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}

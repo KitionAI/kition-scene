@@ -1,0 +1,19 @@
+[package]
+name = "kition-scene-fbx"
+description = "FBX (binary 7.4/7.5 and ASCII) read and binary 7.4 write for Kition scenes: hierarchy, meshes, materials, cameras, lights, skins, blend shapes, and animation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+kition-scene-exchange = { workspace = true }
+miniz_oxide = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

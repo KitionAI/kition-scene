@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-camera9-fbx-gate
+feature: scene.camera.sensor-fit
+intent: Expanded FBX film gates retain the authored frame for wide portrait and landscape exports instead of being clipped to the camera panel's sensor range on import.
+layer: gate
+dimension: conversion
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/camera9_formats.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: camera9_formats, filter: expanded_fbx_gates }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

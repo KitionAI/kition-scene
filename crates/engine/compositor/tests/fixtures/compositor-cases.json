@@ -1,0 +1,1191 @@
+{
+ "width": 48,
+ "height": 32,
+ "columns": [
+  1,
+  4,
+  7,
+  10,
+  13,
+  16,
+  19,
+  22,
+  25,
+  28,
+  31,
+  34,
+  37,
+  40,
+  43,
+  46
+ ],
+ "rows": [
+  2,
+  5,
+  8,
+  11,
+  14,
+  17,
+  20,
+  23,
+  26,
+  29
+ ],
+ "cases": [
+  {
+   "name": "identity",
+   "kind": "invert",
+   "values": {
+    "Fac": 0
+   },
+   "inputs": {
+    "Color": "A"
+   },
+   "output": "Color"
+  },
+  {
+   "name": "blur-gaussian-3",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     3,
+     3,
+     0
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-gaussian-6x2",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     6,
+     2,
+     0
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-flat-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "flat"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-tent-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "tent"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-quadratic-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "quadratic"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-cubic-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "cubic"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-catrom-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "catrom"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-mitch-4",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     4,
+     4,
+     0
+    ],
+    "Type": "mitch"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-fast-gaussian-5",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     5,
+     5,
+     0
+    ],
+    "Type": "fastGaussian"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "blur-alpha-3",
+   "kind": "blur",
+   "values": {
+    "Size": [
+     3,
+     3,
+     0
+    ]
+   },
+   "inputs": {
+    "Image": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "glare-highlights",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Highlights"
+  },
+  {
+   "name": "glare-highlights-smooth",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high",
+    "Highlights Threshold": 0.8,
+    "Highlights Smoothness": 0.5
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Highlights"
+  },
+  {
+   "name": "glare-highlights-clamp",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high",
+    "Clamp Highlights": true,
+    "Maximum Highlights": 3
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Highlights"
+  },
+  {
+   "name": "glare-bloom",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-bloom-image",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "glare-bloom-tint",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high",
+    "Strength": 0.5,
+    "Saturation": 0.5,
+    "Tint": [
+     1,
+     0.6,
+     0.4,
+     1
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-bloom-size",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom",
+    "Quality": "high",
+    "Size": 0.8
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-fog-glow",
+   "kind": "glare",
+   "values": {
+    "Type": "fogGlow",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-fog-glow-size",
+   "kind": "glare",
+   "values": {
+    "Type": "fogGlow",
+    "Quality": "high",
+    "Size": 0.3
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-streaks",
+   "kind": "glare",
+   "values": {
+    "Type": "streaks",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-streaks-angle",
+   "kind": "glare",
+   "values": {
+    "Type": "streaks",
+    "Quality": "high",
+    "Streaks": 3,
+    "Streaks Angle": 0.4,
+    "Fade": 0.8,
+    "Iterations": 2
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-simple-star",
+   "kind": "glare",
+   "values": {
+    "Type": "simpleStar",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-simple-star-straight",
+   "kind": "glare",
+   "values": {
+    "Type": "simpleStar",
+    "Quality": "high",
+    "Diagonal Star": false
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-ghosts",
+   "kind": "glare",
+   "values": {
+    "Type": "ghosts",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-sun-beams",
+   "kind": "glare",
+   "values": {
+    "Type": "sunBeams",
+    "Quality": "high"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Glare"
+  },
+  {
+   "name": "glare-highlights-medium",
+   "kind": "glare",
+   "values": {
+    "Type": "bloom"
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Highlights"
+  },
+  {
+   "name": "color-balance-lgg",
+   "kind": "colorBalance",
+   "values": {
+    "Base Lift": 0.05,
+    "Color Lift": [
+     1,
+     0.8,
+     0.9,
+     1
+    ],
+    "Base Gamma": 1.3,
+    "Color Gamma": [
+     0.9,
+     1,
+     1.1,
+     1
+    ],
+    "Base Gain": 0.8,
+    "Color Gain": [
+     1,
+     1.1,
+     0.9,
+     1
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "color-balance-lgg-fac",
+   "kind": "colorBalance",
+   "values": {
+    "Fac": 0.6,
+    "Base Lift": -0.1,
+    "Base Gamma": 0.7,
+    "Base Gain": 1.4
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "color-balance-cdl",
+   "kind": "colorBalance",
+   "values": {
+    "Type": "offsetPowerSlope",
+    "Base Offset": 0.05,
+    "Color Offset": [
+     0.02,
+     0,
+     -0.02,
+     1
+    ],
+    "Base Power": 1.2,
+    "Color Power": [
+     1,
+     0.9,
+     1.1,
+     1
+    ],
+    "Base Slope": 0.9,
+    "Color Slope": [
+     1.1,
+     1,
+     0.9,
+     1
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "curves-combined",
+   "kind": "rgbCurves",
+   "values": {
+    "curves": {
+     "c": [
+      [
+       0,
+       0
+      ],
+      [
+       0.4,
+       0.6
+      ],
+      [
+       1,
+       1
+      ]
+     ]
+    }
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "curves-channels",
+   "kind": "rgbCurves",
+   "values": {
+    "curves": {
+     "r": [
+      [
+       0,
+       0.1
+      ],
+      [
+       0.5,
+       0.4
+      ],
+      [
+       1,
+       0.9
+      ]
+     ],
+     "g": [
+      [
+       0,
+       0
+      ],
+      [
+       0.3,
+       0.5
+      ],
+      [
+       0.7,
+       0.6
+      ],
+      [
+       1,
+       1
+      ]
+     ],
+     "b": [
+      [
+       0,
+       0.2
+      ],
+      [
+       1,
+       0.8
+      ]
+     ]
+    }
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "curves-levels",
+   "kind": "rgbCurves",
+   "values": {
+    "Fac": 0.75,
+    "Black Level": [
+     0.1,
+     0.05,
+     0,
+     1
+    ],
+    "White Level": [
+     0.9,
+     1,
+     0.8,
+     1
+    ]
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "hue-saturation",
+   "kind": "hueSaturation",
+   "values": {
+    "Hue": 0.6,
+    "Saturation": 1.5,
+    "Value": 0.8
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "hue-saturation-fac",
+   "kind": "hueSaturation",
+   "values": {
+    "Hue": 0.3,
+    "Saturation": 0.4,
+    "Value": 1.2,
+    "Fac": 0.5
+   },
+   "inputs": {
+    "Image": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "bright-contrast",
+   "kind": "brightContrast",
+   "values": {
+    "Bright": 10,
+    "Contrast": 20
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "bright-contrast-low",
+   "kind": "brightContrast",
+   "values": {
+    "Bright": -20,
+    "Contrast": -30
+   },
+   "inputs": {
+    "Image": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "exposure",
+   "kind": "exposure",
+   "values": {
+    "Exposure": 1.5
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "exposure-alpha",
+   "kind": "exposure",
+   "values": {
+    "Exposure": -0.7
+   },
+   "inputs": {
+    "Image": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "mix-mix",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "mix",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-darken",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "darken",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-multiply",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "multiply",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-burn",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "burn",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-lighten",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "lighten",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-screen",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "screen",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-dodge",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "dodge",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-add",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "add",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-overlay",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "overlay",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-soft-light",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "softLight",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-linear-light",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "linearLight",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-difference",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "difference",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-exclusion",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "exclusion",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-subtract",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "subtract",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-divide",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "divide",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-hue",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "hue",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-saturation",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "saturation",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-color",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "color",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-value",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "value",
+    "Factor": 0.6
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-add-clamped",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "add",
+    "Factor": 1.3,
+    "clampResult": true
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "mix-factor-image",
+   "kind": "mixColor",
+   "values": {
+    "blendType": "mix"
+   },
+   "inputs": {
+    "A": "A",
+    "B": "B",
+    "Factor": "B.Alpha"
+   },
+   "output": "Result"
+  },
+  {
+   "name": "alpha-over",
+   "kind": "alphaOver",
+   "values": {},
+   "inputs": {
+    "Background": "A",
+    "Foreground": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "alpha-over-fac",
+   "kind": "alphaOver",
+   "values": {
+    "Fac": 0.6
+   },
+   "inputs": {
+    "Background": "A",
+    "Foreground": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "alpha-over-straight",
+   "kind": "alphaOver",
+   "values": {
+    "Straight Alpha": true
+   },
+   "inputs": {
+    "Background": "A",
+    "Foreground": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "alpha-over-disjoint",
+   "kind": "alphaOver",
+   "values": {
+    "Type": "disjointOver"
+   },
+   "inputs": {
+    "Background": "B",
+    "Foreground": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "alpha-over-conjoint",
+   "kind": "alphaOver",
+   "values": {
+    "Type": "conjointOver",
+    "Fac": 0.8
+   },
+   "inputs": {
+    "Background": "B",
+    "Foreground": "B"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "ellipse",
+   "kind": "ellipseMask",
+   "values": {},
+   "inputs": {},
+   "output": "Mask"
+  },
+  {
+   "name": "ellipse-rotated",
+   "kind": "ellipseMask",
+   "values": {
+    "Position": [
+     0.3,
+     0.6,
+     0
+    ],
+    "Size": [
+     0.5,
+     0.25,
+     0
+    ],
+    "Rotation": 0.6
+   },
+   "inputs": {},
+   "output": "Mask"
+  },
+  {
+   "name": "ellipse-subtract",
+   "kind": "ellipseMask",
+   "values": {
+    "Operation": "subtract",
+    "Value": 0.7,
+    "Size": [
+     0.6,
+     0.5,
+     0
+    ]
+   },
+   "inputs": {
+    "Mask": "B.Alpha"
+   },
+   "output": "Mask"
+  },
+  {
+   "name": "ellipse-multiply",
+   "kind": "ellipseMask",
+   "values": {
+    "Operation": "multiply",
+    "Size": [
+     0.8,
+     0.9,
+     0
+    ]
+   },
+   "inputs": {
+    "Mask": "B.Alpha"
+   },
+   "output": "Mask"
+  },
+  {
+   "name": "ellipse-not",
+   "kind": "ellipseMask",
+   "values": {
+    "Operation": "not",
+    "Size": [
+     0.8,
+     0.9,
+     0
+    ]
+   },
+   "inputs": {
+    "Mask": "B.Alpha"
+   },
+   "output": "Mask"
+  },
+  {
+   "name": "lens-barrel",
+   "kind": "lensDistortion",
+   "values": {
+    "Distortion": 0.2
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-pincushion-fit",
+   "kind": "lensDistortion",
+   "values": {
+    "Distortion": -0.15,
+    "Fit": true
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-dispersion",
+   "kind": "lensDistortion",
+   "values": {
+    "Dispersion": 0.1
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-horizontal",
+   "kind": "lensDistortion",
+   "values": {
+    "Type": "horizontal",
+    "Dispersion": 0.3
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-barrel-fit",
+   "kind": "lensDistortion",
+   "values": {
+    "Distortion": 0.2,
+    "Fit": true
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-both",
+   "kind": "lensDistortion",
+   "values": {
+    "Distortion": 0.1,
+    "Dispersion": 0.1
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-both-fit",
+   "kind": "lensDistortion",
+   "values": {
+    "Distortion": -0.1,
+    "Dispersion": 0.2,
+    "Fit": true
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "lens-horizontal-small",
+   "kind": "lensDistortion",
+   "values": {
+    "Type": "horizontal",
+    "Dispersion": 0.1
+   },
+   "inputs": {
+    "Image": "A"
+   },
+   "output": "Image"
+  },
+  {
+   "name": "invert",
+   "kind": "invert",
+   "values": {},
+   "inputs": {
+    "Color": "A"
+   },
+   "output": "Color"
+  },
+  {
+   "name": "invert-alpha",
+   "kind": "invert",
+   "values": {
+    "Fac": 0.3,
+    "Invert Alpha": true
+   },
+   "inputs": {
+    "Color": "B"
+   },
+   "output": "Color"
+  }
+ ]
+}

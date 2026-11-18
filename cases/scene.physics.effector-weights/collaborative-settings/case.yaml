@@ -1,0 +1,17 @@
+format: 1
+id: scene.physics.effector-weights/collaborative-settings
+feature: scene.physics.effector-weights
+intent: Independent and competing physics-register edits, field deletion and divergent combined settings converge with fixed actors and both import orders twenty times; each peer rebuilds equal results or the same explicit failure.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/weights10_collab.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: weights10_collab }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

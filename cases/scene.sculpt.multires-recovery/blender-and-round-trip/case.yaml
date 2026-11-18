@@ -1,0 +1,27 @@
+format: 1
+id: scene.sculpt.multires-recovery/blender-and-round-trip
+feature: scene.sculpt.multires-recovery
+intent: Recover complete quad subdivision levels without losing visible sculpt detail, preserve oriented topology under reordered indices and transforms, reject unsupported data atomically, and retain the hierarchy through undo and file round trips.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/multires8.py
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/multires8-reference.json
+steps:
+  - cargo-test: { package: kition-scene-model, test: multires8 }
+  - cargo-test: { package: kition-scene-kit, test: multires8 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-31"
+    how: Public multires_unsubdivide and multires_rebuild_subdiv operators on deformed and plain quad cubes and an open plane; exact counts and oriented topology, retained base positions and the highest surface of initially level-free inputs within 2e-6 m. Existing sculpt detail preserves Kition's before state within 3e-6 m. Optional KITION_BLENDER repeats the observations; offline recordings always run.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

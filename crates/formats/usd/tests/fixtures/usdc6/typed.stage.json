@@ -1,0 +1,241 @@
+{
+  "/Material": {
+    "apiSchemas": [],
+    "customData": {},
+    "properties": {
+      "signal": {
+        "connections": [],
+        "custom": false,
+        "default": null,
+        "samples": [],
+        "type": "token",
+        "uniform": false
+      }
+    },
+    "type": "Material"
+  },
+  "/Values": {
+    "apiSchemas": [],
+    "customData": {
+      "Cube": {
+        "generated": true
+      }
+    },
+    "properties": {
+      "empty": {
+        "connections": [],
+        "custom": false,
+        "default": [],
+        "samples": [],
+        "type": "float[]",
+        "uniform": false
+      },
+      "enabled": {
+        "connections": [],
+        "custom": false,
+        "default": true,
+        "samples": [],
+        "type": "bool",
+        "uniform": false
+      },
+      "file": {
+        "connections": [],
+        "custom": false,
+        "default": "textures/checker.png",
+        "samples": [],
+        "type": "asset",
+        "uniform": false
+      },
+      "halves": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          0.0,
+          -0.0,
+          1.0,
+          1.0009765625,
+          1.0,
+          1.001953125,
+          6.103515625e-05,
+          5.960464477539063e-08,
+          0.0,
+          65504.0,
+          -2.0
+        ],
+        "samples": [],
+        "type": "half[]",
+        "uniform": false
+      },
+      "integers": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          -2147483648,
+          -2,
+          0,
+          2147483647
+        ],
+        "samples": [],
+        "type": "int[]",
+        "uniform": false
+      },
+      "label": {
+        "connections": [],
+        "custom": true,
+        "default": "A quoted \"label\"",
+        "samples": [],
+        "type": "string",
+        "uniform": false
+      },
+      "material:binding": {
+        "targets": [
+          "/Material"
+        ]
+      },
+      "movement": {
+        "connections": [],
+        "custom": false,
+        "default": null,
+        "samples": [
+          [
+            1.0,
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          [
+            11.0,
+            [
+              1.25,
+              0.0,
+              -2.0
+            ]
+          ],
+          [
+            21.0,
+            [
+              3.0,
+              2.0,
+              1.0
+            ]
+          ]
+        ],
+        "type": "double3",
+        "uniform": false
+      },
+      "names": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          "root",
+          "root/child",
+          ""
+        ],
+        "samples": [],
+        "type": "token[]",
+        "uniform": true
+      },
+      "precise": {
+        "connections": [],
+        "custom": false,
+        "default": 0.1234567890123456,
+        "samples": [],
+        "type": "double",
+        "uniform": false
+      },
+      "rotations": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          [
+            0.5,
+            0.25,
+            -0.75,
+            1.0
+          ]
+        ],
+        "samples": [],
+        "type": "quatf[]",
+        "uniform": false
+      },
+      "scales": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          [
+            1.0,
+            0.5,
+            -2.0
+          ],
+          [
+            2.0,
+            1.0,
+            1.0
+          ]
+        ],
+        "samples": [],
+        "type": "half3[]",
+        "uniform": false
+      },
+      "signal": {
+        "connections": [
+          "/Material.signal"
+        ],
+        "custom": false,
+        "default": null,
+        "samples": [],
+        "type": "token",
+        "uniform": false
+      },
+      "transforms": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              2.0,
+              3.0,
+              4.0,
+              1.0
+            ]
+          ]
+        ],
+        "samples": [],
+        "type": "matrix4d[]",
+        "uniform": false
+      },
+      "unsigned": {
+        "connections": [],
+        "custom": false,
+        "default": [
+          0,
+          4294967295
+        ],
+        "samples": [],
+        "type": "uint[]",
+        "uniform": false
+      }
+    },
+    "type": "Xform"
+  }
+}

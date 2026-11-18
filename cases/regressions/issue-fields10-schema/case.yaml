@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-fields10-schema
+feature: scene.physics.effector-weights
+intent: The nested effectorWeights command schema is a valid KHP object descriptor with the seven supported numeric properties.
+layer: gate
+dimension: robustness
+source:
+  kind: issue
+  from: typed schema validation rejects an unwrapped nested property map
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: weights10 }
+  - cargo-test: { package: kition-scene-kit, test: commands }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

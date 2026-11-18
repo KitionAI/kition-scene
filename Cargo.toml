@@ -1,0 +1,79 @@
+[workspace]
+resolver = "3"
+members = ["crates/*/*", "bindings/*", "tools/xtask"]
+default-members = ["crates/*/*", "bindings/headless", "tools/xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/KitionAI/kition-scene"
+
+[workspace.dependencies]
+# internal
+kition-scene-model = { path = "crates/engine/model" }
+kition-scene-physics = { path = "crates/engine/physics" }
+kition-scene-particles = { path = "crates/engine/particles" }
+kition-scene-nodes = { path = "crates/engine/nodes" }
+kition-scene-compositor = { path = "crates/engine/compositor" }
+kition-scene-shader = { path = "crates/engine/shader" }
+kition-scene-sequencer = { path = "crates/engine/sequencer" }
+kition-scene-raster = { path = "crates/render/raster" }
+kition-scene-trace = { path = "crates/render/trace" }
+kition-scene-kscene = { path = "crates/formats/kscene" }
+kition-scene-kdm = { path = "crates/kdm/kdm-model" }
+kition-scene-exchange = { path = "crates/formats/exchange" }
+kition-scene-blend = { path = "crates/formats/blend" }
+kition-scene-fbx = { path = "crates/formats/fbx" }
+kition-scene-usd = { path = "crates/formats/usd" }
+
+# kition-sdk, pinned by commit (one revision for every crate of it)
+kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+# The kits' MCP server's tools (kition-kits-mcp), for the headless kit's end-to-end tests.
+kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+
+# foundation
+glam = { version = "0.30", default-features = false, features = ["std", "serde"] }
+# glyph outlines for text objects
+ttf-parser = { version = "0.25", default-features = false, features = ["std", "variable-fonts"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+zip = { version = "3", default-features = false, features = ["deflate"] }
+png = "0.17"
+# .blend files are often zstd-compressed (pure Rust, MIT)
+# FBX arrays are zlib streams (pure Rust, MIT OR Zlib OR Apache-2.0)
+miniz_oxide = { version = "0.8", default-features = false, features = ["std", "with-alloc"] }
+ruzstd = { version = "0.8", default-features = false, features = ["std"] }
+sha2 = "0.10"
+zune-jpeg = { version = "0.4", default-features = false, features = ["std"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+too_many_arguments = "allow"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
+debug = 0

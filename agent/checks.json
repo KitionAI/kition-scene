@@ -1,0 +1,68 @@
+[
+  {
+    "code": "scene.zeroScale",
+    "severity": "error",
+    "summary": "An object is scaled to zero on an axis, so it is flat or invisible.",
+    "fixture": "check-zeroScale.kscene"
+  },
+  {
+    "code": "scene.nodesError",
+    "severity": "error",
+    "summary": "A Geometry Nodes modifier's group cannot run (a cycle, a missing Group Output, or a result too large), so the modifier leaves the mesh as it is.",
+    "fixture": "check-nodesError.kscene"
+  },
+  {
+    "code": "scene.emptyMesh",
+    "severity": "warning",
+    "summary": "A mesh object has no geometry.",
+    "fixture": "check-emptyMesh.kscene"
+  },
+  {
+    "code": "scene.degenerateFaces",
+    "severity": "warning",
+    "summary": "A mesh has faces with no area (collapsed or repeated corners).",
+    "fixture": "check-degenerateFaces.kscene"
+  },
+  {
+    "code": "scene.insideOut",
+    "severity": "warning",
+    "summary": "A closed mesh's faces point inwards, so it shades and exports inside out.",
+    "fixture": "check-insideOut.kscene"
+  },
+  {
+    "code": "scene.mixedNormals",
+    "severity": "warning",
+    "summary": "Some faces of a closed mesh point the other way from their neighbours.",
+    "fixture": "check-mixedNormals.kscene"
+  },
+  {
+    "code": "scene.textureWithoutUvs",
+    "severity": "warning",
+    "summary": "A mesh with an image material has no texture coordinates, so the image shows as one colour.",
+    "fixture": "check-textureWithoutUvs.kscene"
+  },
+  {
+    "code": "scene.noCamera",
+    "severity": "warning",
+    "summary": "The scene has meshes but no camera, so it cannot be rendered.",
+    "fixture": "check-noCamera.kscene"
+  },
+  {
+    "code": "scene.noLight",
+    "severity": "warning",
+    "summary": "Nothing lights the scene and the world is dark, so renders come out dark.",
+    "fixture": "check-noLight.kscene"
+  },
+  {
+    "code": "scene.outOfShot",
+    "severity": "info",
+    "summary": "A visible mesh is outside the camera's view.",
+    "fixture": "check-outOfShot.kscene"
+  },
+  {
+    "code": "scene.unusedMaterial",
+    "severity": "info",
+    "summary": "A material is not used by any object.",
+    "fixture": "check-unusedMaterial.kscene"
+  }
+]

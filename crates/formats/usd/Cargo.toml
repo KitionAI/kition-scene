@@ -1,0 +1,19 @@
+[package]
+name = "kition-scene-usd"
+description = "USD for Kition scenes: USDA, USDC, and USDZ read; USDA, USDC, and USDZ written (transforms, meshes, preview-surface materials and images, cameras, lights, skeletons, skins, blend shapes, and time samples)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+kition-scene-exchange = { workspace = true }
+lz4_flex = { version = "0.11.6", default-features = false, features = ["std", "safe-encode", "safe-decode"] }
+
+[dev-dependencies]
+serde_json = { workspace = true, features = ["float_roundtrip"] }

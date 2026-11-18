@@ -1,0 +1,23 @@
+format: 1
+id: scene.agent.ids/in-memory-is-saved
+feature: scene.agent.ids
+intent: >-
+  After each of 30 representative commands, and on every released fixture file, the object model
+  and the engine's scene in memory are those of the saved file opened again; an unkeyed edit of an
+  animated transform is the one known, designed difference.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/saved.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: saved
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 120

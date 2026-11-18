@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-append-keeps-data
+feature: scene.object.transform
+intent: >-
+  Geometry added to a mesh (edit-mode Add, edit-mode Duplicate, Join) keeps every list the mesh
+  keeps per vertex and per face: vertex groups and shape keys join by name (new vertices weigh 0
+  and do not move in a key), duplicated vertices keep their weights, offsets and texture
+  coordinates, face sets and sculpt-hidden faces stay on their faces (these commands are not refused on a mesh with a vertex group or
+  shape key, and do not drop face sets).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: append_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

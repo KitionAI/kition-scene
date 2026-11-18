@@ -1,0 +1,21 @@
+format: 1
+id: scene.uv.live-unwrap/editor-flow
+feature: scene.uv.live-unwrap
+intent: The real editor and worker expose Minimum Stretch and Live Unwrap, preview unpinned motion during a pin drag, discard stale results on a selection change, and preserve one-step undo and saved UVs in Chromium and WebKit.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/uv7.mjs
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/uv7-cases.json
+steps:
+  - exec: { cmd: [node, web/tests/uv7.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/uv7.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+requires: [chromium, webkit]
+tags: [browser]
+since: "2026-11-17"
+timeout_s: 60

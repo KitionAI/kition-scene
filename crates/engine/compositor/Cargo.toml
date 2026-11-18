@@ -1,0 +1,15 @@
+[package]
+name = "kition-scene-compositor"
+description = "The Scene kit's compositor: a compositing node group run on a render's picture (blur, glare, colour balance, curves, mixing, masks, lens distortion)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+serde_json = { workspace = true }

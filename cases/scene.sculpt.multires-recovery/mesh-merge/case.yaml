@@ -1,0 +1,17 @@
+format: 1
+id: scene.sculpt.multires-recovery/mesh-merge
+feature: scene.sculpt.multires-recovery
+intent: Concurrent recovery keeps each winning hierarchy in one atomic mesh blob, preserving independent-object edits and converging in both fixed actor and merge orders repeated twenty times.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/multires8.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kdm, test: multires8 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

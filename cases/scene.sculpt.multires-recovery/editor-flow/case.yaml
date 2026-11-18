@@ -1,0 +1,20 @@
+format: 1
+id: scene.sculpt.multires-recovery/editor-flow
+feature: scene.sculpt.multires-recovery
+intent: The actual Multires panel runs both recovery commands, person undo and redo restore entire hierarchies, unsupported topology keeps the scene unchanged, and host save and reopen retain recovered detail in Chromium and WebKit.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/multires8.mjs
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/multires8-reference.json
+steps:
+  - exec: { cmd: [node, web/tests/multires8.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/multires8.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

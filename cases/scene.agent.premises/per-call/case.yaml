@@ -1,0 +1,26 @@
+format: 1
+id: scene.agent.premises/per-call
+feature: scene.agent.premises
+intent: >-
+  The kit states what each call reads or replaces for the command families whose code was read
+  (transforms, object properties, materials, modifiers and constraints by index, vertex groups and
+  shape keys, transform keys, light and camera settings, parenting): with real outside changes, a
+  change inside the premise refuses the agent's write with basis and a change outside it applies; a
+  modifier or constraint inserted above the one a write names by index refuses it; a write by name
+  holds the name; a batch cannot set an object's kind, parent or material.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: premises
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

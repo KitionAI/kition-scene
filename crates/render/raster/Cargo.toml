@@ -1,0 +1,20 @@
+[package]
+name = "kition-scene-raster"
+description = "The Scene kit's software renderer: the viewport, final renders through the scene camera, and picking."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+png = { workspace = true }
+serde_json = { workspace = true }

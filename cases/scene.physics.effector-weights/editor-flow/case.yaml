@@ -1,0 +1,19 @@
+format: 1
+id: scene.physics.effector-weights/editor-flow
+feature: scene.physics.effector-weights
+intent: Actual cloth and soft-body field controls support independent editing, history, baking, explicit failure recovery, host save/reopen and read-only mode in Chromium and WebKit.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/weights10.mjs
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/weights10.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/weights10.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

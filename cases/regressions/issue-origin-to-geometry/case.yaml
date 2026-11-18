@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-origin-to-geometry
+feature: scene.object.transform
+intent: >-
+  Origin to Geometry moves the origin to the centre of the mesh's bounds and nothing in the world:
+  the mesh and the object's children stay where they were (the mesh moves back by its centre,
+  so neither it nor any child jumps by twice the centre).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/origin_to_geometry.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: origin_to_geometry
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

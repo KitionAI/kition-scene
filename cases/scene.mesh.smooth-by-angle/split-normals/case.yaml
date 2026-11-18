@@ -1,0 +1,20 @@
+format: 1
+id: scene.mesh.smooth-by-angle/split-normals
+feature: scene.mesh.smooth-by-angle
+intent: Shade Smooth by Angle keeps edges sharper than the angle (30° by default) sharp, so a capped cylinder has round sides and flat caps in the GPU viewport, fast and path-traced renders, and exports; the angle is saved in the mesh blob and carried through modifiers and Apply.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/smooth_angle.rs
+  license: owned
+  note: Behaviour from the reference's manual (Shade Smooth by Angle, default 30°); no reference source consulted.
+input: []
+steps:
+  - cargo-test: { package: kition-scene-model, filter: "mesh::tests" }
+  - cargo-test: { package: kition-scene-kdm, filter: "mesh_blob::tests" }
+  - cargo-test: { package: kition-scene-kit, test: smooth_angle }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

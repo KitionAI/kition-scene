@@ -1,0 +1,19 @@
+format: 1
+id: scene.animation.keyframes/save-reopen
+feature: scene.animation.keyframes
+intent: >-
+  Location keys on the sphere at frames 1 and 24, viewed at frame 12, save to .kscene and reopen from those bytes describing the scene exactly as before (every
+  object, mesh, modifier, material, the animation and the render settings; undo history is not
+  kept by files), render the same picture, and save again as the same scene.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/round_trip.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: round_trip, filter: keyframed_motion_survives_save_and_reopen }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

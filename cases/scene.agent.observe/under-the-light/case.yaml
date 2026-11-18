@@ -1,0 +1,44 @@
+format: 1
+id: scene.agent.observe/under-the-light
+feature: scene.agent.observe
+intent: >-
+  The agent reads where the light is and places the cube directly below it (same x and y, its own
+  height kept), changing nothing else. Z is up.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.kscene
+  license: Apache-2.0
+  note: A copy of the conformance fixture the scene engine writes.
+input: [input/scene.kscene]
+steps:
+  - task:
+      prompt: >-
+        In scene.kscene, move the Cube so it sits directly below the Light: the same x and y as
+        the Light, keeping the Cube's current height.
+      max_turns: 20
+  - inspect: { path: scene.kscene, as: after }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      details.objects.0.name: Cube
+      details.objects.0.location.0: { approx: 4.0763, tol: 0.001 }
+      details.objects.0.location.1: { approx: 1.0055, tol: 0.001 }
+      details.objects.0.location.2: { approx: 0, tol: 0.001 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      details.objects.0.scale: [1, 1, 1]
+      details.objects.0.rotation: [0, 0, 0]
+      details.objects.0.mesh.faces: 6
+      details.objects.1.name: Light
+      details.objects.1.location.0: { approx: 4.0763, tol: 0.001 }
+      details.objects.2.name: Camera
+      details.objects.2.location.0: { approx: 7.3589, tol: 0.001 }
+solution:
+  - tool: scene_run
+    args: { path: scene.kscene, steps: [{ command: object.transform, params: { objects: Cube, location: [4.0763, 1.0055, 0] } }] }
+since: "2026-11-17"
+timeout_s: 600

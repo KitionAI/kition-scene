@@ -1,0 +1,17 @@
+[package]
+name = "kition-scene-sequencer"
+description = "The Scene kit's video sequencer: a frame of strips stacked channel by channel (blend modes, opacity, transitions, crop and transform, colour, text)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

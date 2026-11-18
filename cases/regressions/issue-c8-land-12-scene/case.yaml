@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-land-12-scene
+feature: scene.agent.premises
+intent: Bound immediate numeric JSON members, guard scalar names without interpreting coordinates as objects, refresh direct-batch caches, and refuse stale outliner destinations by id.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: Kition Scene regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: land12 }
+  - cargo-test: { package: kition-scene, test: land12 }
+expected:
+  - { actual: out:exit, compare: exit, value: 0 }
+since: "2026-11-17"

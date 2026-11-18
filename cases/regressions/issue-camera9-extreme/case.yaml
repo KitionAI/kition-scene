@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-camera9-extreme
+feature: scene.camera.sensor-fit
+intent: Legal extreme camera aspects project and pick without f32 angle-roundtrip drift, and glTF retains the corresponding focal angle.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/camera9_extreme.py
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/camera9-extreme-reference.json
+steps:
+  - cargo-test: { package: kition-scene-raster, test: camera9, filter: extreme_perspective }
+  - cargo-test: { package: kition-scene-kit, test: camera9_formats, filter: extreme_gltf }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

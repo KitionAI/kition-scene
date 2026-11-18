@@ -1,0 +1,23 @@
+[package]
+name = "kition-scene-trace"
+description = "The Scene kit's path tracer: progressive, physically based final renders through the scene camera."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+kition-scene-raster = { workspace = true }
+kition-scene-shader = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+kition-scene-compositor = { workspace = true }
+png = { workspace = true }
+serde_json = { workspace = true }

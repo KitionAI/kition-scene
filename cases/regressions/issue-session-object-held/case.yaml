@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-session-object-held
+feature: scene.agent.premises
+intent: >-
+  A write in a mode's session (edit mode without elements, armature edit, pose, weight paint, curve
+  point edit, text edit, lattice edit, Particle Edit, sculpt) rests on the session's object: an
+  agent's run that enters the session and writes in it is refused after a colleague changed that
+  object, and still applies after an unrelated move. Each session's commands hold what their
+  handlers read of the session's object.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/independent.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: declarations_independent
+  - cargo-test:
+      package: kition-scene
+      test: independent
+      filter: _session_holds_its_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 600

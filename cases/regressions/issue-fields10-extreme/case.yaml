@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-fields10-extreme
+feature: scene.physics.effector-weights
+intent: Extreme valid field weights fail a divergent derived bake explicitly while the scene remains valid and no nonfinite mesh is published.
+layer: gate
+dimension: robustness
+source:
+  kind: issue
+  from: A weighted Vortex can overflow the cloth solver
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-physics, test: weights10_extreme }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

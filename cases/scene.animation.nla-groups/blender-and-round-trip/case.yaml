@@ -1,0 +1,30 @@
+format: 1
+id: scene.animation.nla-groups/blender-and-round-trip
+feature: scene.animation.nla-groups
+intent: Transitions interpolate neighboring endpoint evaluations over the lower stack. Meta grouping, stretching and ungrouping preserve child animation, undo and saved files.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/nla6.py
+  license: owned
+input:
+  - repo:bindings/wasm/tests/fixtures/released-0.13.0.kscene
+  - repo:crates/engine/model/tests/fixtures/nla6-cases.json
+  - repo:crates/engine/model/tests/fixtures/nla6-move-reference.json
+steps:
+  - cargo-test: { package: kition-scene-model, test: nla6_blender }
+  - cargo-test: { package: kition-scene-kit, test: nla6 }
+  - cargo-test: { package: kition-scene-kdm, test: nla6 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-30"
+    how: Run tests/blender/nla6.py and tests/blender/nla6_move.py through Blender in background mode; the Rust tests check their committed recordings offline.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

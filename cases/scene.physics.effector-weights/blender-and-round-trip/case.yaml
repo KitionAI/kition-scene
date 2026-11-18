@@ -1,0 +1,28 @@
+format: 1
+id: scene.physics.effector-weights/blender-and-round-trip
+feature: scene.physics.effector-weights
+intent: Recorded public weight-transfer identities, defaults, full ranges, typed atomic edits, independent caches, undo and save/reopen remain consistent for cloth and soft bodies.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/physics/tests/blender/weights10.py
+  license: owned
+input:
+  - repo:crates/engine/physics/tests/fixtures/weights10-reference.json
+steps:
+  - cargo-test: { package: kition-scene-physics, test: weights10 }
+  - cargo-test: { package: kition-scene-physics, test: weights10_bounds }
+  - cargo-test: { package: kition-scene-kit, test: weights10 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-31"
+    how: Public EffectorWeights defaults and 148 cloth/soft-body observations; identities compare centroid transfers within 0.00002 m separately in each solver. This does not assert identical absolute trajectories; see tests/blender/weights10.md. Optional KITION_BLENDER repeats the recording.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

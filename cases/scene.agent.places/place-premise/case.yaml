@@ -1,0 +1,24 @@
+format: 1
+id: scene.agent.places/place-premise
+feature: scene.agent.places
+intent: >-
+  A world point (pick) names the smallest mesh whose bounds hold it, else the nearest object
+  without a mesh within 0.25 m; under answers it with the whole object list as its window, and an
+  edit-mode command's elements with their mesh; the commands declare their places and which are
+  position-independent, and the object model marks positions.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/places.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: places
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 120

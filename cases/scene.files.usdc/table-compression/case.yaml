@@ -1,0 +1,20 @@
+format: 1
+id: scene.files.usdc/table-compression
+feature: scene.files.usdc
+intent: Binary USD tables use compact signed deltas and matching LZ4 blocks, preserve their decoded values at width boundaries, and reject excessive table counts or overflowing deltas.
+layer: unit
+dimension: performance
+source:
+  kind: synthetic
+  from: crates/formats/usd/src/usdc/write/tables.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-usd
+      filter: usdc::write::tables::tests
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

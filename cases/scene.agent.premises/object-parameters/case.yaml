@@ -1,0 +1,23 @@
+format: 1
+id: scene.agent.premises/object-parameters
+feature: scene.agent.premises
+intent: >-
+  Every command parameter that takes an object, material, node group or node by id is marked as
+  naming objects (x-khp-role object), so a whole number there is a premise of a write with basis;
+  a walk of every command's schema finds none unmarked, and counts and indexes are not marked.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/object_params.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: object_params
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 120

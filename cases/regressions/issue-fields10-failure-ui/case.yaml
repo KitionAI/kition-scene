@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-fields10-failure-ui
+feature: scene.physics.effector-weights
+intent: A rejected bake command refreshes the Physics panel's derived failure state and enables explicit retry, both during stepping and during initial bake setup.
+layer: gate
+dimension: robustness
+source:
+  kind: issue
+  from: a rejected worker command must return refreshed editor info
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/weights10.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/weights10.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

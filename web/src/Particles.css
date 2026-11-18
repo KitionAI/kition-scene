@@ -1,0 +1,81 @@
+/* The Particles panel and Particle Edit's tool header (Particles.tsx). */
+
+.scene-particles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 4px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control, 8px);
+}
+
+.scene-particles-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-particles-item:hover {
+  background: var(--kit-hover, color-mix(in srgb, var(--kit-text) 6%, transparent));
+}
+
+.scene-particles-item[aria-selected='true'] {
+  background: color-mix(in srgb, var(--kit-primary, #9a5a22) 14%, transparent);
+}
+
+.scene-particles-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-particles-kind {
+  flex: none;
+  color: var(--kit-text-muted);
+  font-size: 0.85em;
+}
+
+.scene-particles-settings[aria-disabled='true'] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.scene-particles-field {
+  margin: 4px 0;
+}
+
+.scene-particles-colliders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 4px 0;
+}
+
+.scene-particles-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.scene-particles-actions > :first-child {
+  margin-right: auto;
+}
+
+.scene-particles-note {
+  margin: 4px 0 0;
+}
+
+.scene-boids { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 6px; }
+.scene-boid-rule { border-top: 1px solid var(--kit-border); padding-top: 6px; }

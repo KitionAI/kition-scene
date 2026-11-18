@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-digit-names
+feature: scene.agent.ids
+intent: >-
+  A digit string is taken for an id only where the parameter names that kind of thing and the
+  scene has such an id: a material called "2" is found by its name though an object has id 2,
+  and a vertex group's name made of digits stays a name.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: digit_names_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

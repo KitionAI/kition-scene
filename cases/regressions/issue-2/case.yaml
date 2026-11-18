@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-2
+feature: scene.view.viewport
+intent: >-
+  The rendered preview can be traced at the viewport's full size (view.renderedStep maxSide, 512
+  by default for a live view) and denoised once done (denoise), and view.overlays switches every
+  overlay off (grid, lights, cameras, empties, origins, outlines), so a rendered camera view shows
+  only the render.
+layer: gate
+source:
+  kind: issue
+  from: Kition Scene regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: rendered_preview }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

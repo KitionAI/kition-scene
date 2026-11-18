@@ -1,0 +1,250 @@
+{
+  "kdm": 1,
+  "kit": "kit.scene",
+  "schemaVersion": 6,
+  "root": "Scene",
+  "types": {
+    "Scene": {
+      "batchOps": {
+        "set.timeline": { "direct": true },
+        "set.timeline.start": { "direct": true },
+        "set.timeline.end": { "direct": true },
+        "set.timeline.fps": { "direct": true },
+        "set.physics": { "direct": true },
+        "set.physics.substeps": { "direct": true },
+        "set.physics.iterations": { "direct": true },
+        "set.physics.timeScale": { "direct": true },
+        "set.physics.frameStart": { "direct": true },
+        "set.physics.frameEnd": { "direct": true },
+        "set.keyingSets": { "direct": true },
+        "set.world.color": { "direct": true },
+        "set.world.strength": { "direct": true },
+        "set.world.rotation": { "direct": true },
+        "set.render.width": { "direct": true },
+        "set.render.height": { "direct": true },
+        "set.render.compositing": { "direct": true },
+        "set.render.sequencer": { "direct": true },
+        "set.render.motionBlur": { "direct": true },
+        "set.render.ambientOcclusion": { "direct": true },
+        "set.render.colorManagement": { "direct": true }
+      },
+      "fields": {
+        "objects": { "kind": "list", "of": "Object" },
+        "materials": { "kind": "list", "of": "Material" },
+        "images": { "kind": "list", "of": "Image" },
+        "world": { "kind": "json", "members": {
+          "strength": { "minimum": 0 },
+          "volume": { "minimum": 1, "maximum": 4294967295, "multipleOf": 1 }
+        } },
+        "render": { "kind": "json", "members": {
+          "width": { "minimum": 1, "maximum": 8192, "multipleOf": 1 },
+          "height": { "minimum": 1, "maximum": 8192, "multipleOf": 1 },
+          "compositor": { "minimum": 1, "maximum": 4294967295, "multipleOf": 1 }
+        } },
+        "camera": { "kind": "integer", "optional": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "timeline": { "kind": "json", "members": {
+          "start": { "minimum": -1048574, "maximum": 1048574, "multipleOf": 1 },
+          "end": { "minimum": -1048574, "maximum": 1048574, "multipleOf": 1 },
+          "fps": { "minimum": 1.401298464324817e-45, "maximum": 1000 }
+        } },
+        "physics": { "kind": "json", "optional": true, "members": {
+          "substeps": { "minimum": 1, "maximum": 100, "multipleOf": 1 },
+          "iterations": { "minimum": 1, "maximum": 100, "multipleOf": 1 },
+          "timeScale": { "minimum": 0, "maximum": 100 },
+          "frameStart": { "minimum": -2147483648, "maximum": 2147483647, "multipleOf": 1 },
+          "frameEnd": { "minimum": -2147483648, "maximum": 2147483647, "multipleOf": 1 }
+        } },
+        "actions": { "kind": "json", "optional": true },
+        "keyingSets": { "kind": "json", "optional": true },
+        "keys": { "kind": "map" }
+      }
+    },
+    "Object": {
+      "batchOps": {
+        "set.name": { "direct": true },
+        "set.location": { "direct": true },
+        "set.location.0": { "direct": true },
+        "set.location.1": { "direct": true },
+        "set.location.2": { "direct": true },
+        "set.rotation": { "direct": true },
+        "set.rotation.0": { "direct": true },
+        "set.rotation.1": { "direct": true },
+        "set.rotation.2": { "direct": true },
+        "set.scale": { "direct": true },
+        "set.scale.0": { "direct": true },
+        "set.scale.1": { "direct": true },
+        "set.scale.2": { "direct": true },
+        "set.parentInverse": { "direct": true },
+        "set.hidden": { "direct": true },
+        "set.mesh": { "direct": true },
+        "set.hair": { "direct": true },
+        "set.animation": { "direct": true },
+        "set.data.power": { "direct": true },
+        "set.data.radius": { "direct": true },
+        "set.data.spotSize": { "direct": true },
+        "set.data.lens": { "direct": true },
+        "set.data.sensor": { "direct": true },
+        "set.data.sensorHeight": { "direct": true },
+        "set.data.clipStart": { "direct": true },
+        "set.data.clipEnd": { "direct": true },
+        "set.data.orthoScale": { "direct": true },
+        "set.data.size": { "direct": true },
+        "set.data.extrude": { "direct": true },
+        "set.data.bevelDepth": { "direct": true },
+        "set.data.bevelResolution": { "direct": true },
+        "set.data.offset": { "direct": true },
+        "set.data.lineSpacing": { "direct": true },
+        "set.data.characterSpacing": { "direct": true },
+        "set.data.wordSpacing": { "direct": true },
+        "set.data.offsetX": { "direct": true },
+        "set.data.offsetY": { "direct": true },
+        "set.data.shear": { "direct": true },
+        "set.data.boxWidth": { "direct": true },
+        "set.data.boxHeight": { "direct": true },
+        "set.data.boxX": { "direct": true },
+        "set.data.boxY": { "direct": true },
+        "delete": { "command": "edit.delete", "params": { "objects": "target" } }
+      },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "derived": {
+        "topology": { "description": "the mesh's vertex and face counts and a hash of its faces: element indexes stay valid while it is unchanged" },
+        "bounds": { "description": "the mesh's local bounds, [[min x, y, z], [max x, y, z]]" }
+      },
+      "fields": {
+        "key": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "name": { "kind": "string" },
+        "kind": { "kind": "enum", "values": ["mesh", "light", "camera", "empty", "armature", "curve", "text", "lattice"], "readOnly": true },
+        "data": { "kind": "json", "members": {
+          "power": { "minimum": 0 },
+          "radius": { "minimum": 0 },
+          "spotSize": { "minimum": 0.01745329238474369, "maximum": 3.1415927410125732 },
+          "lens": { "minimum": 1, "maximum": 5000 },
+          "sensor": { "minimum": 1, "maximum": 200 },
+          "sensorHeight": { "minimum": 1.401298464324817e-45 },
+          "clipStart": { "minimum": 0.00009999999747378752 },
+          "clipEnd": { "minimum": 0.00019999999494757503 },
+          "orthoScale": { "minimum": 0.0010000000474974513 },
+          "size": { "minimum": 1.401298464324817e-45 },
+          "extrude": { "minimum": 0, "maximum": 1000000 },
+          "bevelDepth": { "minimum": 0, "maximum": 1000000 },
+          "bevelResolution": { "minimum": 0, "maximum": 64, "multipleOf": 1 },
+          "offset": { "minimum": -1000000, "maximum": 1000000 },
+          "lineSpacing": { "minimum": -1000000, "maximum": 1000000 },
+          "characterSpacing": { "minimum": -1000000, "maximum": 1000000 },
+          "wordSpacing": { "minimum": -1000000, "maximum": 1000000 },
+          "offsetX": { "minimum": -1000000, "maximum": 1000000 },
+          "offsetY": { "minimum": -1000000, "maximum": 1000000 },
+          "shear": { "minimum": -1000000, "maximum": 1000000 },
+          "boxWidth": { "minimum": 0, "maximum": 1000000 },
+          "boxHeight": { "minimum": 0, "maximum": 1000000 },
+          "boxX": { "minimum": -1000000, "maximum": 1000000 },
+          "boxY": { "minimum": -1000000, "maximum": 1000000 }
+        } },
+        "mesh": { "kind": "blob", "optional": true },
+        "location": { "kind": "json", "position": true },
+        "rotation": { "kind": "json", "position": true },
+        "scale": { "kind": "json", "position": true },
+        "parent": { "kind": "integer", "optional": true, "position": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "parentInverse": { "kind": "json", "optional": true, "position": true },
+        "hidden": { "kind": "boolean", "label": "hidden" },
+        "material": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "modifiers": { "kind": "json" },
+        "constraints": { "kind": "json", "optional": true },
+        "physics": { "kind": "json", "optional": true },
+        "particles": { "kind": "json", "optional": true },
+        "hair": { "kind": "blob", "optional": true },
+        "animation": { "kind": "json" },
+        "nla": { "kind": "json", "optional": true },
+        "tweak": { "kind": "json", "optional": true, "members": {
+          "track": { "minimum": 0, "maximum": 255, "multipleOf": 1 },
+          "strip": { "minimum": 0, "maximum": 1023, "multipleOf": 1 }
+        } }
+      }
+    },
+    "Material": {
+      "batchOps": {
+        "set.name": { "direct": true },
+        "set.animation": { "direct": true },
+        "set.data.metallic": { "direct": true },
+        "set.data.roughness": { "direct": true },
+        "set.data.transmission": { "direct": true },
+        "set.data.alphaCutoff": { "direct": true },
+        "set.data.ior": { "direct": true },
+        "set.data.normalStrength": { "direct": true },
+        "set.data.emissionStrength": { "direct": true },
+        "delete": { "command": "material.delete", "params": { "material": "target" } }
+      },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "name": { "kind": "string" },
+        "data": { "kind": "json", "members": {
+          "metallic": { "minimum": 0, "maximum": 1 },
+          "roughness": { "minimum": 0, "maximum": 1 },
+          "transmission": { "minimum": 0, "maximum": 1 },
+          "alphaCutoff": { "minimum": 0, "maximum": 1 },
+          "ior": { "minimum": 1, "maximum": 10 },
+          "normalStrength": { "minimum": -10, "maximum": 10 },
+          "emissionStrength": { "minimum": 0 },
+          "shader": { "minimum": 1, "maximum": 4294967295, "multipleOf": 1 }
+        } },
+        "animation": { "kind": "json" }
+      }
+    },
+    "NodeGroup": {
+      "batchOps": {
+        "set.name": { "direct": true },
+        "delete": { "command": "nodes.removeGroup", "params": { "group": "target" } }
+      },
+      "label": "name",
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "name": { "kind": "string" },
+        "tree": { "kind": "string", "optional": true },
+        "inputs": { "kind": "json", "optional": true },
+        "outputs": { "kind": "json", "optional": true },
+        "nodes": { "kind": "list", "of": "Node" },
+        "links": { "kind": "list", "of": "Link" }
+      }
+    },
+    "Node": {
+      "batchOps": {
+        "set.location": { "direct": true }
+      },
+      "toolId": { "field": "key" },
+      "fields": {
+        "key": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "kind": { "kind": "string" },
+        "location": { "kind": "json" },
+        "values": { "kind": "map" }
+      }
+    },
+    "Link": {
+      "fields": {
+        "from": { "kind": "integer", "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "fromSocket": { "kind": "string" },
+        "to": { "kind": "integer", "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
+        "toSocket": { "kind": "string" }
+      }
+    },
+    "Image": {
+      "batchOps": {
+        "create": { "direct": true },
+        "set.name": { "direct": true },
+        "set.format": { "direct": true },
+        "set.bytes": { "direct": true }
+      },
+      "label": "name",
+      "toolId": { "field": "hash" },
+      "fields": {
+        "hash": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string" },
+        "format": { "kind": "string" },
+        "bytes": { "kind": "blob" }
+      }
+    }
+  }
+}

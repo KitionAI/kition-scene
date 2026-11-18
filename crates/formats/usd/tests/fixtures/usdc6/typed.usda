@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    defaultPrim = "Values"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+def Xform "Values" (
+    customData = { dictionary Cube = { bool generated = 1 } }
+) {
+    custom string label = "A quoted \"label\""
+    bool enabled = true
+    int[] integers = [-2147483648, -2, 0, 2147483647]
+    uint[] unsigned = [0, 4294967295]
+    uniform token[] names = ["root", "root/child", ""]
+    float[] empty = []
+    half[] halves = [0, -0, 1, 1.001, 1.00048828125, 1.00146484375, 0.00006103515625, 0.000000059604644775390625, 0.0000000298023223876953125, 65504, -2]
+    half3[] scales = [(1, 0.5, -2), (2, 1, 1)]
+    quatf[] rotations = [(0.5, 0.25, -0.75, 1)]
+    double precise = 0.1234567890123456
+    matrix4d[] transforms = [((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (2, 3, 4, 1))]
+    double3 movement.timeSamples = {1: (0, 0, 0), 11: (1.25, 0, -2), 21: (3, 2, 1)}
+    rel material:binding = </Material>
+    token signal.connect = </Material.signal>
+    asset file = @textures/checker.png@
+}
+def Material "Material" {
+    token signal
+}

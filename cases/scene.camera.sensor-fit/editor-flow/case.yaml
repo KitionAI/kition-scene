@@ -1,0 +1,19 @@
+format: 1
+id: scene.camera.sensor-fit/editor-flow
+feature: scene.camera.sensor-fit
+intent: Camera panel fit and sensor controls, orthographic scale and render aspect execute in the worker and survive person undo, redo, host save and reopening in both browsers.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/camera9.mjs
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/camera9.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/camera9.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+requires: [chromium, webkit]
+timeout_s: 60

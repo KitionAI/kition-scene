@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-promo-parent-space
+feature: scene.object.transform
+intent: >-
+  object.hop and object.gather plan the move in the world and key it in the parent's frame: under a
+  scaled or moved parent the object lands on the world point it was sent to (a world shift is not
+  keyed as a local location, and gather does not measure local locations against a world centre).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: promo_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

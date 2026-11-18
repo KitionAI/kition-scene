@@ -1,0 +1,31 @@
+format: 1
+id: scene.agent.preview/explicit-view
+feature: scene.agent.preview
+intent: >-
+  file.render, the kit's agent preview, draws the scene from an explicit view (the scene's active
+  camera, another camera, or a named view framed to fit the scene or one object) at an explicit
+  time, in an explicit pass (color, id with a legend of object colours, depth, wireframe), or one
+  labelled sheet of 2 to 6 views or of 2 to 12 times, as a pure function of the scene: the same
+  call answers the same bytes however the viewport is orbited, whatever the current frame, mode
+  or selection, and rendering moves none of them and leaves the document clean. A view with a
+  camera, views with a range, a time outside the animation, an unknown view, camera, object or
+  pass, and fitting an object in a camera's view answer typed invalid-params errors at a JSON
+  pointer that say the valid range or list the choices; scale (up to 2) and maxSize (16 to 4096)
+  size the picture as KHP A39 says.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/agent_render.rs
+  license: Apache-2.0
+  note: The starter scene at a 320 x 180 render size, the cube keyed to move over one second, and a second camera, made by the test.
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: agent_render
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

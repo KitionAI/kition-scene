@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-fields10-grid
+feature: scene.physics.effector-weights
+intent: Extreme weighted soft-body motion with self collision never panics while querying integer neighbor cells; the bake returns finite data or an explicit derived failure.
+layer: gate
+dimension: robustness
+source:
+  kind: issue
+  from: Finite positions can exceed the self-collision grid's integer coordinate range
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-physics, test: weights10_grid }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

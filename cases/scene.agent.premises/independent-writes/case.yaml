@@ -1,0 +1,26 @@
+format: 1
+id: scene.agent.premises/independent-writes
+feature: scene.agent.premises
+intent: >-
+  With a colleague's program rewriting the file between the agent's inspect and its write with
+  basis, each class of write the independent reading found unheld is refused after a change it
+  rests on and applies after one it does not: the active object a command acts on without its
+  object parameter, the objects a key names by id, the material a colour key goes to through the
+  slot, the scene camera a light rig is aimed from, the parent a knife projects through; and a
+  physics setting is not refused for a rename or a move of its object.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/independent.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: independent
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

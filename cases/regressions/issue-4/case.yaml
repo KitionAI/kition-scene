@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-4
+feature: scene.material.manage
+intent: >-
+  material.new says what it does: it gives the new material to the selected objects (in Edit mode,
+  to the object edited) unless assign is false, as it always has, and the answer lists them.
+layer: gate
+source:
+  kind: issue
+  from: Kition Scene regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: material_new }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

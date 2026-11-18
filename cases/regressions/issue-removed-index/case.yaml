@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-removed-index
+feature: scene.particles.hair
+intent: >-
+  Removing a particle system keeps Particle Edit on the system it grooms, and ends it when that
+  system goes (the session does not keep its index and groom the next system).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: removed_index_particle_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

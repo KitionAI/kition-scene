@@ -1,0 +1,16 @@
+format: 1
+id: scene.viewport.rendered/editor-progress
+feature: scene.viewport.rendered
+intent: The rendered shading control progresses in the worker while navigation, picking, edits and switching back to solid remain usable in Chromium and WebKit.
+layer: gate
+dimension: function
+source: { kind: synthetic, from: web/tests/viewport7.mjs, license: owned }
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/viewport7.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/viewport7.mjs, webkit] }
+expected:
+  - { actual: "out:exit", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

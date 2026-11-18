@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-armature-modifier-operand
+feature: scene.modifier.basics
+intent: >-
+  An Armature modifier's armature is its `operand`, which modifier.add and modifier.set set (it
+  is not skipped: modifier.set never answers success and changes nothing).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: modifier_set_changes_an_armature_modifiers_armature
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

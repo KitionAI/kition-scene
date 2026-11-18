@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-c8-scene-pin-reread
+feature: scene.agent.premises
+intent: A clean scene whose file another program saved imports only the file's difference into its live replica, outside both undo histories, so the agent's own step still undoes and keeps the file's edit; an unchanged file writes nothing; a reread that deleted the selected object is refused by name and changes nothing; raw batches run only what the schema's batchOps premise contract declares.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/reread.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: reread }
+  - cargo-test: { package: kition-scene, test: premises, filter: a_batch_runs_only_what_its_premise_contract_declares }
+expected:
+  - { actual: out:exit, compare: exit, value: 0 }
+since: "2026-11-17"

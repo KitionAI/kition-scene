@@ -1,0 +1,29 @@
+format: 1
+id: scene.uv.minimum-stretch/blender-and-atomicity
+feature: scene.uv.minimum-stretch
+intent: SLIM reduces area and angle distortion on asymmetric curved surfaces against independently recorded Blender output, keeps pins exact, respects seams, and rejects hostile or degenerate charts without partial writes.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/uv7.py
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/uv7-cases.json
+  - repo:crates/engine/model/tests/fixtures/uv7-reference.json
+  - repo:crates/engine/model/tests/fixtures/uv7-complex-cases.json
+  - repo:crates/engine/model/tests/fixtures/uv7-complex-reference.json
+steps:
+  - cargo-test: { package: kition-scene-model, test: uv7 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-30"
+    how: Run tests/blender/uv7.py through the Blender application, MINIMUM_STRETCH, 50 iterations, No Flip on, no fill holes or aspect correction. Tests use committed recordings offline; energy within 3 percent, mean angle difference within 0.03 radians, mean log-area difference within 0.05, pinned chart coordinates within 0.03 UV units and each pin exact. Packing permits free chart rotation and scale; the objective metric removes uniform UV scale.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

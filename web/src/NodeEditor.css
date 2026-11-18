@@ -1,0 +1,378 @@
+/* The geometry node editor: a panel under the viewport with a pannable, zoomable canvas of node
+   boxes on a dotted light surface, links drawn as curves between socket dots. */
+
+.scene-nodes {
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  border-top: 1px solid var(--kit-border, #e6e6ea);
+  background: var(--kit-surface, #fff);
+}
+
+.scene-nodes-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+  flex: none;
+}
+
+.scene-nodes-header .scene-nodes-spacer {
+  flex: 1;
+}
+
+.scene-nodes-canvas {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background-color: var(--kit-surface-muted, #f6f6f8);
+  background-image: radial-gradient(circle, var(--kit-border, #dcdce2) 1px, transparent 1px);
+  touch-action: none;
+  outline: none;
+  cursor: default;
+}
+
+.scene-nodes-canvas[data-panning] {
+  cursor: grabbing;
+}
+
+.scene-nodes-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.scene-nodes-links {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.scene-nodes-link {
+  fill: none;
+  stroke: var(--kit-muted, #8a8a94);
+  stroke-width: 1.75;
+}
+
+.scene-nodes-link[data-type='geometry'] {
+  stroke: #3f8f7f;
+}
+
+.scene-nodes-link[data-dragging] {
+  stroke-dasharray: 5 4;
+}
+
+.scene-node {
+  position: absolute;
+  width: 200px;
+  border: 1px solid var(--kit-border, #e0e0e6);
+  border-radius: 8px;
+  background: var(--kit-surface, #fff);
+  box-shadow: 0 1px 3px rgba(20, 20, 40, 0.08);
+  font-size: 11px;
+  user-select: none;
+}
+
+.scene-node[data-selected] {
+  border-color: var(--kit-primary, #9a5a22);
+  box-shadow: 0 0 0 1px var(--kit-primary, #9a5a22), 0 1px 3px rgba(20, 20, 40, 0.08);
+}
+
+.scene-node-header {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--kit-border, #ececf0);
+  border-radius: 8px 8px 0 0;
+  background: var(--kit-surface-muted, #f4f4f7);
+  font-weight: 600;
+  cursor: grab;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scene-node-header[data-category='Input'] {
+  background: #f1eefb;
+}
+
+.scene-node-header[data-category='Geometry'],
+.scene-node-header[data-category='Mesh'],
+.scene-node-header[data-category='Mesh Primitives'],
+.scene-node-header[data-category='Point'],
+.scene-node-header[data-category='Instances'] {
+  background: #eaf4f1;
+}
+
+.scene-node-header[data-category='Utilities'],
+.scene-node-header[data-category='Attribute'],
+.scene-node-header[data-category='Rotation'],
+.scene-node-header[data-category='Simulation'],
+.scene-node-header[data-category='Material'] {
+  background: #f0f3f8;
+}
+
+.scene-node-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+}
+
+.scene-node-row[data-side='output'] {
+  justify-content: flex-end;
+}
+
+.scene-node-row-label {
+  flex: none;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--kit-text, #26262c);
+}
+
+.scene-node-row-value {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.scene-node-input {
+  width: 100%;
+  min-width: 0;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--kit-border, #e0e0e6);
+  border-radius: 4px;
+  background: var(--kit-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+select.scene-node-input {
+  text-align: left;
+}
+
+.scene-node-input:focus {
+  outline: none;
+  border-color: var(--kit-primary, #9a5a22);
+}
+
+.scene-node-socket {
+  position: absolute;
+  top: 7px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(20, 20, 40, 0.35);
+  border-radius: 50%;
+  background: #a9a9b3;
+  cursor: crosshair;
+}
+
+.scene-node-socket[data-side='input'] {
+  left: -6px;
+}
+
+.scene-node-socket[data-side='output'] {
+  right: -6px;
+}
+
+.scene-node-socket[data-type='geometry'] {
+  background: #3f8f7f;
+}
+
+.scene-node-socket[data-type='vector'],
+.scene-node-socket[data-type='rotation'] {
+  background: #7d73c9;
+}
+
+.scene-node-socket[data-type='int'] {
+  background: #5f8f5a;
+}
+
+.scene-node-socket[data-type='bool'] {
+  background: #c98fa6;
+}
+
+.scene-node-socket[data-type='object'],
+.scene-node-socket[data-type='material'],
+.scene-node-socket[data-type='string'] {
+  background: #d4a35a;
+  border-radius: 2px;
+}
+
+.scene-node-socket[data-field]::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.scene-nodes-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: var(--kit-muted, #6b6b75);
+}
+
+.scene-nodes-menu {
+  position: absolute;
+  z-index: 3;
+  width: 240px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--kit-border, #e0e0e6);
+  border-radius: 12px;
+  background: var(--kit-surface, #fff);
+  box-shadow: 0 6px 20px rgba(20, 20, 40, 0.12);
+}
+
+.scene-nodes-menu input {
+  width: 100%;
+  height: 26px;
+  margin-bottom: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--kit-border, #e0e0e6);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.scene-nodes-menu-category {
+  padding: 6px 6px 2px;
+  font-size: 10px;
+  color: var(--kit-muted, #6b6b75);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scene-nodes-menu-item {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-nodes-menu-item:hover,
+.scene-nodes-menu-item[data-active] {
+  background: var(--kit-surface-muted, #f1f1f5);
+}
+
+.scene-nodes-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 10px;
+  color: var(--kit-muted, #8a8a94);
+  pointer-events: none;
+}
+
+.scene-gn-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scene-gn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A Group node's way into its group, and the path back out in the header. */
+.scene-node-enter {
+  margin-left: auto;
+  padding: 0 6px;
+  height: 18px;
+  border: 1px solid var(--kit-border, #e0e0e6);
+  border-radius: 8px;
+  background: var(--kit-surface, #fff);
+  color: var(--kit-muted, #6a6a74);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.scene-node-enter:hover {
+  color: var(--kit-primary, #9a5a22);
+  border-color: var(--kit-primary, #9a5a22);
+}
+
+/* Removes a socket that follows data: a zone's item, a group's input or output. */
+.scene-node-remove {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--kit-muted, #8a8a94);
+  font: inherit;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.scene-node-remove:hover {
+  background: var(--kit-surface-muted, #f0f0f4);
+  color: var(--kit-text, #26262c);
+}
+
+.scene-nodes-path {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scene-nodes-crumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.scene-nodes-crumb-gap {
+  color: var(--kit-muted, #8a8a94);
+}
+
+.scene-nodes-crumb .kui-button[data-current] {
+  font-weight: 600;
+}
+
+/* A zone: a light frame behind its input, its output, and the nodes between them. */
+.scene-nodes-zone {
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--kit-primary, #9a5a22) 25%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--kit-primary, #9a5a22) 5%, transparent);
+  pointer-events: none;
+}
+
+.scene-nodes-zone[data-kind='simulation'] {
+  border-color: rgba(196, 120, 40, 0.3);
+  background: rgba(196, 120, 40, 0.06);
+}

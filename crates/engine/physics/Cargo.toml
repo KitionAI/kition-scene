@@ -1,0 +1,20 @@
+[package]
+name = "kition-scene-physics"
+description = "The Scene kit's physics: rigid bodies and cloth, baked frame by frame into the scene."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+glam = { workspace = true }
+
+[dev-dependencies]
+kition-scene-exchange = { workspace = true }
+kition-scene-fbx = { workspace = true }
+serde_json = { workspace = true }

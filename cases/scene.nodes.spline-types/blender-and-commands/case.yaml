@@ -1,0 +1,18 @@
+format: 1
+id: scene.nodes.spline-types/blender-and-commands
+feature: scene.nodes.spline-types
+intent: Geometry-node spline conversions and settings match recorded public Blender evaluation, retain attributes through consumers, and survive agent commands, undo and saved files.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/nodes/tests/blender/curves10.py
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-nodes, test: curves10 }
+  - cargo-test: { package: kition-scene-kit, test: curves10 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

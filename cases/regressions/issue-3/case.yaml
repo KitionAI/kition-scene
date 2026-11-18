@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-3
+feature: scene.viewport.rendered
+intent: >-
+  Rendering to the end (finish, what view.renderedStep with wait and the final renders run) uses
+  every core outside the web page, sharing each pass's rows between threads a row at a time, and
+  gives bit for bit the picture stepping row by row gives.
+layer: gate
+source:
+  kind: issue
+  from: Kition Scene regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-trace, test: finish_parallel }
+expected:
+  - actual: out:exit
+    compare: exit
+since: "2026-11-17"

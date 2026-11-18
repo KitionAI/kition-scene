@@ -1,0 +1,19 @@
+format: 1
+id: scene.render.color-management/view-transforms
+feature: scene.render.color-management
+intent: Exposure, the AgX and Khronos PBR Neutral view transforms, and looks are saved render settings applied to fast, path-traced, and composited renders; Standard with no exposure renders exactly as before, clipping at white.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/color_management.rs
+  license: owned
+  note: Curves from published sources (Khronos PBR Neutral, Apache-2.0; Wrensch's AgX fit, MIT); names from the reference's Color Management panel. No reference source consulted.
+input: []
+steps:
+  - cargo-test: { package: kition-scene-model, filter: "color::tests" }
+  - cargo-test: { package: kition-scene-kit, test: color_management }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

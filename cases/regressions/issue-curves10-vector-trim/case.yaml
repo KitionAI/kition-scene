@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-curves10-vector-trim
+feature: scene.nodes.spline-types
+intent: Trimming the vector-handle Bezier curves introduced by Poly conversion uses actual evaluated segment boundaries and matches the public Blender control points and evaluated output.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/nodes/tests/blender/curves10_vector_cases.py
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-nodes, test: curves10, filter: vector_handle_conversion_trim_matches_public_recordings }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

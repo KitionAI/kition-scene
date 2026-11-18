@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-receipt-keys
+feature: scene.agent.ids
+intent: >-
+  A command that mints no id writes nothing in the scene's keys register, so its receipt and
+  others' others name only the object it changed (an actor's first write adds no
+  change of the Scene).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: ids
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

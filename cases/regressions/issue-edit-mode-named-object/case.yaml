@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-edit-mode-named-object
+feature: scene.mesh.edit
+intent: >-
+  In a mesh's edit mode a command naming another object acts on that object: mesh.setGeometry,
+  modifier.add, the shade commands, the UV projections and mesh.recalculateNormals act on
+  the object `object` or `objects` names, not the edited mesh.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: edit_mode_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

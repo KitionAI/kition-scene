@@ -1,0 +1,52 @@
+format: 1
+id: scene.agent.conversation/modifier-stack
+feature: scene.agent.conversation
+intent: >-
+  Over two messages the agent builds a modifier stack in order: a level-2 subdivision first, then
+  a bevel that must come before it. The order matters (bevel, then subdivide). The scene kit
+  declares no drafts, so this is the multi-turn case.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.kscene
+  license: Apache-2.0
+  note: A copy of the conformance fixture the scene engine writes.
+input: [input/scene.kscene]
+steps:
+  - task:
+      turns:
+        - In scene.kscene, smooth the Cube with a Subdivision Surface modifier at level 2.
+        - Also bevel its edges with a width of 0.1, applied before the subdivision in the stack.
+      max_turns: 20
+  - inspect: { path: scene.kscene, as: after }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      details.objects.0.modifiers: { count: 2 }
+      details.objects.0.modifiers.0.type: bevel
+      details.objects.0.modifiers.0.width: { approx: 0.1, tol: 0.001 }
+      details.objects.0.modifiers.1.type: subdivision
+      details.objects.0.modifiers.1.levels: 2
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      details.objects.0.location: [0, 0, 0]
+      details.objects.0.mesh.faces: 6
+      details.materials.0.name: Material
+      details.objects.1.name: Light
+      details.objects.1.location.0: { approx: 4.0763, tol: 0.001 }
+      details.objects.2.name: Camera
+      details.objects.2.location.0: { approx: 7.3589, tol: 0.001 }
+solution:
+  - tool: scene_run
+    args: { path: scene.kscene, steps: [{ command: modifier.add, params: { object: Cube, type: subdivision, levels: 2 } }] }
+  - tool: scene_run
+    args:
+      path: scene.kscene
+      steps:
+        - { command: modifier.add, params: { object: Cube, type: bevel, width: 0.1 } }
+        - { command: modifier.move, params: { object: Cube, index: 1, to: 0 } }
+since: "2026-11-17"
+timeout_s: 600

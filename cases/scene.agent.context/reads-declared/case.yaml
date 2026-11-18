@@ -1,0 +1,25 @@
+format: 1
+id: scene.agent.context/reads-declared
+feature: scene.agent.context
+intent: >-
+  Every command declares the editor state its code reads (`x-khp-reads`: the selection, the
+  current frame; and in the kit's own record, the mode and what it selects, which kition-sdk has no
+  kind for), derived by following each command's code through the kit to the accessors of the
+  selection and active object, the current frame and the mode; the commands are the ones the
+  document lists at run time, and a command whose declaration differs from its code fails.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: acts
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

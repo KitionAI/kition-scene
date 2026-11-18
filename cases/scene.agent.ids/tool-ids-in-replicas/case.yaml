@@ -1,0 +1,23 @@
+format: 1
+id: scene.agent.ids/tool-ids-in-replicas
+feature: scene.agent.ids
+intent: >-
+  The schema names key as the tool id of objects, materials, node groups and nodes and hash as an
+  image's; the merge repair numbers a record a batch created without a key, and gives a material
+  that holds an object's key another, the same on every replica.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/tool_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kdm
+      test: tool_ids
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 120

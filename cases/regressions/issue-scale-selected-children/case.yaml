@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-scale-selected-children
+feature: scene.object.transform
+intent: >-
+  object.scale, like translate and rotate, leaves a selected child of a selected parent to its
+  parent: the child is scaled once, not by the parent and again by itself.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: scale_children_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

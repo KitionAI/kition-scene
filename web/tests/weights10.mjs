@@ -1,0 +1,101 @@
+// Actual per-system field controls, worker bake, history, failure recovery, and host persistence.
+import assert from 'node:assert/strict'
+import { chromium, webkit } from 'playwright'
+import { createServer } from 'vite'
+const which = process.argv[2] ?? 'chromium'
+const server = await createServer({ root: new URL('..', import.meta.url).pathname, configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
+await server.listen()
+const browser = await (which === 'webkit' ? webkit : chromium).launch()
+const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } })
+const errors = []
+page.on('pageerror', error => errors.push(error.message))
+const run = async (command, params = {}) => (await page.evaluate(({ command, params }) => window.devHost.connection().ai.run([{ command, params }], false), { command, params })).completed[0].result
+const inspect = async () => (await page.evaluate(() => window.devHost.connection().ai.inspect())).details
+const weights = async (name, system) => {
+  const state = await inspect()
+  const id = state.objects.find(object => object.name === name).id
+  return state.physics.objects.find(object => object.id === id)?.[system]?.effectorWeights
+}
+const until = async check => { for (let i = 0; i < 300; i += 1) { if (await check()) return; await page.waitForTimeout(40) } throw new Error('Timed out waiting for field weights') }
+try {
+  await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/dev.html`)
+  await page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
+  const kit = page.frameLocator('#kit')
+  const open = async id => { const section = kit.getByTestId(id); await section.waitFor(); if ((await section.getAttribute('data-open')) !== 'true') await section.locator('.kui-panel-section-toggle').first().click() }
+  const number = async (system, key, value, check) => { const input = kit.getByTestId(`scene-${system}-weight-${key}`).locator('input'); await input.fill(String(value)); await input.press('Enter'); await until(check) }
+  await run('select.all')
+  await run('edit.delete')
+  await run('add.plane', { name: 'Cloth', size: 1 })
+  await open('scene-physics')
+  await kit.getByTestId('scene-physics-add-cloth').click()
+  await until(async () => Boolean(await weights('Cloth', 'cloth')))
+  assert.deepEqual(Object.values(await weights('Cloth', 'cloth')), Array(7).fill(1))
+  await number('cloth', 'all', 0, async () => (await weights('Cloth', 'cloth')).all === 0)
+  assert.equal((await weights('Cloth', 'cloth')).gravity, 1, 'All leaves gravity independent')
+  await number('cloth', 'gravity', 0, async () => (await weights('Cloth', 'cloth')).gravity === 0)
+  await kit.getByTestId('scene-undo').click()
+  await until(async () => (await weights('Cloth', 'cloth')).gravity === 1)
+  await kit.getByTestId('scene-redo').click()
+  await until(async () => (await weights('Cloth', 'cloth')).gravity === 0)
+  await run('add.plane', { name: 'Soft', size: 1, location: [3, 0, 0] })
+  await open('scene-physics')
+  await kit.getByTestId('scene-physics-add-soft').click()
+  await until(async () => Boolean(await weights('Soft', 'softBody')))
+  assert.deepEqual(Object.values(await weights('Soft', 'softBody')), Array(7).fill(1))
+  await number('soft', 'wind', -0.5, async () => (await weights('Soft', 'softBody')).wind === -0.5)
+  await number('soft', 'gravity', 0, async () => (await weights('Soft', 'softBody')).gravity === 0)
+  await run('physics.world.set', { frameEnd: 12 })
+  await open('scene-physics-world')
+  await kit.getByTestId('scene-physics-bake').click()
+  await until(async () => (await inspect()).physics.state === 'baked')
+  assert.equal((await inspect()).physics.frames, 12)
+  const savedCloth = await weights('Cloth', 'cloth')
+  const savedSoft = await weights('Soft', 'softBody')
+  await page.evaluate(() => window.devHost.connection().save())
+  await page.evaluate(async () => { const file = window.devHost.files.get('Sample.kscene'); await window.devHost.open('Sample.kscene', file.bytes) })
+  assert.deepEqual(await weights('Cloth', 'cloth'), savedCloth)
+  assert.deepEqual(await weights('Soft', 'softBody'), savedSoft)
+  assert.equal((await inspect()).physics.state, 'none')
+  await run('select.objects', { objects: 'Soft' })
+  await open('scene-physics')
+  if (process.env.KITION_WEIGHTS_SCREENSHOT) {
+    await kit.getByTestId('scene-soft-weights').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: process.env.KITION_WEIGHTS_SCREENSHOT })
+  }
+  await run('physics.softBody.set', { objects: 'Soft', effectorWeights: { all: 0 } })
+  await run('physics.field.new', { name: 'Vortex', type: 'vortex', strength: 10000, location: [6, 0, 0] })
+  await run('select.objects', { objects: 'Cloth' })
+  await open('scene-physics')
+  await number('cloth', 'all', 200, async () => (await weights('Cloth', 'cloth')).all === 200)
+  await number('cloth', 'vortex', 200, async () => (await weights('Cloth', 'cloth')).vortex === 200)
+  await open('scene-physics-world')
+  await kit.getByTestId('scene-physics-bake').click()
+  await until(async () => (await inspect()).physics.state === 'failed')
+  assert.equal((await inspect()).physics.frames, 0)
+  await until(async () => (await kit.getByTestId('scene-physics-progress').getAttribute('data-state')) === 'failed')
+  assert.match(await kit.getByTestId('scene-physics-progress').textContent(), /Bake failed/)
+  assert(await kit.getByTestId('scene-physics-world').getByRole('alert').isVisible())
+  assert(await kit.getByTestId('scene-physics-bake').isEnabled())
+  await number('cloth', 'all', 0, async () => (await weights('Cloth', 'cloth')).all === 0)
+  await run('frame.set', { frame: 12 })
+  assert.equal((await inspect()).physics.state, 'failed')
+  await kit.getByTestId('scene-physics-bake').click()
+  await until(async () => (await inspect()).physics.state === 'baked')
+  await kit.getByTestId('scene-physics-free').click()
+  await until(async () => (await inspect()).physics.state === 'none')
+  await run('object.transform', { objects: 'Cloth', scale: [0, 1, 1] })
+  await kit.getByTestId('scene-physics-bake').click()
+  await until(async () => (await kit.getByTestId('scene-physics-progress').getAttribute('data-state')) === 'failed')
+  assert.equal((await inspect()).physics.state, 'failed')
+  assert(await kit.getByTestId('scene-physics-world').getByRole('alert').isVisible())
+  assert(await kit.getByTestId('scene-physics-bake').isEnabled())
+  await run('object.transform', { objects: 'Cloth', scale: [1, 1, 1] })
+  await kit.getByTestId('scene-physics-bake').click()
+  await until(async () => (await inspect()).physics.state === 'baked')
+  await page.evaluate(async () => { history.replaceState(null, '', '?role=viewer'); const file = window.devHost.files.get('Sample.kscene'); await window.devHost.open('Sample.kscene', file.bytes) })
+  await open('scene-physics')
+  assert(await kit.getByTestId('scene-soft-weight-gravity').locator('input').isDisabled())
+  assert(await kit.getByTestId('scene-soft-weight-wind').locator('input').isDisabled())
+  assert.deepEqual(errors, [])
+  console.log(`PASS ${which}: field weights, independent systems, history, host save/reopen, failed bake recovery and read-only controls`)
+} finally { await browser.close(); await server.close() }

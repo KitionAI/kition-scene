@@ -1,0 +1,170 @@
+/* The NLA editor under the viewport, beside the graph editor. */
+.scene-nla {
+  flex: none;
+  max-height: 42vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--kit-border, #e6e6ea);
+  background: var(--kit-surface, #fff);
+  font-size: 12px;
+}
+
+.scene-nla-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+}
+
+.scene-nla-body {
+  display: flex;
+  max-height: 196px;
+  overflow-y: auto;
+}
+
+.scene-nla-heads {
+  flex: none;
+  border-right: 1px solid var(--kit-border, #e6e6ea);
+}
+
+.scene-nla-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--kit-border, #eeeef2);
+}
+
+.scene-nla-head[data-muted] .scene-nla-name {
+  opacity: 0.5;
+}
+
+.scene-nla-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-nla-lanes {
+  display: block;
+  flex: 1;
+  min-width: 80px;
+  background: var(--kit-surface-muted, #f6f6f8);
+  touch-action: none;
+}
+
+.scene-nla-own {
+  fill: var(--kit-surface, #fff);
+}
+
+.scene-nla-lane[data-odd] {
+  fill: rgba(0, 0, 0, 0.025);
+}
+
+.scene-nla-lane {
+  fill: transparent;
+}
+
+.scene-nla-strip {
+  cursor: grab;
+}
+
+.scene-nla-strip-body {
+  fill: color-mix(in srgb, var(--kit-primary, #9a5a22) 14%, #ffffff);
+  stroke: color-mix(in srgb, var(--kit-primary, #9a5a22) 65%, #ffffff);
+  stroke-width: 1;
+}
+
+.scene-nla-strip[data-picked] .scene-nla-strip-body {
+  fill: color-mix(in srgb, var(--kit-primary, #9a5a22) 26%, #ffffff);
+  stroke: var(--kit-primary, #9a5a22);
+  stroke-width: 1.5;
+}
+
+.scene-nla-strip[data-tweaked] .scene-nla-strip-body {
+  fill: #fbe9c8;
+  stroke: #c98a22;
+}
+
+.scene-nla-strip[data-muted] .scene-nla-strip-body {
+  fill: transparent;
+  stroke-dasharray: 3 3;
+}
+
+.scene-nla-strip-label {
+  font-size: 11px;
+  fill: var(--kit-text, #26262c);
+  user-select: none;
+}
+
+.scene-nla-now {
+  stroke: var(--kit-brand, #9a5a22);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.scene-nla-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 2px 16px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--kit-border, #eeeef2);
+}
+
+.scene-nla-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scene-nla-empty {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+/* The graph editor's modifier stack for the picked curve. */
+.scene-fmods {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--kit-border, #eeeef2);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.scene-fmods-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scene-fmod {
+  border: 1px solid var(--kit-border, #e6e6ea);
+  border-radius: 12px;
+  padding: 6px 8px;
+  background: var(--kit-surface, #fff);
+}
+
+.scene-fmod[data-muted] {
+  opacity: 0.6;
+}
+
+.scene-fmod-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.scene-fmod-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2px 16px;
+}
+
+.scene-graph-modified {
+  stroke-dasharray: 4 2;
+}

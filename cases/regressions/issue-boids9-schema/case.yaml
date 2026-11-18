@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-boids9-schema
+feature: scene.particles.boids
+intent: Particle commands expose boid rule arrays using only schema keywords supported by the Kit SDK.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: command-schema tests reject the unsupported maxItems keyword
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, filter: "commands_particles::tests::every_schema_is_well_formed" }
+  - cargo-test: { package: kition-scene-kit, test: commands, filter: every_schema_is_valid }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

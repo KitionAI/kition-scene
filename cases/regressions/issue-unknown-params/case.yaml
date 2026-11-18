@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-unknown-params
+feature: scene.agent.recover
+intent: A parameter a command does not take is refused with an error that names it and the parameter it resembles, never run without it; modifier.add {objects} is refused, not run on the active object, because the key is `object`.
+layer: gate
+dimension: robustness
+source:
+  kind: probe
+  from: round-trip tests (a command with a schema accepting an unknown key, such as modifier.add `objects`)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: unknown_params }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

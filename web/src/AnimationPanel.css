@@ -1,0 +1,95 @@
+/* A one-line text field in a panel row (driver expressions, variable and action names). */
+.scene-anim-text {
+  width: 100%;
+  min-width: 0;
+}
+
+.scene-anim-text[data-mono] {
+  font-family: var(--kui-font-mono, ui-monospace, monospace);
+}
+
+.scene-anim-variables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.scene-anim-variable {
+  border: 1px solid var(--kui-border, #e5e5e5);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scene-anim-variable-head,
+.scene-anim-variable-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.scene-anim-variable-fields {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+}
+
+.scene-anim-status {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.scene-anim-driver[data-error] .scene-anim-status {
+  color: var(--kui-danger, #c62828);
+}
+
+.scene-anim-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scene-anim-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.scene-anim-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scene-anim-meta {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.scene-anim-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-anim-set[data-active] .scene-anim-name {
+  font-weight: 600;
+}
+
+.scene-anim-path {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-left: 12px;
+  font-size: 12px;
+}
+
+/* The timeline's keying set picker beside Insert Keyframe. */
+.scene-timeline-keying {
+  min-width: 120px;
+  max-width: 180px;
+}

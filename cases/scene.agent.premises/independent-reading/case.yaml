@@ -1,0 +1,25 @@
+format: 1
+id: scene.agent.premises/independent-reading
+feature: scene.agent.premises
+intent: >-
+  Every one of the 257 write commands has rows written from an independent reading of its handler
+  and the engine operation behind it (what it resolves, what it reads of the scene and of the
+  editor), one per code path; what a write with basis holds, computed as the guard does from the
+  kit's declarations and `under`, is what the rows say, and the editor state each command declares
+  is what its paths read.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/declarations_independent.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: declarations_independent
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

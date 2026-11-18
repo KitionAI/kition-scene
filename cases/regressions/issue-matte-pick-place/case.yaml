@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-matte-pick-place
+feature: scene.compositor.nodes
+intent: >-
+  A Cryptomatte pick at a point of the render rests on what the scene camera sees there, not on
+  every object: after a colleague moved the cube under the point away, or moved another cube in
+  front of it, the agent's pick is refused; after a colleague moved a cube elsewhere it applies and
+  picks the same name.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/independent.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: declarations_independent
+  - cargo-test:
+      package: kition-scene
+      test: independent
+      filter: a_matte_pick_holds_what_is_under_the_point
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 600

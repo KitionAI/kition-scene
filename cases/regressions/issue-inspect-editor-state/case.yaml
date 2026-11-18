@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-inspect-editor-state
+feature: scene.agent.context
+intent: >-
+  What an agent reads of a scene served headless (`view.describe`, the scene_inspect details) is the
+  scene, not the editing session: orbiting the viewport, going to another frame, selecting objects
+  or editing a mesh's vertices leaves it unchanged, while the scene's own fields named like editor
+  state (the render's colour `view`, a modifier's `mode`, a key's `frame`) stay. kition-sdk
+  leaves out names at any depth and JSON Pointers at their place only, so the kit declares its
+  editor state as pointers, which keep the render's `view` and modifiers' `mode` and leave out
+  the current frame (`animation.frame`).
+layer: gate
+tags: [headless]
+source:
+  kind: probe
+  from: 'kition-sdk rule "inspect details leave out only declared editor state"'
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: context
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

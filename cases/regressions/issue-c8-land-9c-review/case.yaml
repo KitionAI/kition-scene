@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-c8-land-9c-review
+feature: scene.agent.premises
+intent: >-
+  Material animation targets, nested driver references and typed node values retain guard
+  protection. Point coordinates and ordinary socket numbers never become object ids.
+  Carried counts follow active transform dependencies, including hidden descendants without
+  double counting an object that is both parent and constraint target.
+  Live picking and covered replay use identical bounds for rotated meshes.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/land9.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene, test: land9, filter: review_ }
+  - cargo-test: { package: kition-scene-kit, test: object_params }
+  - cargo-test: { package: kition-scene-kit, test: places }
+expected:
+  - { actual: out:exit, compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

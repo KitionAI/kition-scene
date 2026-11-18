@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-focus-shows-timeline
+feature: scene.editor.display-modes
+intent: >-
+  Focus shows the viewport alone: the timeline and the Graph, NLA, Node, and UV editors are the
+  kit's own bars and leave with the rest of the chrome, so the Focus bar never sits on the
+  timeline's keying set and frame field. Single line and Classic open on Add (Cube, UV Sphere,
+  Cylinder, Plane, Light, Camera in Single line's row), not on File, whose row is one button.
+layer: gate
+source:
+  kind: probe
+  from: kit display modes work
+  license: Apache-2.0
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/focus.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/focus.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

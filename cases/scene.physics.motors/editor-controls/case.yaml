@@ -1,0 +1,19 @@
+format: 1
+id: scene.physics.motors/editor-controls
+feature: scene.physics.motors
+intent: The Physics panel exposes both motor toggles, signed velocity and impulse controls through real worker commands; person undo, redo, progressive bake, setting invalidation, host save and reopen retain the selected settings.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/motors8.mjs
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/motors8.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/motors8.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+requires: [chromium, webkit]
+timeout_s: 60

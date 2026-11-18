@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-edit-face-sets
+feature: scene.mesh.edit
+intent: >-
+  Edits that change the faces (delete, subdivide, extrude, inset, loop cut) keep each face's
+  sculpt face set and hidden flag, new faces taking those of the face they come from, and the
+  file keeps them (they are not dropped when the face count changes).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: edit_face_sets_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

@@ -1,0 +1,31 @@
+format: 1
+id: scene.particles.boids/blender-and-round-trip
+feature: scene.particles.boids
+intent: Airborne Average rules use recorded public-app observations, bounded deterministic replay and typed atomic document commands, including rendering, undo and saved files.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/particles/tests/blender/boids9.py
+  license: owned
+input:
+  - repo:crates/engine/particles/tests/fixtures/boids9-reference.json
+  - repo:crates/engine/particles/tests/fixtures/boids9-public-state.json
+  - repo:crates/engine/particles/tests/fixtures/boids9-mixed-public-state.json
+steps:
+  - cargo-test: { package: kition-scene-particles, test: boids9 }
+  - cargo-test: { package: kition-scene-particles, test: boids9_bounds }
+  - cargo-test: { package: kition-scene-particles, test: boids9_public_state }
+  - cargo-test: { package: kition-scene-kit, test: boids9 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-31"
+    how: Public boid settings and particle motion observations; 24 parameter and rule cases, plus identical-public-state seed comparisons documenting hidden turn behavior. Steering tolerances are 0.0005 m and 0.001 m/s; the evidence and trajectory gaps are recorded in tests/blender/boids9.md. Optional KITION_BLENDER repeats observations.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

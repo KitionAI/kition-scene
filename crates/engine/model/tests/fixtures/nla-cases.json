@@ -1,0 +1,6460 @@
+{
+ "cases": [
+  {
+   "name": "scale-repeat",
+   "frames": [
+    -3,
+    0,
+    4,
+    5,
+    6.5,
+    10,
+    12.25,
+    15,
+    20,
+    22.25,
+    25,
+    28.75,
+    30,
+    31,
+    35,
+    40
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        0.0
+       ],
+       [
+        11,
+        10.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "scale": 1.5,
+       "repeat": 2.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "repeat-whole-end",
+   "frames": [
+    5,
+    14,
+    15,
+    16,
+    24.5,
+    25,
+    26
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        0.0
+       ],
+       [
+        11,
+        10.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "repeat": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "reversed-subrange",
+   "frames": [
+    -3,
+    0,
+    4,
+    5,
+    6.5,
+    10,
+    12.25,
+    15,
+    20,
+    22.25,
+    25,
+    28.75,
+    30,
+    31,
+    35,
+    40
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        0.0
+       ],
+       [
+        11,
+        10.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "actionStart": 3,
+       "actionEnd": 9,
+       "reversed": true,
+       "repeat": 2,
+       "scale": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bezier-scaled",
+   "frames": [
+    1,
+    3,
+    7.5,
+    9,
+    13.3,
+    18,
+    21,
+    26
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        0.0
+       ],
+       [
+        6,
+        4.0
+       ],
+       [
+        11,
+        1.0
+       ],
+       [
+        14,
+        3.0
+       ]
+      ],
+      "interpolation": "bezier"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 3,
+       "scale": 1.75
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-in-out",
+   "frames": [
+    0,
+    4,
+    5,
+    6,
+    7,
+    8.5,
+    9,
+    12,
+    13,
+    14,
+    15,
+    16,
+    20
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "blendIn": 4,
+       "blendOut": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-in-out-hold-forward",
+   "frames": [
+    0,
+    4,
+    5,
+    6,
+    13,
+    14,
+    15,
+    16,
+    20
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "blendIn": 4,
+       "blendOut": 2,
+       "extrapolation": "holdForward"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "fixed-influence",
+   "frames": [
+    1,
+    3,
+    5,
+    9,
+    15
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blendIn": 4,
+       "influence": 0.35
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "two-strips-hold",
+   "frames": [
+    0,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10
+      },
+      {
+       "action": "B",
+       "start": 30
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "two-strips-forward-nothing",
+   "frames": [
+    0,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10,
+       "extrapolation": "holdForward"
+      },
+      {
+       "action": "B",
+       "start": 30,
+       "extrapolation": "nothing"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "two-strips-nothing-hold",
+   "frames": [
+    0,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10,
+       "extrapolation": "nothing"
+      },
+      {
+       "action": "B",
+       "start": 30,
+       "extrapolation": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "touching-strips",
+   "frames": [
+    19.5,
+    20,
+    20.5
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10
+      },
+      {
+       "action": "B",
+       "start": 20
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "upper-track-holds-back",
+   "frames": [
+    0,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 30
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-replace-1.0",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "replace",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-replace-0.5",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "replace",
+       "influence": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bottom-replace",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blend": "replace",
+       "influence": 0.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-combine-1.0",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "combine",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-combine-0.5",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "combine",
+       "influence": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bottom-combine",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blend": "combine",
+       "influence": 0.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-add-1.0",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "add",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-add-0.5",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "add",
+       "influence": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bottom-add",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blend": "add",
+       "influence": 0.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-subtract-1.0",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "subtract",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-subtract-0.5",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "subtract",
+       "influence": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bottom-subtract",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blend": "subtract",
+       "influence": 0.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-multiply-1.0",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "multiply",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "blend-multiply-0.5",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "multiply",
+       "influence": 0.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bottom-multiply",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "scale.0",
+    "rotation_euler.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "rotation_euler.0": {
+      "keys": [
+       [
+        1,
+        0.25
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "blend": "multiply",
+       "influence": 0.4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "combine-scale-weights",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "scale.0",
+    "scale.1"
+   ],
+   "actions": {
+    "A": {
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.1": {
+      "keys": [
+       [
+        1,
+        0.5
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.1": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "combine",
+       "influence": 0.3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "muted-strip",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.1"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "location.1": {
+      "keys": [
+       [
+        1,
+        7.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "Own": {
+     "location.2": {
+      "keys": [
+       [
+        1,
+        9.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "muted": true,
+       "blend": "add"
+      }
+     ]
+    }
+   ],
+   "static": {
+    "location.1": 5.0
+   }
+  },
+  {
+   "name": "muted-track",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.1"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "location.1": {
+      "keys": [
+       [
+        1,
+        7.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "Own": {
+     "location.2": {
+      "keys": [
+       [
+        1,
+        9.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "add"
+      }
+     ],
+     "muted": true
+    }
+   ],
+   "static": {
+    "location.1": 5.0
+   }
+  },
+  {
+   "name": "muted-alone-resets",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.1",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "location.1": {
+      "keys": [
+       [
+        1,
+        7.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "Own": {
+     "location.2": {
+      "keys": [
+       [
+        1,
+        9.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1,
+       "muted": true
+      }
+     ]
+    }
+   ],
+   "static": {
+    "location.0": 10.0,
+    "location.1": 5.0,
+    "location.2": 6.0
+   }
+  },
+  {
+   "name": "solo",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.1",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "location.1": {
+      "keys": [
+       [
+        1,
+        7.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "Own": {
+     "location.2": {
+      "keys": [
+       [
+        1,
+        9.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "blend": "multiply",
+       "influence": 0.5
+      }
+     ],
+     "solo": true
+    },
+    {
+     "strips": [
+      {
+       "action": "C",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.2": {
+     "keys": [
+      [
+       1,
+       9.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   }
+  },
+  {
+   "name": "own-replace",
+   "frames": [
+    -5,
+    1,
+    6,
+    11,
+    20
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   }
+  },
+  {
+   "name": "own-combine",
+   "frames": [
+    6
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "combine",
+    "influence": 0.5
+   }
+  },
+  {
+   "name": "own-add",
+   "frames": [
+    6
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "add",
+    "influence": 0.5
+   }
+  },
+  {
+   "name": "own-subtract",
+   "frames": [
+    6
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "subtract",
+    "influence": 0.5
+   }
+  },
+  {
+   "name": "own-multiply",
+   "frames": [
+    6
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "multiply",
+    "influence": 0.5
+   }
+  },
+  {
+   "name": "own-hold-forward",
+   "frames": [
+    -5,
+    1,
+    6,
+    11,
+    20
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "extrapolation": "holdForward"
+   }
+  },
+  {
+   "name": "own-nothing",
+   "frames": [
+    -5,
+    1,
+    6,
+    11,
+    20
+   ],
+   "paths": [
+    "location.0",
+    "scale.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "scale.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       5.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "scale.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "extrapolation": "nothing",
+    "influence": 0.75
+   }
+  },
+  {
+   "name": "auto-blend-three",
+   "frames": [
+    10,
+    12,
+    15,
+    17,
+    20,
+    25,
+    30,
+    35
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ],
+       [
+        11,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        6.0
+       ],
+       [
+        21,
+        6.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        9.0
+       ],
+       [
+        6,
+        9.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10,
+       "autoBlend": true
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 15,
+       "autoBlend": true
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "C",
+       "start": 12,
+       "autoBlend": true
+      }
+     ]
+    }
+   ],
+   "blends": true
+  },
+  {
+   "name": "auto-blend-both-sides",
+   "frames": [
+    10,
+    12,
+    15,
+    19
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        14,
+        1.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        5.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ],
+       [
+        19,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 10,
+       "autoBlend": true
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "C",
+       "start": 12
+      }
+     ]
+    }
+   ],
+   "blends": true
+  },
+  {
+   "name": "auto-blend-contains",
+   "frames": [
+    10,
+    15,
+    20,
+    30,
+    40
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        31,
+        1.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        5.0
+       ],
+       [
+        11,
+        5.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 10,
+       "autoBlend": true
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 15,
+       "autoBlend": true
+      }
+     ]
+    }
+   ],
+   "blends": true
+  },
+  {
+   "name": "tweak-lower",
+   "frames": [
+    1,
+    5,
+    15,
+    21,
+    25,
+    30
+   ],
+   "paths": [
+    "location.0",
+    "location.1",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        1.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ],
+       [
+        11,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ],
+       [
+        11,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "D": {
+     "location.1": {
+      "keys": [
+       [
+        1,
+        4.0
+       ],
+       [
+        11,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "scale": 2,
+       "influence": 0.5,
+       "extrapolation": "nothing"
+      },
+      {
+       "action": "C",
+       "start": 25,
+       "extrapolation": "nothing"
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "D",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.2": {
+     "keys": [
+      [
+       1,
+       9.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "tweak": {
+    "track": 1,
+    "strip": 0,
+    "upperStack": false
+   },
+   "static": {
+    "location.2": 0.5
+   }
+  },
+  {
+   "name": "tweak-upper",
+   "frames": [
+    1,
+    5,
+    15,
+    21,
+    25,
+    30
+   ],
+   "paths": [
+    "location.0",
+    "location.1",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        1.0
+       ],
+       [
+        11,
+        1.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ],
+       [
+        11,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "C": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        3.0
+       ],
+       [
+        11,
+        3.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "D": {
+     "location.1": {
+      "keys": [
+       [
+        1,
+        4.0
+       ],
+       [
+        11,
+        4.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "scale": 2,
+       "influence": 0.5,
+       "extrapolation": "nothing"
+      },
+      {
+       "action": "C",
+       "start": 25,
+       "extrapolation": "nothing"
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "D",
+       "start": 1
+      }
+     ]
+    }
+   ],
+   "own": {
+    "location.2": {
+     "keys": [
+      [
+       1,
+       9.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "tweak": {
+    "track": 1,
+    "strip": 0,
+    "upperStack": true
+   },
+   "static": {
+    "location.2": 0.5
+   }
+  },
+  {
+   "name": "hidden-replace",
+   "frames": [
+    1
+   ],
+   "paths": [
+    "hide_viewport"
+   ],
+   "actions": {
+    "H": {
+     "hide_viewport": {
+      "keys": [
+       [
+        1,
+        1.0
+       ]
+      ],
+      "interpolation": "constant"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1,
+       "blend": "replace",
+       "influence": 0.7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "hidden-subtract",
+   "frames": [
+    1
+   ],
+   "paths": [
+    "hide_viewport"
+   ],
+   "actions": {
+    "H": {
+     "hide_viewport": {
+      "keys": [
+       [
+        1,
+        1.0
+       ]
+      ],
+      "interpolation": "constant"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1,
+       "blend": "subtract",
+       "influence": 0.3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "hidden-multiply",
+   "frames": [
+    1
+   ],
+   "paths": [
+    "hide_viewport"
+   ],
+   "actions": {
+    "H": {
+     "hide_viewport": {
+      "keys": [
+       [
+        1,
+        1.0
+       ]
+      ],
+      "interpolation": "constant"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1,
+       "blend": "multiply",
+       "influence": 0.3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "hidden-add",
+   "frames": [
+    1
+   ],
+   "paths": [
+    "hide_viewport"
+   ],
+   "actions": {
+    "H": {
+     "hide_viewport": {
+      "keys": [
+       [
+        1,
+        1.0
+       ]
+      ],
+      "interpolation": "constant"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "H",
+       "start": 1,
+       "blend": "add",
+       "influence": 1.0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bones-combine",
+   "frames": [
+    1,
+    6,
+    11
+   ],
+   "paths": [
+    "bone:Bone:location.0",
+    "bone:Bone:rotation_euler.2",
+    "bone:Bone:scale.1"
+   ],
+   "actions": {
+    "P": {
+     "bone:Bone:location.0": {
+      "keys": [
+       [
+        1,
+        0.5
+       ],
+       [
+        11,
+        1.5
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "bone:Bone:rotation_euler.2": {
+      "keys": [
+       [
+        1,
+        0.2
+       ],
+       [
+        11,
+        0.8
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "Q": {
+     "bone:Bone:location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "bone:Bone:rotation_euler.2": {
+      "keys": [
+       [
+        1,
+        0.3
+       ]
+      ],
+      "interpolation": "linear"
+     },
+     "bone:Bone:scale.1": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "P",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "Q",
+       "start": 1,
+       "blend": "combine",
+       "influence": 0.5
+      }
+     ]
+    }
+   ],
+   "armature": true
+  },
+  {
+   "name": "mod-generator",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "coefficients": [
+        1.0,
+        0.5,
+        0.1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-generator-additive",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "coefficients": [
+        1.0,
+        0.5,
+        0.1
+       ],
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-generator-factorized",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "mode": "factorized",
+       "coefficients": [
+        2.0,
+        1.0,
+        -3.0,
+        0.5
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sin",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sin",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sin-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sin",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-cos",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "cos",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-cos-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "cos",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-tan",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "tan",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-tan-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "tan",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sqrt",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sqrt",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sqrt-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sqrt",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-ln",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "ln",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-ln-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "ln",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sinc",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sinc",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-function-sinc-additive",
+   "frames": [
+    -15,
+    -5,
+    0,
+    0.5,
+    1,
+    2.5,
+    3.5,
+    6,
+    11,
+    16
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "function",
+       "function": "sinc",
+       "amplitude": 2.0,
+       "phaseMultiplier": 0.5,
+       "phaseOffset": 0.3,
+       "valueOffset": 1.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-envelope",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "envelope",
+       "reference": 2.0,
+       "min": 0.0,
+       "max": 4.0,
+       "points": [
+        {
+         "frame": 1,
+         "min": -2.0,
+         "max": 3.0
+        },
+        {
+         "frame": 11,
+         "min": 1.0,
+         "max": 5.0
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-envelope-one-point",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "envelope",
+       "reference": 0.0,
+       "min": -1.0,
+       "max": 1.0,
+       "points": [
+        {
+         "frame": 4,
+         "min": -2.0,
+         "max": 3.0
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-repeat-repeat",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-repeatOffset-repeatOffset",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeatOffset",
+       "after": "repeatOffset"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-mirror-mirror",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "mirror",
+       "after": "mirror"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-none-repeatOffset",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "none",
+       "after": "repeatOffset"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-counts",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeatOffset",
+       "after": "mirror",
+       "beforeCount": 1,
+       "afterCount": 2
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-bezier-cyclic",
+   "frames": [
+    -8,
+    -3,
+    0,
+    1,
+    1.5,
+    2,
+    3,
+    9,
+    10,
+    10.5,
+    11,
+    12,
+    13,
+    21.5
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       2.0
+      ],
+      [
+       4,
+       5.0
+      ],
+      [
+       8,
+       4.0
+      ],
+      [
+       11,
+       6.0
+      ]
+     ],
+     "interpolation": "bezier",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-bezier-offset",
+   "frames": [
+    -8,
+    -3,
+    0,
+    1,
+    1.5,
+    2,
+    3,
+    9,
+    10,
+    10.5,
+    11,
+    12,
+    13,
+    21.5
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       2.0
+      ],
+      [
+       4,
+       5.0
+      ],
+      [
+       8,
+       4.0
+      ],
+      [
+       11,
+       6.0
+      ]
+     ],
+     "interpolation": "bezier",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeatOffset",
+       "after": "repeatOffset"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-bezier-mirror",
+   "frames": [
+    -8,
+    -3,
+    0,
+    1,
+    1.5,
+    2,
+    3,
+    9,
+    10,
+    10.5,
+    11,
+    12,
+    13,
+    21.5
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       2.0
+      ],
+      [
+       4,
+       5.0
+      ],
+      [
+       8,
+       4.0
+      ],
+      [
+       11,
+       6.0
+      ]
+     ],
+     "interpolation": "bezier",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "mirror",
+       "after": "repeat"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-bezier-influence",
+   "frames": [
+    -8,
+    -3,
+    0,
+    1,
+    1.5,
+    2,
+    3,
+    9,
+    10,
+    10.5,
+    11,
+    12,
+    13,
+    21.5
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       2.0
+      ],
+      [
+       4,
+       5.0
+      ],
+      [
+       8,
+       4.0
+      ],
+      [
+       11,
+       6.0
+      ]
+     ],
+     "interpolation": "bezier",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeatOffset",
+       "after": "repeatOffset",
+       "influence": 0.5
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-range",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat",
+       "range": {
+        "start": 12,
+        "end": 30,
+        "blendIn": 4,
+        "blendOut": 0
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-not-first",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "coefficients": [
+        0.0,
+        1.0
+       ],
+       "additive": true
+      },
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-then-generator",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      },
+      {
+       "type": "generator",
+       "coefficients": [
+        0.0,
+        1.0
+       ],
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-cycles-then-stepped",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      },
+      {
+       "type": "stepped",
+       "step": 3.0,
+       "offset": 0.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-stepped",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 2.5,
+       "offset": 0.5
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-stepped-limits",
+   "frames": [
+    3.99,
+    4,
+    4.01,
+    5,
+    8.99,
+    9,
+    9.01,
+    12
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 2.0,
+       "offset": 0.0,
+       "start": 4.0,
+       "end": 9.0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-stepped-influence",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 4.0,
+       "offset": 0.0,
+       "influence": 0.5
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-stepped-range",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 4.0,
+       "offset": 0.0,
+       "range": {
+        "start": 3,
+        "end": 9,
+        "blendIn": 2,
+        "blendOut": 0
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-two-stepped",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 4.0,
+       "offset": 0.0
+      },
+      {
+       "type": "stepped",
+       "step": 3.0,
+       "offset": 0.0,
+       "range": {
+        "start": 5,
+        "end": 20,
+        "blendIn": 0,
+        "blendOut": 0
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-stepped-then-generator",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "stepped",
+       "step": 3.0,
+       "offset": 0.0
+      },
+      {
+       "type": "generator",
+       "coefficients": [
+        0.0,
+        1.0
+       ],
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-generator-range",
+   "frames": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    8.5,
+    9,
+    10
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "coefficients": [
+        20.0
+       ],
+       "range": {
+        "start": 3,
+        "end": 9,
+        "blendIn": 2,
+        "blendOut": 1
+       },
+       "influence": 0.5
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-range-after-cycles",
+   "frames": [
+    2,
+    5,
+    10,
+    13,
+    15,
+    19,
+    21,
+    25
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "cycles",
+       "before": "repeat",
+       "after": "repeat"
+      },
+      {
+       "type": "generator",
+       "coefficients": [
+        20.0
+       ],
+       "range": {
+        "start": 3,
+        "end": 9,
+        "blendIn": 0,
+        "blendOut": 0
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "mod-muted",
+   "frames": [
+    -15,
+    -9.5,
+    -5,
+    -3,
+    0,
+    1,
+    2.5,
+    3.5,
+    4,
+    6,
+    9,
+    11,
+    13,
+    15,
+    16,
+    21,
+    21.5,
+    25,
+    31,
+    41,
+    50
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       3.0
+      ],
+      [
+       11,
+       10.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "generator",
+       "coefficients": [
+        20.0
+       ],
+       "muted": true
+      },
+      {
+       "type": "function",
+       "function": "sin",
+       "amplitude": 1.0,
+       "phaseMultiplier": 1.0,
+       "phaseOffset": 0.0,
+       "valueOffset": 0.0,
+       "additive": true
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "strip-with-cycles",
+   "frames": [
+    5,
+    9,
+    15,
+    22,
+    27
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        0.0
+       ],
+       [
+        5,
+        4.0
+       ]
+      ],
+      "interpolation": "linear",
+      "modifiers": [
+       {
+        "type": "cycles",
+        "before": "repeat",
+        "after": "repeatOffset"
+       }
+      ]
+     }
+    }
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 5,
+       "actionStart": 1,
+       "actionEnd": 13
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "noise-replace",
+   "frames": [
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0,
+    8.5,
+    9.0,
+    9.5,
+    10.0,
+    10.5,
+    11.0,
+    11.5,
+    12.0,
+    12.5,
+    13.0,
+    13.5,
+    14.0,
+    14.5,
+    15.0,
+    15.5,
+    16.0,
+    16.5,
+    17.0,
+    17.5,
+    18.0,
+    18.5,
+    19.0,
+    19.5,
+    20.0,
+    20.5,
+    21.0,
+    21.5,
+    22.0,
+    22.5,
+    23.0,
+    23.5,
+    24.0,
+    24.5,
+    25.0,
+    25.5,
+    26.0,
+    26.5,
+    27.0,
+    27.5,
+    28.0,
+    28.5,
+    29.0,
+    29.5,
+    30.0,
+    30.5,
+    31.0,
+    31.5,
+    32.0,
+    32.5,
+    33.0,
+    33.5,
+    34.0,
+    34.5,
+    35.0,
+    35.5,
+    36.0,
+    36.5,
+    37.0,
+    37.5,
+    38.0,
+    38.5,
+    39.0,
+    39.5,
+    40.0,
+    40.5,
+    41.0,
+    41.5,
+    42.0,
+    42.5,
+    43.0,
+    43.5,
+    44.0,
+    44.5,
+    45.0,
+    45.5,
+    46.0,
+    46.5,
+    47.0,
+    47.5,
+    48.0,
+    48.5,
+    49.0,
+    49.5,
+    50.0,
+    50.5,
+    51.0,
+    51.5,
+    52.0,
+    52.5,
+    53.0,
+    53.5,
+    54.0,
+    54.5,
+    55.0,
+    55.5,
+    56.0,
+    56.5,
+    57.0,
+    57.5,
+    58.0,
+    58.5,
+    59.0,
+    59.5,
+    60.0,
+    60.5,
+    61.0,
+    61.5,
+    62.0,
+    62.5,
+    63.0,
+    63.5,
+    64.0,
+    64.5,
+    65.0,
+    65.5,
+    66.0,
+    66.5,
+    67.0,
+    67.5,
+    68.0,
+    68.5,
+    69.0,
+    69.5,
+    70.0,
+    70.5,
+    71.0,
+    71.5,
+    72.0,
+    72.5,
+    73.0,
+    73.5,
+    74.0,
+    74.5,
+    75.0,
+    75.5,
+    76.0,
+    76.5,
+    77.0,
+    77.5,
+    78.0,
+    78.5,
+    79.0,
+    79.5,
+    80.0,
+    80.5,
+    81.0,
+    81.5,
+    82.0,
+    82.5,
+    83.0,
+    83.5,
+    84.0,
+    84.5,
+    85.0,
+    85.5,
+    86.0,
+    86.5,
+    87.0,
+    87.5,
+    88.0,
+    88.5,
+    89.0,
+    89.5,
+    90.0,
+    90.5,
+    91.0,
+    91.5,
+    92.0,
+    92.5,
+    93.0,
+    93.5,
+    94.0,
+    94.5,
+    95.0,
+    95.5,
+    96.0,
+    96.5,
+    97.0,
+    97.5,
+    98.0,
+    98.5,
+    99.0,
+    99.5,
+    100.0,
+    100.5,
+    101.0,
+    101.5,
+    102.0,
+    102.5,
+    103.0,
+    103.5,
+    104.0,
+    104.5,
+    105.0,
+    105.5,
+    106.0,
+    106.5,
+    107.0,
+    107.5,
+    108.0,
+    108.5,
+    109.0,
+    109.5,
+    110.0,
+    110.5,
+    111.0,
+    111.5,
+    112.0,
+    112.5,
+    113.0,
+    113.5,
+    114.0,
+    114.5,
+    115.0,
+    115.5,
+    116.0,
+    116.5,
+    117.0,
+    117.5,
+    118.0,
+    118.5,
+    119.0,
+    119.5,
+    120.0
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       0.0
+      ],
+      [
+       11,
+       0.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "noise",
+       "blend": "replace",
+       "scale": 1.0,
+       "strength": 1.0,
+       "phase": 1.0,
+       "offset": 0.0,
+       "depth": 0,
+       "lacunarity": 2.0,
+       "roughness": 0.5
+      }
+     ]
+    }
+   },
+   "statistics": true
+  },
+  {
+   "name": "noise-deep",
+   "frames": [
+    0.0,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0,
+    8.5,
+    9.0,
+    9.5,
+    10.0,
+    10.5,
+    11.0,
+    11.5,
+    12.0,
+    12.5,
+    13.0,
+    13.5,
+    14.0,
+    14.5,
+    15.0,
+    15.5,
+    16.0,
+    16.5,
+    17.0,
+    17.5,
+    18.0,
+    18.5,
+    19.0,
+    19.5,
+    20.0,
+    20.5,
+    21.0,
+    21.5,
+    22.0,
+    22.5,
+    23.0,
+    23.5,
+    24.0,
+    24.5,
+    25.0,
+    25.5,
+    26.0,
+    26.5,
+    27.0,
+    27.5,
+    28.0,
+    28.5,
+    29.0,
+    29.5,
+    30.0,
+    30.5,
+    31.0,
+    31.5,
+    32.0,
+    32.5,
+    33.0,
+    33.5,
+    34.0,
+    34.5,
+    35.0,
+    35.5,
+    36.0,
+    36.5,
+    37.0,
+    37.5,
+    38.0,
+    38.5,
+    39.0,
+    39.5,
+    40.0,
+    40.5,
+    41.0,
+    41.5,
+    42.0,
+    42.5,
+    43.0,
+    43.5,
+    44.0,
+    44.5,
+    45.0,
+    45.5,
+    46.0,
+    46.5,
+    47.0,
+    47.5,
+    48.0,
+    48.5,
+    49.0,
+    49.5,
+    50.0,
+    50.5,
+    51.0,
+    51.5,
+    52.0,
+    52.5,
+    53.0,
+    53.5,
+    54.0,
+    54.5,
+    55.0,
+    55.5,
+    56.0,
+    56.5,
+    57.0,
+    57.5,
+    58.0,
+    58.5,
+    59.0,
+    59.5,
+    60.0,
+    60.5,
+    61.0,
+    61.5,
+    62.0,
+    62.5,
+    63.0,
+    63.5,
+    64.0,
+    64.5,
+    65.0,
+    65.5,
+    66.0,
+    66.5,
+    67.0,
+    67.5,
+    68.0,
+    68.5,
+    69.0,
+    69.5,
+    70.0,
+    70.5,
+    71.0,
+    71.5,
+    72.0,
+    72.5,
+    73.0,
+    73.5,
+    74.0,
+    74.5,
+    75.0,
+    75.5,
+    76.0,
+    76.5,
+    77.0,
+    77.5,
+    78.0,
+    78.5,
+    79.0,
+    79.5,
+    80.0,
+    80.5,
+    81.0,
+    81.5,
+    82.0,
+    82.5,
+    83.0,
+    83.5,
+    84.0,
+    84.5,
+    85.0,
+    85.5,
+    86.0,
+    86.5,
+    87.0,
+    87.5,
+    88.0,
+    88.5,
+    89.0,
+    89.5,
+    90.0,
+    90.5,
+    91.0,
+    91.5,
+    92.0,
+    92.5,
+    93.0,
+    93.5,
+    94.0,
+    94.5,
+    95.0,
+    95.5,
+    96.0,
+    96.5,
+    97.0,
+    97.5,
+    98.0,
+    98.5,
+    99.0,
+    99.5,
+    100.0,
+    100.5,
+    101.0,
+    101.5,
+    102.0,
+    102.5,
+    103.0,
+    103.5,
+    104.0,
+    104.5,
+    105.0,
+    105.5,
+    106.0,
+    106.5,
+    107.0,
+    107.5,
+    108.0,
+    108.5,
+    109.0,
+    109.5,
+    110.0,
+    110.5,
+    111.0,
+    111.5,
+    112.0,
+    112.5,
+    113.0,
+    113.5,
+    114.0,
+    114.5,
+    115.0,
+    115.5,
+    116.0,
+    116.5,
+    117.0,
+    117.5,
+    118.0,
+    118.5,
+    119.0,
+    119.5,
+    120.0
+   ],
+   "paths": [
+    "location.0"
+   ],
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       0.0
+      ],
+      [
+       11,
+       0.0
+      ]
+     ],
+     "interpolation": "linear",
+     "modifiers": [
+      {
+       "type": "noise",
+       "blend": "replace",
+       "scale": 4.0,
+       "strength": 2.0,
+       "phase": 3.0,
+       "offset": 0.0,
+       "depth": 3,
+       "lacunarity": 2.0,
+       "roughness": 0.5
+      }
+     ]
+    }
+   },
+   "statistics": true
+  },
+  {
+   "name": "tweak-upper-own-blend",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        10.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       100.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "location.2": {
+     "keys": [
+      [
+       1,
+       9.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "add",
+    "influence": 0.5
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "influence": 0.5
+      }
+     ]
+    }
+   ],
+   "tweak": {
+    "track": 0,
+    "strip": 0,
+    "upperStack": true
+   }
+  },
+  {
+   "name": "tweak-lower-own-blend",
+   "frames": [
+    5
+   ],
+   "paths": [
+    "location.0",
+    "location.2"
+   ],
+   "actions": {
+    "A": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        2.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    },
+    "B": {
+     "location.0": {
+      "keys": [
+       [
+        1,
+        10.0
+       ]
+      ],
+      "interpolation": "linear"
+     }
+    }
+   },
+   "own": {
+    "location.0": {
+     "keys": [
+      [
+       1,
+       100.0
+      ]
+     ],
+     "interpolation": "linear"
+    },
+    "location.2": {
+     "keys": [
+      [
+       1,
+       9.0
+      ]
+     ],
+     "interpolation": "linear"
+    }
+   },
+   "ownBlend": {
+    "blend": "add",
+    "influence": 0.5
+   },
+   "tracks": [
+    {
+     "strips": [
+      {
+       "action": "A",
+       "start": 1
+      }
+     ]
+    },
+    {
+     "strips": [
+      {
+       "action": "B",
+       "start": 1,
+       "influence": 0.5
+      }
+     ]
+    }
+   ],
+   "tweak": {
+    "track": 0,
+    "strip": 0,
+    "upperStack": false
+   },
+   "static": {
+    "location.2": 0.25
+   }
+  }
+ ]
+}

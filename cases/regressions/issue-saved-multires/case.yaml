@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-saved-multires
+feature: scene.agent.ids
+intent: >-
+  Multiresolution offsets that no longer fit their mesh after a topology change are cleared when
+  the command is recorded, as the file stores none, so the scene in memory is the scene its file
+  opens as (a scene saved by an earlier engine, an extrude).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/saved.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: saved
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 120

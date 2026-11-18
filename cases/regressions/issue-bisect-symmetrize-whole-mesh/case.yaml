@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-bisect-symmetrize-whole-mesh
+feature: scene.mesh.edit
+intent: >-
+  Bisect and Symmetrize act on the whole edited mesh whatever is selected, and their descriptions
+  say so, so `elements` naming vertices or faces is not silently taken as a part to cut or mirror.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: bisect_and_symmetrize_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-apply-transform-keys
+feature: scene.object.transform
+intent: >-
+  Apply Transform turns and scales shape key offsets with the mesh and keeps multiresolution
+  detail where it showed, mirrored too (the offsets do not stay as they were).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: apply_transform_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

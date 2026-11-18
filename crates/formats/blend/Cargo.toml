@@ -1,0 +1,19 @@
+[package]
+name = "kition-scene-blend"
+description = "Reads .blend files (the reference application's own format) into a Kition scene: objects, meshes, materials, cameras, lights, and modifiers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+kition-scene-exchange = { workspace = true }
+ruzstd = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

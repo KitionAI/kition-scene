@@ -1,0 +1,30 @@
+/* A number with a small action beside it (Stretch To's rest length and its reset). */
+.scene-constraint-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Transformation's three axis pickers in one row. */
+.scene-constraint-mapping {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Armature's bones: one line each (armature, bone, weight, remove), then the add button. */
+.scene-constraint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.scene-constraint-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 64px auto;
+  align-items: center;
+  gap: 4px;
+}

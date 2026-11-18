@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-driven-value-sources
+feature: scene.agent.premises
+intent: >-
+  A write that reads a driven value rests on what the driver's variables read: a hop onto an
+  object whose height a driver takes from another object's keys is refused after a colleague
+  cleared those keys (only the source changed), and still applies after an unrelated move.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/independent.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: declarations_independent
+  - cargo-test:
+      package: kition-scene
+      test: independent
+      filter: a_driven_value_rests_on_the_drivers_sources
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 600

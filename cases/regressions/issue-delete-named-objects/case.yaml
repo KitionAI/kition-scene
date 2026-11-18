@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-delete-named-objects
+feature: scene.object.basics
+intent: >-
+  Delete naming `objects` deletes those objects in every mode, and never something else: in
+  edit, curve, lattice and armature edit it does not ignore them, and a plain Delete in Sculpt
+  Mode and Particle Edit is refused instead of deleting the object being worked on.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: delete_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

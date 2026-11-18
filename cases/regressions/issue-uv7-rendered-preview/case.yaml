@@ -1,0 +1,16 @@
+format: 1
+id: regressions/issue-uv7-rendered-preview
+feature: scene.uv.live-unwrap
+intent: Completed rendered viewport samples preserve a live UV preview, its stationary pins, and the final move's single undo step.
+layer: gate
+dimension: function
+source: { kind: issue, from: "rendered viewport and UV editor integration", license: owned }
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/uv-rendered7.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/uv-rendered7.mjs, webkit] }
+expected:
+  - { actual: "out:exit", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-action-remove-tweak
+feature: scene.animation.timeline
+intent: >-
+  Removing an action that an earlier strip on a tweaked track plays keeps tweak mode on the same
+  strip (the tweak does not keep an index past the end, and the command is not refused).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: removed_index_action_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

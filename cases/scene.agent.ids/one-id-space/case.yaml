@@ -1,0 +1,24 @@
+format: 1
+id: scene.agent.ids/one-id-space
+feature: scene.agent.ids
+intent: >-
+  scene_inspect, receipts, others, conflicts and scene_query name objects and materials by the ids the
+  engine gives them (the object model's tool ids), numbers as inspect lists them; an id as receipts
+  print it works in on and in parameters as a number or its digits; the ids survive reopening and a
+  rewrite of the file.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: ids
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

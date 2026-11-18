@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-delete-object-references
+feature: scene.object.basics
+intent: >-
+  Deleting an object clears the modifiers that read it (Boolean, Armature, Shrinkwrap, Lattice),
+  the curves it bevels or tapers and the texts that follow it; a scene naming a missing object
+  there is refused (no reference dangles).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: delete_object_references_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

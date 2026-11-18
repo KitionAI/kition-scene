@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-dyntopo-multires-levels
+feature: scene.sculpt.paint
+intent: >-
+  Dynamic topology never runs on a mesh with multiresolution levels, whatever level is sculpted:
+  a stroke sculpts the base without re-cutting it, and Detail Flood Fill refuses (a stroke does not
+  re-cut the base under its levels when the sculpt level is 0).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: dyntopo_levels_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

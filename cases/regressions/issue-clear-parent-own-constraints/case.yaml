@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-clear-parent-own-constraints
+feature: scene.object.transform
+intent: >-
+  Clear Parent (Keep Transform) bakes the parent's frame into the fields, not the object's own
+  constraints: with no parent nothing changes (a Copy Location's result is not baked into the location
+  and then added again by the constraint).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: clear_parent_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

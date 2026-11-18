@@ -1,0 +1,1282 @@
+{
+"width": 48,
+"height": 32,
+"columns": [
+0,
+2,
+4,
+6,
+8,
+10,
+12,
+14,
+16,
+18,
+20,
+22,
+24,
+26,
+28,
+30,
+32,
+34,
+36,
+38,
+40,
+42,
+44,
+46
+],
+"rows": [
+1,
+3,
+5,
+7,
+9,
+11,
+13,
+15,
+17,
+19,
+21,
+23,
+25,
+27,
+29,
+31
+],
+"cases": [
+{
+"name": "translate",
+"kind": "translate",
+"values": {
+"X": 5.5,
+"Y": 3
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "translate-nearest",
+"kind": "translate",
+"values": {
+"X": 5.3,
+"Y": -2.6,
+"Interpolation": "nearest"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "translate-bicubic",
+"kind": "translate",
+"values": {
+"X": 0.3,
+"Y": 0.4,
+"Interpolation": "bicubic"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "translate-anisotropic",
+"kind": "translate",
+"values": {
+"X": 2.3,
+"Y": 0,
+"Interpolation": "anisotropic"
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "translate-repeat-extend",
+"kind": "translate",
+"values": {
+"X": 10,
+"Y": -4,
+"Extension X": "repeat",
+"Extension Y": "extend"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "rotate",
+"kind": "rotate",
+"values": {
+"Angle": 0.3
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "rotate-extend",
+"kind": "rotate",
+"values": {
+"Angle": -1.1,
+"Extension X": "extend",
+"Extension Y": "repeat"
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "rotate-nearest",
+"kind": "rotate",
+"values": {
+"Angle": 2.0,
+"Interpolation": "nearest"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "scale-relative",
+"kind": "scale",
+"values": {
+"X": 0.5,
+"Y": 0.75
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "scale-up",
+"kind": "scale",
+"values": {
+"X": 2,
+"Y": 1.5
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "scale-absolute",
+"kind": "scale",
+"values": {
+"Type": "absolute",
+"X": 20,
+"Y": 10
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "scale-render-size",
+"kind": "scale",
+"values": {
+"Type": "renderSize",
+"Frame Type": "fit"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "transform",
+"kind": "imageTransform",
+"values": {
+"X": 3,
+"Y": -2,
+"Angle": 0.4,
+"Scale": 0.8
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "transform-bicubic",
+"kind": "imageTransform",
+"values": {
+"X": -6.5,
+"Y": 1.25,
+"Angle": -0.2,
+"Scale": 1.3,
+"Interpolation": "bicubic",
+"Extension X": "extend",
+"Extension Y": "extend"
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "flip-x",
+"kind": "flip",
+"values": {
+"Flip X": true
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "flip-both",
+"kind": "flip",
+"values": {
+"Flip X": true,
+"Flip Y": true
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "crop",
+"kind": "crop",
+"values": {
+"X": 4,
+"Y": 6,
+"Width": 20,
+"Height": 12
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "crop-odd",
+"kind": "crop",
+"values": {
+"X": 3,
+"Y": 5,
+"Width": 21,
+"Height": 11
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "crop-alpha",
+"kind": "crop",
+"values": {
+"X": 4,
+"Y": 6,
+"Width": 20,
+"Height": 12,
+"Alpha Crop": true
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "crop-past-edges",
+"kind": "crop",
+"values": {
+"X": 30,
+"Y": 20,
+"Width": 40,
+"Height": 40
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "crop-default",
+"kind": "crop",
+"values": {},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "luminance-key",
+"kind": "luminanceKey",
+"values": {
+"Minimum": 0.2,
+"Maximum": 0.7
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Matte"
+},
+{
+"name": "luminance-key-image",
+"kind": "luminanceKey",
+"values": {
+"Minimum": 0.2,
+"Maximum": 0.7
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "difference-key",
+"kind": "differenceKey",
+"values": {
+"Tolerance": 0.1,
+"Falloff": 0.2
+},
+"inputs": {
+"Image 1": "A",
+"Image 2": "B"
+},
+"output": "Matte"
+},
+{
+"name": "difference-key-image",
+"kind": "differenceKey",
+"values": {
+"Tolerance": 0.1,
+"Falloff": 0.2
+},
+"inputs": {
+"Image 1": "B",
+"Image 2": "A"
+},
+"output": "Image"
+},
+{
+"name": "distance-key",
+"kind": "distanceKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Tolerance": 0.2,
+"Falloff": 0.3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "distance-key-ycc",
+"kind": "distanceKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Tolerance": 0.1,
+"Falloff": 0.2,
+"Color Space": "ycc"
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "distance-key-image",
+"kind": "distanceKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Tolerance": 0.2,
+"Falloff": 0.3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Image"
+},
+{
+"name": "color-key",
+"kind": "colorKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Hue": 0.05,
+"Saturation": 0.3,
+"Value": 0.3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "color-key-saturation",
+"kind": "colorKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Hue": 0.3,
+"Saturation": 0.05,
+"Value": 0.5
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "color-key-value",
+"kind": "colorKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Hue": 0.3,
+"Saturation": 0.5,
+"Value": 0.03
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "color-key-hue-wraps",
+"kind": "colorKey",
+"values": {
+"Key Color": [
+0.8,
+0.6,
+0.3,
+1
+],
+"Hue": 0.3,
+"Saturation": 0.5,
+"Value": 0.5
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "chroma-key",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+]
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "chroma-key-image",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Falloff": 0.5
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Image"
+},
+{
+"name": "chroma-key-no-minimum",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Minimum": 0.0
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "chroma-key-wide",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Maximum": 1.0
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "chroma-key-narrow",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Minimum": 0.3,
+"Maximum": 0.4
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "chroma-key-falloff",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Falloff": 0.25
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "chroma-key-ramp",
+"kind": "chromaKey",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Maximum": 1.2,
+"Minimum": 0.05
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Matte"
+},
+{
+"name": "keying",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+]
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Image"
+},
+{
+"name": "keying-matte",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+]
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-edges",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+]
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Edges"
+},
+{
+"name": "keying-edges-tolerance",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Edge Search Size": 2,
+"Edge Tolerance": 0.3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Edges"
+},
+{
+"name": "keying-edges-wide",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Edge Search Size": 4,
+"Edge Tolerance": 0.05
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Edges"
+},
+{
+"name": "keying-grid",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+]
+},
+"inputs": {
+"Image": "P"
+},
+"output": "Matte"
+},
+{
+"name": "keying-balance-low",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Key Balance": 0.0
+},
+"inputs": {
+"Image": "P"
+},
+"output": "Matte"
+},
+{
+"name": "keying-balance-high",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Key Balance": 1.0
+},
+"inputs": {
+"Image": "Q"
+},
+"output": "Matte"
+},
+{
+"name": "keying-despill",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Despill Strength": 0.5,
+"Despill Balance": 0.2
+},
+"inputs": {
+"Image": "P"
+},
+"output": "Image"
+},
+{
+"name": "keying-clip",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Black Level": 0.1,
+"White Level": 0.8
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-garbage-core",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Edge Search Size": 0
+},
+"inputs": {
+"Image": "G",
+"Garbage Matte": "Z",
+"Core Matte": "B.Alpha"
+},
+"output": "Matte"
+},
+{
+"name": "keying-pre-blur",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Preprocess Blur Size": 3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-post-blur",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Blur Size": 3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-post-blur-even",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Blur Size": 4
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-dilate",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Dilate Size": 2
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-erode",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Dilate Size": -2
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-feather",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Feather Size": 3
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "keying-feather-linear",
+"kind": "keying",
+"values": {
+"Key Color": [
+0.1,
+0.75,
+0.12,
+1
+],
+"Postprocess Feather Size": -3,
+"Feather Falloff": "linear"
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Matte"
+},
+{
+"name": "kuwahara-classic",
+"kind": "kuwahara",
+"values": {
+"Type": "classic",
+"Size": 3
+},
+"inputs": {
+"Image": "N"
+},
+"output": "Image"
+},
+{
+"name": "kuwahara-classic-large",
+"kind": "kuwahara",
+"values": {
+"Type": "classic",
+"Size": 5,
+"High Precision": true
+},
+"inputs": {
+"Image": "N"
+},
+"output": "Image"
+},
+{
+"name": "kuwahara-anisotropic",
+"kind": "kuwahara",
+"values": {
+"Size": 4
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "kuwahara-anisotropic-soft",
+"kind": "kuwahara",
+"values": {
+"Size": 3,
+"Uniformity": 2,
+"Sharpness": 0.5,
+"Eccentricity": 0.5
+},
+"inputs": {
+"Image": "G"
+},
+"output": "Image"
+},
+{
+"name": "kuwahara-anisotropic-noise",
+"kind": "kuwahara",
+"values": {
+"Size": 3
+},
+"inputs": {
+"Image": "N"
+},
+"output": "Image"
+},
+{
+"name": "white-point",
+"kind": "colorBalance",
+"values": {
+"Type": "whitePoint",
+"Input Temperature": 5000,
+"Input Tint": 10,
+"Output Temperature": 6500,
+"Output Tint": 10
+},
+"inputs": {
+"Image": "P"
+},
+"output": "Image"
+},
+{
+"name": "white-point-warm",
+"kind": "colorBalance",
+"values": {
+"Type": "whitePoint",
+"Input Temperature": 6500,
+"Input Tint": 10,
+"Output Temperature": 2000,
+"Output Tint": 10
+},
+"inputs": {
+"Image": "P"
+},
+"output": "Image"
+},
+{
+"name": "white-point-tint",
+"kind": "colorBalance",
+"values": {
+"Type": "whitePoint",
+"Input Temperature": 4000,
+"Input Tint": 25,
+"Output Temperature": 8000,
+"Output Tint": -30
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "white-point-factor",
+"kind": "colorBalance",
+"values": {
+"Type": "whitePoint",
+"Input Temperature": 6500,
+"Input Tint": -20,
+"Output Temperature": 9000,
+"Output Tint": 30,
+"Fac": 0.7
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "white-point-same",
+"kind": "colorBalance",
+"values": {
+"Type": "whitePoint"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "glare-kernel",
+"kind": "glare",
+"values": {
+"Type": "kernel",
+"Quality": "high"
+},
+"inputs": {
+"Image": "A",
+"Float Kernel": "K"
+},
+"output": "Glare"
+},
+{
+"name": "glare-kernel-color",
+"kind": "glare",
+"values": {
+"Type": "kernel",
+"Quality": "high",
+"Kernel Data Type": "color"
+},
+"inputs": {
+"Image": "A",
+"Color Kernel": "K"
+},
+"output": "Glare"
+},
+{
+"name": "glare-kernel-image",
+"kind": "glare",
+"values": {
+"Type": "kernel",
+"Quality": "high",
+"Strength": 0.5
+},
+"inputs": {
+"Image": "A",
+"Float Kernel": "K"
+},
+"output": "Image"
+},
+{
+"name": "glare-kernel-none",
+"kind": "glare",
+"values": {
+"Type": "kernel",
+"Quality": "high"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Glare"
+},
+{
+"name": "defocus-z-scale",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": false,
+"Z Scale": 1.0,
+"Z": 3.0
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "defocus-z-scale-wide",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": false,
+"Z Scale": 1.0,
+"Z": 5.0
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "defocus-square",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": false,
+"Z Scale": 2.0,
+"Z": 2.0,
+"Bokeh": "square"
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "defocus-z-buffer-near",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": true,
+"F-Stop": 0.1,
+"Z": 2.0
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "defocus-z-buffer-far",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": true,
+"F-Stop": 0.1,
+"Z": 8.0
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "defocus-z-buffer-ramp",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": true,
+"F-Stop": 0.2
+},
+"inputs": {
+"Image": "A",
+"Z": "Z"
+},
+"output": "Image"
+},
+{
+"name": "defocus-hexagon",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": false,
+"Z Scale": 4.0,
+"Bokeh": "hexagon",
+"Angle": 0.3,
+"Max Blur": 6
+},
+"inputs": {
+"Image": "A",
+"Z": "B.Alpha"
+},
+"output": "Image"
+},
+{
+"name": "defocus-in-focus",
+"kind": "defocus",
+"values": {
+"Use Z-Buffer": true,
+"F-Stop": 0.5,
+"Z": 4.0
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+},
+{
+"name": "vector-blur",
+"kind": "vectorBlur",
+"values": {},
+"inputs": {
+"Image": "M",
+"Speed": "V",
+"Z": "D"
+},
+"output": "Image"
+},
+{
+"name": "vector-blur-shutter",
+"kind": "vectorBlur",
+"values": {
+"Shutter": 1.0,
+"Samples": 8
+},
+"inputs": {
+"Image": "M",
+"Speed": "V",
+"Z": "D"
+},
+"output": "Image"
+},
+{
+"name": "blur-extend-bounds",
+"kind": "blur",
+"values": {
+"Size": [
+4,
+3,
+0
+],
+"Extend Bounds": true
+},
+"inputs": {
+"Image": "B"
+},
+"output": "Image"
+},
+{
+"name": "blur-extend-bounds-flat",
+"kind": "blur",
+"values": {
+"Size": [
+5,
+2,
+0
+],
+"Type": "flat",
+"Extend Bounds": true
+},
+"inputs": {
+"Image": "A"
+},
+"output": "Image"
+}
+]
+}

@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-camera9-portrait-usd
+feature: scene.camera.sensor-fit
+intent: A portrait Auto camera exports the fitted sensor aperture to USD so its native frame retains the render composition.
+layer: gate
+dimension: conversion
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/camera9.py
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-usd, test: camera9_regression }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

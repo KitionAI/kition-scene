@@ -1,0 +1,3761 @@
+{
+ "images": {
+  "A": [
+   48,
+   24
+  ],
+  "B": [
+   20,
+   12
+  ],
+  "C": [
+   48,
+   24
+  ]
+ },
+ "cases": [
+  {
+   "name": "blend replace 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "replace",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend replace 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "replace",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend cross 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "cross",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend cross 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "cross",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend darken 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "darken",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend darken 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "darken",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend multiply 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "multiply",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend multiply 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "multiply",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend colorBurn 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "colorBurn",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend colorBurn 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "colorBurn",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend linearBurn 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "linearBurn",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend linearBurn 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "linearBurn",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend lighten 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "lighten",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend lighten 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "lighten",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend screen 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "screen",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend screen 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "screen",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend colorDodge 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "colorDodge",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend colorDodge 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "colorDodge",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend add 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "add",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend add 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "add",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend overlay 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "overlay",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend overlay 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "overlay",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend softLight 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "softLight",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend softLight 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "softLight",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend hardLight 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "hardLight",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend hardLight 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "hardLight",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend vividLight 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "vividLight",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend vividLight 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "vividLight",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend linearLight 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "linearLight",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend linearLight 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "linearLight",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend pinLight 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "pinLight",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend pinLight 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "pinLight",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend difference 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "difference",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend difference 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "difference",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend exclusion 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "exclusion",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend exclusion 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "exclusion",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend subtract 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "subtract",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend subtract 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "subtract",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend hue 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "hue",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend hue 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "hue",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend saturation 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "saturation",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend saturation 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "saturation",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend color 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "color",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend color 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "color",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend value 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "value",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend value 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "value",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend alphaOver 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "alphaOver",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend alphaOver 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "alphaOver",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend alphaUnder 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "alphaUnder",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend alphaUnder 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "alphaUnder",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "blend gammaCross 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "gammaCross",
+     "opacity": 1.0
+    }
+   ]
+  },
+  {
+   "name": "blend gammaCross 0.6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "gammaCross",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing alphaOver",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "alphaOver",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing cross",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "cross",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing replace",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "replace",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing multiply",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "multiply",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing screen",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "screen",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "over nothing gammaCross",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "blend": "gammaCross",
+     "opacity": 0.6
+    }
+   ]
+  },
+  {
+   "name": "cross frame 5",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 5,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "cross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gamma cross frame 5",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 5,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "gammaCross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cross frame 6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 6,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "cross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gamma cross frame 6",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 6,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "gammaCross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cross frame 13",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 13,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "cross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gamma cross frame 13",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 13,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "gammaCross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cross frame 20",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 20,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "cross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gamma cross frame 20",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 20,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "gammaCross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "cross frame 21",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 21,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "cross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "gamma cross frame 21",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 21,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "gammaCross",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "wipe single out 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single out 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single out 30.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "out",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single out 30.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "out",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single in 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single in 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single in 30.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "in",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe single in 30.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "in",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double out 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double out 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double out 30.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "out",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double out 30.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "out",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double in 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double in 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double in 30.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "in",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe double in 30.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "double",
+     "direction": "in",
+     "angle": 30.0
+    }
+   ]
+  },
+  {
+   "name": "wipe iris out 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "iris",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe iris out 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "iris",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe iris in 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "iris",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe iris in 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "iris",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe clock out 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "clock",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe clock out 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "clock",
+     "direction": "out",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe clock in 0.0 frame 8",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 8,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "clock",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "wipe clock in 0.0 frame 15",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 15,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "clock",
+     "direction": "in",
+     "angle": 0.0
+    }
+   ]
+  },
+  {
+   "name": "soft wipe single",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 13,
+   "check": "soft",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "single",
+     "direction": "out",
+     "angle": 0.0,
+     "blur": 0.25
+    }
+   ]
+  },
+  {
+   "name": "soft wipe iris",
+   "size": [
+    64,
+    48
+   ],
+   "frame": 13,
+   "check": "soft",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20
+    },
+    {
+     "name": "Second",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 5,
+     "length": 20
+    },
+    {
+     "name": "T",
+     "kind": "wipe",
+     "channel": 3,
+     "inputs": [
+      "First",
+      "Second"
+     ],
+     "shape": "iris",
+     "direction": "out",
+     "angle": 0.0,
+     "blur": 0.25
+    }
+   ]
+  },
+  {
+   "name": "offset",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "offset": [
+       7,
+       -3
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "crop",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "crop": {
+      "left": 2,
+      "right": 3,
+      "top": 1,
+      "bottom": 4
+     }
+    }
+   ]
+  },
+  {
+   "name": "flip",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "flipX": true,
+      "flipY": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "scale nearest",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "scale": [
+       2.0,
+       1.5
+      ],
+      "filter": "nearest"
+     }
+    }
+   ]
+  },
+  {
+   "name": "scale bilinear",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "soft",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "scale": [
+       1.7,
+       1.3
+      ],
+      "filter": "bilinear"
+     }
+    }
+   ]
+  },
+  {
+   "name": "rotate nearest",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "rotation": 90.0,
+      "filter": "nearest"
+     }
+    }
+   ]
+  },
+  {
+   "name": "rotate bilinear",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "soft",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "rotation": 30.0,
+      "filter": "bilinear"
+     }
+    }
+   ]
+  },
+  {
+   "name": "origin corner",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "edges",
+   "strips": [
+    {
+     "name": "Picture",
+     "kind": "image",
+     "image": "B",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "transform": {
+      "origin": [
+       0.0,
+       0.0
+      ],
+      "scale": [
+       0.5,
+       0.5
+      ],
+      "filter": "nearest"
+     }
+    }
+   ]
+  },
+  {
+   "name": "colour 0.5 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 0.5,
+     "multiply": 1.0
+    }
+   ]
+  },
+  {
+   "name": "colour 0.0 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 0.0,
+     "multiply": 1.0
+    }
+   ]
+  },
+  {
+   "name": "colour 1.5 1.0",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 1.5,
+     "multiply": 1.0
+    }
+   ]
+  },
+  {
+   "name": "colour 1.0 0.5",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 1.0,
+     "multiply": 0.5
+    }
+   ]
+  },
+  {
+   "name": "colour 1.0 1.7",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 1.0,
+     "multiply": 1.7
+    }
+   ]
+  },
+  {
+   "name": "colour 0.6 0.8",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10,
+     "saturation": 0.6,
+     "multiply": 0.8
+    }
+   ]
+  },
+  {
+   "name": "adjustment",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Above",
+     "kind": "image",
+     "image": "B",
+     "channel": 2,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Adjust",
+     "kind": "adjustment",
+     "channel": 3,
+     "start": 1,
+     "length": 10,
+     "saturation": 0.3,
+     "multiply": 0.8
+    }
+   ]
+  },
+  {
+   "name": "adjustment over",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Adjust",
+     "kind": "adjustment",
+     "channel": 3,
+     "start": 1,
+     "length": 10,
+     "multiply": 0.5,
+     "blend": "alphaOver",
+     "opacity": 0.5
+    }
+   ]
+  },
+  {
+   "name": "trims frame 3",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 3,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20,
+     "trimStart": 3,
+     "trimEnd": 5
+    }
+   ]
+  },
+  {
+   "name": "trims frame 4",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 4,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20,
+     "trimStart": 3,
+     "trimEnd": 5
+    }
+   ]
+  },
+  {
+   "name": "trims frame 15",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 15,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20,
+     "trimStart": 3,
+     "trimEnd": 5
+    }
+   ]
+  },
+  {
+   "name": "trims frame 16",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 16,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "First",
+     "kind": "color",
+     "color": [
+      0.9,
+      0.25,
+      0.1
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 20,
+     "trimStart": 3,
+     "trimEnd": 5
+    }
+   ]
+  },
+  {
+   "name": "muted",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Below",
+     "kind": "image",
+     "image": "A",
+     "channel": 1,
+     "start": 1,
+     "length": 10
+    },
+    {
+     "name": "Muted",
+     "kind": "image",
+     "image": "C",
+     "channel": 2,
+     "start": 1,
+     "length": 10,
+     "mute": true
+    }
+   ]
+  },
+  {
+   "name": "colour strip",
+   "size": [
+    48,
+    24
+   ],
+   "frame": 1,
+   "check": "exact",
+   "strips": [
+    {
+     "name": "Colour",
+     "kind": "color",
+     "color": [
+      0.3,
+      0.6,
+      0.2
+     ],
+     "channel": 1,
+     "start": 1,
+     "length": 4,
+     "opacity": 0.7,
+     "blend": "cross"
+    }
+   ]
+  },
+  {
+   "name": "text Kition",
+   "size": [
+    160,
+    80
+   ],
+   "frame": 1,
+   "check": "text",
+   "strips": [
+    {
+     "name": "Words",
+     "kind": "text",
+     "channel": 1,
+     "start": 1,
+     "length": 5,
+     "text": "Kition",
+     "size": 30.0
+    }
+   ]
+  },
+  {
+   "name": "text Cube",
+   "size": [
+    160,
+    80
+   ],
+   "frame": 1,
+   "check": "text",
+   "strips": [
+    {
+     "name": "Words",
+     "kind": "text",
+     "channel": 1,
+     "start": 1,
+     "length": 5,
+     "text": "Cube",
+     "size": 20.0,
+     "location": [
+      0.3,
+      0.7
+     ]
+    }
+   ]
+  }
+ ]
+}

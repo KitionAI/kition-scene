@@ -1,0 +1,28 @@
+format: 1
+id: scene.animation.limits/blender-and-round-trip
+feature: scene.animation.limits
+intent: Independent frame and value bounds follow Blender, including influence, ranges and modifier order; settings survive undo, action tweaking and saved files.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/nla6.py
+  license: owned
+input:
+  - repo:bindings/wasm/tests/fixtures/released-0.13.0.kscene
+  - repo:crates/engine/model/tests/fixtures/nla6-cases.json
+steps:
+  - cargo-test: { package: kition-scene-model, test: nla6_blender }
+  - cargo-test: { package: kition-scene-kit, test: nla6 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-30"
+    how: Run tests/blender/nla6.py through Blender in background mode; the Rust test checks its committed numeric recording offline.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

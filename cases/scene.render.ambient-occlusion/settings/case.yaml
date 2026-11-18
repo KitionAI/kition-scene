@@ -1,0 +1,18 @@
+format: 1
+id: scene.render.ambient-occlusion/settings
+feature: scene.render.ambient-occlusion
+intent: Fast renders' ambient occlusion can be turned off, given a distance in metres instead of the automatic one from the scene's size, and a strength; the settings are saved and undone, and the defaults render exactly as before.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/ambient_occlusion.rs
+  license: owned
+  note: Setting names follow the reference's ambient occlusion distance and factor; no reference source consulted.
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: ambient_occlusion }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

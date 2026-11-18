@@ -1,0 +1,29 @@
+format: 1
+id: scene.uv.live-unwrap/commands-and-reference
+feature: scene.uv.live-unwrap
+intent: Moving pinned UVs relaxes only their islands as in Blender. Preview is read-only, final move and solve share one undo step, settings remain local, and UVs and preferences survive host save and reopen.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: crates/engine/model/tests/blender/uv7_live.py
+  license: owned
+input:
+  - repo:crates/engine/model/tests/fixtures/uv7-cases.json
+  - repo:crates/engine/model/tests/fixtures/uv7-live-reference.json
+  - repo:crates/engine/model/tests/fixtures/uv7-onepin-reference.json
+steps:
+  - cargo-test: { package: kition-scene-model, test: uv7, filter: live }
+  - cargo-test: { package: kition-scene-kit, test: uv7 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-30"
+    how: Run tests/blender/uv7_live.py through the application with the UV Editor Live Unwrap off and on, then transform a pinned UV by [0.12, 0.07]. Two-pin coordinates within 0.03 UV units; one-pin rigid translation within 0.00002 UV units. All pins remain exact.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

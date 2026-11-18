@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-nla6-endpoint
+feature: scene.animation.nla-groups
+intent: Stretching a meta to an exact requested frame keeps the last child's end on that same frame, including the editor's 1..14 to 1..24 resize.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/flow.mjs
+  license: owned
+  note: Reproduces the existing exact endpoint assertion from the NLA editor flow without changing that assertion.
+input: []
+steps:
+  - cargo-test: { package: kition-scene-model, test: nla_meta_endpoint }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

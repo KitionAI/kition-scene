@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-reparent-keeps-world
+feature: scene.object.transform
+intent: >-
+  Parenting (object.parent, object.parentArmature, and a deleted parent's children moving to the
+  grandparent) keeps the object where it is: an old parent's part goes into its fields (Keep
+  Transform). A cube seen at [6, 0, 0] under a moved parent stays there and does not jump to [1, 0, 0].
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: reparent_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

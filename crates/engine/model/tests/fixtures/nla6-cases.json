@@ -1,0 +1,3003 @@
+{
+  "cases": [
+    {
+      "name": "transition",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "transition-influence",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 1,
+          "influence": 0.4
+        }
+      ]
+    },
+    {
+      "name": "transition-blend",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 1,
+          "blend": "add"
+        }
+      ]
+    },
+    {
+      "name": "transition-reversed",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 1,
+          "reversed": true
+        }
+      ]
+    },
+    {
+      "name": "transition-muted",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 1,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "name": "endpoint-blend-add",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "blend": "add"
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "endpoint-blend-multiply",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "blend": "multiply"
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "endpoint-influence",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "influence": 0.4
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "endpoint-blendOut",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "blendOut": 4
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "endpoint-muted",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "muted": true
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "different-channels",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 1,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "meta",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "name": "meta-move",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "start": 11,
+          "end": 41
+        }
+      ]
+    },
+    {
+      "name": "meta-stretch",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "start": 11,
+          "end": 71
+        }
+      ]
+    },
+    {
+      "name": "meta-influence",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "influence": 0.4
+        }
+      ]
+    },
+    {
+      "name": "meta-blend",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "blend": "add"
+        }
+      ]
+    },
+    {
+      "name": "meta-dissolve",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36,
+        41,
+        46,
+        51,
+        61,
+        71,
+        81
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "start": 11,
+          "end": 71
+        },
+        {
+          "type": "dissolve",
+          "track": 0,
+          "strips": [
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "name": "limits-default",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits"
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-x",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-y",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minY": 2,
+          "maxY": 7
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-xy",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 4,
+          "maxY": 6
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-influence",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 4,
+          "maxY": 6,
+          "influence": 0.4
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-range",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 4,
+          "maxY": 6,
+          "range": {
+            "start": 1,
+            "end": 11,
+            "blendIn": 4,
+            "blendOut": 4
+          }
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-before-generator",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 2,
+          "maxY": 7
+        },
+        {
+          "type": "generator",
+          "coefficients": [
+            0,
+            2
+          ]
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-after-generator",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "generator",
+          "coefficients": [
+            0,
+            2
+          ]
+        },
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 2,
+          "maxY": 7
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-stepped",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 2,
+          "maxY": 7
+        },
+        {
+          "type": "stepped",
+          "step": 4,
+          "offset": 0
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-inverted",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 8,
+          "maxX": 3,
+          "minY": 7,
+          "maxY": 2
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "limits-muted",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "modifiers": [
+        {
+          "type": "limits",
+          "minX": 3,
+          "maxX": 8,
+          "minY": 2,
+          "maxY": 7,
+          "muted": true
+        }
+      ],
+      "frames": [
+        -2,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15
+      ]
+    },
+    {
+      "name": "meta-gap",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "meta-muted",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "name": "meta-lower-blend",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "Base",
+            "start": 1
+          }
+        ],
+        [
+          {
+            "action": "A",
+            "start": 1,
+            "blend": "add"
+          },
+          {
+            "action": "B",
+            "start": 21,
+            "influence": 0.4
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        1,
+        6,
+        11,
+        12,
+        13.5,
+        16,
+        18.5,
+        20,
+        21,
+        26,
+        31,
+        40
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 1,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 1,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "set",
+          "track": 1,
+          "strip": 0,
+          "influence": 0.2,
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "name": "nested-meta-stretch",
+      "actions": {
+        "A": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                0
+              ],
+              [
+                11,
+                10
+              ]
+            ]
+          }
+        ],
+        "B": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                30
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          }
+        ],
+        "Base": [
+          {
+            "property": "location",
+            "index": 0,
+            "keys": [
+              [
+                1,
+                4
+              ],
+              [
+                61,
+                4
+              ]
+            ]
+          }
+        ]
+      },
+      "tracks": [
+        [
+          {
+            "action": "A",
+            "start": 1
+          },
+          {
+            "action": "B",
+            "start": 21
+          },
+          {
+            "action": "A",
+            "start": 41
+          }
+        ]
+      ],
+      "frames": [
+        0,
+        11,
+        21,
+        31,
+        41,
+        51,
+        61,
+        71,
+        81,
+        91,
+        101,
+        111,
+        121
+      ],
+      "operations": [
+        {
+          "type": "transition",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "type": "meta",
+          "track": 0,
+          "strips": [
+            0,
+            1
+          ]
+        },
+        {
+          "type": "set",
+          "track": 0,
+          "strip": 0,
+          "start": 11,
+          "end": 111
+        }
+      ]
+    }
+  ]
+}

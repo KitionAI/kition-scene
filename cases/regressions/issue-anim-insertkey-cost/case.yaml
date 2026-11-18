@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-anim-insertkey-cost
+feature: scene.animation.keyframes
+intent: Inserting a key writes the keyed object's registers only; keys on other objects add no work to the write, so baking keys object by object is not quadratic in the scene's keys.
+layer: gate
+dimension: performance
+source:
+  kind: issue
+  from: baking keys on a scene with 28k keys over 130 objects
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kdm, filter: "write::tests::a_key_insert_works_out_only_the_keyed_object" }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

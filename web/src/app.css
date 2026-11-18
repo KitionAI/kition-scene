@@ -1,0 +1,1009 @@
+/* The Scene editor's own layout; colors and shapes come from @kition/kit-editor's tokens. */
+
+.scene-editor-root {
+  display: contents;
+}
+
+/* The viewport: the engine paints it edge to edge; the navigation sits over its top-right corner. */
+.scene-viewport {
+  position: relative;
+  min-width: 0;
+}
+
+.scene-viewport[data-navigating='orbit'] canvas {
+  cursor: grabbing !important;
+}
+
+.scene-viewport[data-navigating='pan'] canvas {
+  cursor: move !important;
+}
+
+.scene-nav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-card, 12px);
+  background: color-mix(in srgb, var(--kit-surface) 92%, transparent);
+  box-shadow: var(--kit-shadow-card, 0 1px 2px rgb(0 0 0 / 6%));
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+
+.scene-nav-button {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--kit-radius-control, 8px);
+  background: transparent;
+  color: var(--kit-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.scene-nav-button:hover,
+.scene-nav .kui-icon-button:hover {
+  background: var(--kit-surface-muted);
+}
+
+.scene-nav-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--kit-border);
+}
+
+/* The side panel. */
+.scene-side {
+  width: 288px;
+}
+
+.scene-empty {
+  margin: 0;
+  padding: 4px 12px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.scene-no-active {
+  padding: 12px;
+  border-bottom: 1px solid var(--kit-border);
+}
+
+.scene-outliner {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow: auto;
+  padding: 0 6px 8px;
+}
+
+.scene-outliner-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  border-radius: var(--kit-radius-control, 8px);
+}
+
+.scene-outliner-row:hover {
+  background: var(--kit-surface-muted);
+}
+
+.scene-outliner-row[data-selected] {
+  background: var(--kit-primary-soft);
+}
+
+.scene-outliner-row[data-active] .scene-outliner-label {
+  font-weight: 600;
+}
+
+.scene-outliner-row[data-hidden] .scene-outliner-name {
+  opacity: 0.5;
+}
+
+.scene-outliner-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--kit-text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-outliner-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-outliner-icon {
+  flex: none;
+  color: var(--kit-text-muted);
+}
+
+.scene-outliner-icon[data-type='mesh'] {
+  color: var(--kit-primary);
+}
+
+.scene-outliner-eye {
+  opacity: 0;
+}
+
+.scene-outliner-row:hover .scene-outliner-eye,
+.scene-outliner-row[data-hidden] .scene-outliner-eye,
+.scene-outliner-eye:focus-visible {
+  opacity: 1;
+}
+
+.scene-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--kit-surface-muted);
+  color: var(--kit-text-muted);
+  font-size: 10px;
+}
+
+.scene-rename {
+  flex: 1;
+  height: 24px;
+  font-size: 12px;
+}
+
+/* Properties: a label column and a value column. */
+.scene-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.scene-row-label {
+  color: var(--kit-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scene-row-value {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.scene-row-value > .kui-number-field,
+.scene-row-value > .kui-choice,
+.scene-row-value > .kui-field,
+.scene-row-value > .kui-segmented {
+  width: 100%;
+  min-width: 0;
+}
+
+.scene-row-value .kui-choice > select {
+  width: 100%;
+}
+
+/* X, Y, and Z stacked, each a full-width field (a modeller's transform panel). */
+.scene-vector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  padding: 3px 0;
+}
+
+/* The stacked fields share their borders: one box of three rows. */
+.scene-vector > .kui-number-field {
+  height: 26px;
+  border-radius: 0;
+}
+
+.scene-vector > .kui-number-field + .kui-number-field {
+  margin-top: -1px;
+}
+
+.scene-vector > .kui-number-field:first-child {
+  border-top-left-radius: var(--kit-radius-control, 8px);
+  border-top-right-radius: var(--kit-radius-control, 8px);
+}
+
+.scene-vector > .kui-number-field:last-child {
+  border-bottom-left-radius: var(--kit-radius-control, 8px);
+  border-bottom-right-radius: var(--kit-radius-control, 8px);
+}
+
+.scene-vector > .kui-number-field:focus-within {
+  position: relative;
+  z-index: 1;
+}
+
+.scene-vector-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.scene-vector-2 > .kui-number-field {
+  height: 28px;
+  margin-top: 0 !important;
+  border-radius: var(--kit-radius-control, 8px) !important;
+}
+
+.scene-vector .kui-number-field {
+  width: 100%;
+}
+
+.scene-vector .kui-number-field-label {
+  width: 24px;
+  justify-content: center;
+  padding: 0;
+}
+
+.scene-vector .kui-number-field-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.scene-readout {
+  padding: 6px 0;
+  color: var(--kit-text);
+  line-height: 1.4;
+}
+
+.scene-name {
+  width: 100%;
+}
+
+.scene-checks {
+  display: flex;
+  gap: 12px;
+}
+
+.scene-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px 0 4px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control, 8px);
+  background: var(--kit-surface);
+  color: var(--kit-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.scene-swatch > span {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kit-text) 18%, transparent);
+}
+
+.scene-swatch code {
+  font-size: 11px;
+  color: var(--kit-text-muted);
+}
+
+.scene-color-popover {
+  width: auto;
+  padding: 10px;
+}
+
+/* The modifier stack: one card per modifier. */
+.scene-modifiers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.scene-modifier {
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-card, 12px);
+  background: var(--kit-surface);
+}
+
+.scene-modifier[data-enabled='false'] .scene-modifier-body {
+  opacity: 0.55;
+}
+
+.scene-modifier-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 4px 0 10px;
+  font-size: 12px;
+}
+
+.scene-modifier-header .kui-checkbox {
+  flex: 1;
+  min-width: 0;
+}
+
+.scene-modifier-name {
+  font-weight: 600;
+}
+
+.scene-modifier-actions {
+  display: flex;
+  flex: none;
+}
+
+.scene-modifier-actions .kui-icon-button {
+  width: 24px;
+  height: 24px;
+}
+
+.scene-modifier-body {
+  padding: 0 0 6px;
+  border-top: 1px solid var(--kit-border);
+}
+
+.scene-modifier-body .scene-row {
+  padding: 0 10px;
+}
+
+/* The status bar. */
+.scene-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scene-mode {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--kit-surface-muted);
+  font-weight: 600;
+}
+
+.scene-mode[data-mode='edit'] {
+  background: var(--kit-primary-soft);
+  color: var(--kit-primary);
+}
+
+.scene-status-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Dialogs. */
+/* The render's own dialog is wider than a form's (Tessera's dialogs stop at 560px). */
+.kui-dialog[data-testid='scene-render-dialog'] {
+  max-width: min(1000px, 92vw);
+}
+
+.scene-render {
+  width: min(960px, calc(92vw - 40px));
+  border-radius: var(--kit-radius-card, 12px);
+  background: var(--kit-surface-muted);
+  overflow: hidden;
+}
+
+.scene-render img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 64vh;
+  object-fit: contain;
+}
+
+.scene-render > span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 120px;
+}
+
+.scene-export {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 320px;
+}
+
+.scene-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 12px 10px;
+}
+
+.scene-track .kui-number-field-row,
+.scene-track > * {
+  width: 100%;
+}
+
+/* The viewport over the timeline. */
+.scene-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.scene-split {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.scene-split > .scene-viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The UV editor beside the viewport. */
+.scene-uv {
+  display: flex;
+  flex: 0 0 42%;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: 640px;
+  border-left: 1px solid var(--kit-border, #e6e6ea);
+  background: var(--kit-surface, #fff);
+}
+
+.scene-uv-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--kit-border, #e6e6ea);
+}
+
+.scene-uv-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--kit-border, #e6e6ea);
+}
+
+.scene-uv-title {
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.scene-uv-spacer {
+  flex: 1;
+}
+
+.scene-uv-action {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--kit-border, #e6e6ea);
+  border-radius: var(--kit-radius-control, 8px);
+  background: var(--kit-surface, #fff);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.scene-uv-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.scene-uv-canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: var(--kit-surface-muted, #f6f6f8);
+  touch-action: none;
+  user-select: none;
+}
+
+.scene-uv-face {
+  fill: rgba(60, 60, 70, 0.08);
+  stroke: #3c3c46;
+  stroke-linejoin: round;
+}
+
+.scene-uv-face[data-selected] {
+  fill: rgba(241, 88, 0, 0.18);
+  stroke: #f15800;
+}
+
+.scene-uv-seam {
+  stroke: #e0244d;
+  stroke-linecap: round;
+}
+
+.scene-uv-vertex {
+  fill: #3c3c46;
+}
+
+.scene-uv-vertex[data-selected] {
+  fill: #f15800;
+}
+
+.scene-uv-vertex[data-pinned] {
+  fill: #e0244d;
+}
+
+.scene-uv-box {
+  fill: color-mix(in srgb, var(--kit-primary, #9a5a22) 8%, transparent);
+  stroke: var(--kit-primary, #9a5a22);
+  stroke-dasharray: 0.01 0.006;
+}
+
+.scene-uv-empty {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--kit-text-muted, #6b6b76);
+}
+
+.scene-timeline {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 10px;
+  border-top: 1px solid var(--kit-border, #e6e6ea);
+  background: var(--kit-surface, #fff);
+  user-select: none;
+}
+
+.scene-timeline-controls,
+.scene-timeline-range {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.scene-timeline-field {
+  flex: none;
+  width: 108px;
+  margin: 0 4px 0 6px;
+}
+
+.scene-timeline-field > * {
+  width: 100%;
+}
+
+.scene-timeline-fps {
+  margin-left: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.scene-timeline [data-keyed] {
+  color: #d99a00;
+}
+
+.scene-timeline-ruler {
+  position: relative;
+  height: 34px;
+  border: 1px solid var(--kit-border, #e6e6ea);
+  border-radius: var(--kit-radius-control, 8px);
+  background: var(--kit-surface-muted, #f6f6f8);
+  overflow: hidden;
+  cursor: ew-resize;
+}
+
+.scene-timeline-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 2px 0 0 3px;
+  border-left: 1px solid var(--kit-border, #e2e2e6);
+  color: var(--kit-text-muted, #8a8a93);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* A key: a small diamond on the ruler's lower half. */
+.scene-timeline-key {
+  position: absolute;
+  bottom: 6px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: #e8b008;
+  border: 1px solid #a87800;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.scene-timeline-key[data-current] {
+  background: #fff4c2;
+}
+
+.scene-timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--kit-primary, #9a5a22);
+  pointer-events: none;
+}
+
+.scene-timeline-playhead-label {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--kit-primary, #9a5a22);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Properties that are animated: amber when keyed on this frame, a lighter tint otherwise. */
+.scene-vector[data-animated='keyed'] input {
+  background: #fff1c6;
+}
+
+.scene-vector[data-animated='animated'] input {
+  background: #f1f7e4;
+}
+
+.scene-proportional {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A material image slot: a small square thumbnail, the image's name, and its buttons. */
+.scene-texture {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.scene-texture-thumb {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--kui-border, rgba(0, 0, 0, 0.12));
+  background: repeating-conic-gradient(rgba(0, 0, 0, 0.06) 0% 25%, transparent 0% 50%) 0 0 / 8px 8px;
+  overflow: hidden;
+}
+
+.scene-texture-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scene-texture-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--kui-text-secondary, inherit);
+}
+
+/* The render dialog's engine choice and progress. */
+.scene-render-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.scene-render-samples {
+  width: 140px;
+}
+
+.scene-render-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--kit-text-muted, #6b6b76);
+}
+
+.scene-render-bar {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--kit-surface-muted, #efeff2);
+}
+
+.scene-render-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--kit-primary, #9a5a22);
+  transition: width 120ms linear;
+}
+
+/* Bones, vertex groups, and shape keys in the side panel. */
+.scene-bone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 180px;
+  overflow: auto;
+  margin: 0 8px 6px;
+}
+
+.scene-bone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--kit-radius-control, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-bone-row[aria-selected='true'] {
+  background: color-mix(in srgb, var(--kit-primary, #9a5a22) 14%, transparent);
+}
+
+.scene-bone-row[data-active] {
+  font-weight: 600;
+}
+
+.scene-bone-row:disabled {
+  cursor: default;
+}
+
+.scene-bone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 8px 8px;
+}
+
+.scene-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto auto;
+  align-items: center;
+  gap: 4px;
+  margin: 0 8px;
+  min-height: 30px;
+}
+
+.scene-key-row.scene-basis {
+  grid-template-columns: 1fr;
+  color: var(--kit-muted, #6b6b75);
+}
+
+.scene-key-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The graph editor above the timeline. */
+.scene-graph {
+  border-top: 1px solid var(--kit-border, #e6e6ea);
+  background: var(--kit-surface, #fff);
+}
+
+.scene-graph-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.scene-graph-canvas {
+  display: block;
+  width: 100%;
+  background: var(--kit-surface-muted, #f6f6f8);
+  touch-action: none;
+}
+
+.scene-graph-now {
+  stroke: var(--kit-brand, #9a5a22);
+  stroke-width: 1;
+}
+
+.scene-graph-zero {
+  stroke: var(--kit-border, #e0e0e6);
+  stroke-dasharray: 3 3;
+}
+
+.scene-graph-key {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 1.25;
+  cursor: grab;
+}
+
+.scene-graph-key[data-picked] {
+  fill: #f2a83a;
+}
+
+.scene-graph-label {
+  font-size: 10px;
+  fill: var(--kit-muted, #6b6b75);
+}
+
+/* The weight paint tool header, floating at the viewport's top left like the viewpoint bar. */
+.scene-weight-paint {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 300px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-card, 12px);
+  background: color-mix(in srgb, var(--kit-surface) 92%, transparent);
+  box-shadow: var(--kit-shadow-card, 0 1px 2px rgb(0 0 0 / 6%));
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+
+.scene-weight-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scene-weight-field > :last-child {
+  width: 150px;
+}
+
+/* Co-editing presence: other people's pointers, names, and vertices over the viewport. */
+.scene-presence {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.scene-presence-cursor {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  transition: left 90ms linear, top 90ms linear;
+}
+
+.scene-presence-tag {
+  position: absolute;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.scene-presence-cursor > .scene-presence-tag {
+  position: static;
+  margin-top: 14px;
+}
+
+.scene-presence-vertex {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border: 1px solid #fff;
+  border-radius: 2px;
+}
+
+.scene-presence-badges {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+.scene-presence-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.scene-presence-badge[data-editing] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.scene-text-body {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.scene-text-hint {
+  margin: 0 8px 6px;
+  font-size: 12px;
+}
+
+/* Sculpt's header shares weight paint's; its symmetry axes sit together. */
+.scene-sculpt-axes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scene-sculpt-label {
+  font-size: 12px;
+  color: var(--kit-text-muted, #6b6b76);
+}
+
+/* The GPU viewport: its canvas sits under kit-editor's overlay canvas and stands in for the
+   software picture while it draws. */
+.scene-gl-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.scene-viewport[data-gpu='on'] .kui-canvas-surface {
+  opacity: 0;
+}
+
+.scene-viewport:not([data-gpu='on']) .scene-gl-canvas {
+  visibility: hidden;
+}
+
+/* Progress stays beside the viewport controls and never intercepts picking or navigation. */
+.scene-rendered-progress {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  pointer-events: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--kui-bg, #fff);
+  color: var(--kui-fg, #222);
+  font-size: 12px;
+}

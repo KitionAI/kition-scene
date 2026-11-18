@@ -1,0 +1,26 @@
+format: 1
+id: scene.agent.preview/headless-agent-view
+feature: scene.agent.preview
+intent: >-
+  Served headless, kit.json names file.render as the agent's render command and the agent runs it
+  without changing the document; what view.describe answers (scene_inspect's details) leaves out
+  the editor's state (viewport, mode, selection, tool, the selected objects' key frames), so
+  orbiting the viewport, selecting objects or entering edit mode changes nothing the agent reads
+  of the scene, while the keyframes stay in it.
+layer: gate
+tags: [headless]
+source:
+  kind: synthetic
+  from: bindings/headless/tests/agent_render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: agent_render
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

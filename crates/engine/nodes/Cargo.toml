@@ -1,0 +1,16 @@
+[package]
+name = "kition-scene-nodes"
+description = "The Scene kit's geometry node evaluator: node groups run as Geometry Nodes modifiers, with fields evaluated per domain."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-scene-model = { workspace = true }
+glam = { workspace = true }
+serde_json = { workspace = true }

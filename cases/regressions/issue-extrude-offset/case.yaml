@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-extrude-offset
+feature: scene.mesh.basics
+intent: >-
+  mesh.extrude on loose vertices and edges moves them `distance` along the normal plus `offset`,
+  as on faces (`offset` does not replace the move along the normal).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: extrude_offset_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

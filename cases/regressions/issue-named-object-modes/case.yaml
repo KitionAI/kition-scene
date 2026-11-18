@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-named-object-modes
+feature: scene.curve.text-lattice
+intent: >-
+  A named curve or lattice is not made active and selected before the command is allowed (and
+  outside its undo step); lattice.set on another lattice keeps the edited lattice's selection;
+  particles.* and sculpt.remesh naming an object wait for object mode.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/named_targets.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: named_targets
+      filter: modes_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

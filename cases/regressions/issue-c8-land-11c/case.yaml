@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-c8-land-11c
+feature: scene.agent.premises
+intent: >-
+  Name premises follow the command resolver's types for targets and other parameters,
+  refusing renamed and deleted material names before execution. Parent renames carry no
+  world transforms. Scalar numeric model fields declare engine limits and ownership follows deletion.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/land11.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene, test: land11 }
+  - cargo-test: { package: kition-scene-kit, test: object_params }
+  - cargo-test: { package: kition-scene-kit, test: places }
+  - cargo-test: { package: kition-scene-kit, test: model_limits }
+expected:
+  - { actual: out:exit, compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

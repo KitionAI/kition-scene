@@ -1,0 +1,18 @@
+[package]
+name = "kition-scene-kdm"
+description = "The Scene kit's scene as a KDM replica (engine contract 2): the schema, the reader, the command bridge's writer, the post-merge repair, and the blobs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-scene-model = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

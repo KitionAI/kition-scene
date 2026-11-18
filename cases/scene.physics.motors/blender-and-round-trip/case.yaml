@@ -1,0 +1,29 @@
+format: 1
+id: scene.physics.motors/blender-and-round-trip
+feature: scene.physics.motors
+intent: Motors independently drive relative linear and angular velocity along the constraint X axis with bounded impulses; observed trajectories, command atomicity, undo, released-file reopening and replica repair remain covered.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/engine/physics/tests/blender/motors8.py
+  license: owned
+input:
+  - repo:crates/engine/physics/tests/fixtures/motors8-reference.json
+  - repo:bindings/wasm/tests/fixtures/released-0.15.0.kscene
+steps:
+  - cargo-test: { package: kition-scene-physics, test: motors8 }
+  - cargo-test: { package: kition-scene-kit, test: motors8 }
+  - cargo-test: { package: kition-scene-kdm, test: motors8 }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+reference:
+  - id: blender
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS"
+    platform: macOS arm64
+    made: "2026-10-31"
+    how: Run tests/blender/motors8.py in background mode; tests use committed evaluated transforms offline, with optional live KITION_BLENDER verification.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-boids9-fractional-events
+feature: scene.particles.boids
+intent: Fractional births move for their actual active duration, and a particle dying between frame ticks ceases influencing its neighbors at its death time.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: coupled boid replay event handling
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-particles, test: boids9_events }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

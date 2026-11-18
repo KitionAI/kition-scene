@@ -1,0 +1,28 @@
+format: 1
+id: scene.agent.receipts/compact-and-carried
+feature: scene.agent.receipts
+intent: >-
+  Equal offsets on 200 objects produce a complete footprint by ids and field deltas, without
+  truncation. Another writer's parent move reports the number of carried descendants and what
+  depends on that parent, so an agent can interpret the visible effect.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/land9.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene
+      test: land9
+      filter: two_hundred_equal_offsets_have_one_complete_footprint
+  - cargo-test:
+      package: kition-scene
+      test: land9
+      filter: another_writers_parent_move_reports_what_it_carries
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

@@ -1,0 +1,40 @@
+format: 1
+id: scene.agent.recover/inside-out
+feature: scene.agent.recover
+intent: >-
+  The agent runs the kit's check, finds a mesh whose faces point inwards, and turns them outward,
+  without changing the mesh's shape or the rest of the scene.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/check-insideOut.kscene
+  license: Apache-2.0
+  note: A copy of the conformance fixture for scene.insideOut.
+input: [input/cube.kscene]
+steps:
+  - task:
+      prompt: Run the kit's check on cube.kscene and fix what it reports.
+      max_turns: 20
+  - inspect: { path: cube.kscene, as: after }
+  - check: { path: cube.kscene, as: diagnostics }
+expected:
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { absent: [scene.insideOut, scene.mixedNormals], max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      details.objects.0.name: Cube
+      details.objects.0.location: [0, 0, 0]
+      details.objects.0.mesh.faces: 6
+      details.objects.0.mesh.vertices: 8
+      details.objects.1.name: Light
+      details.objects.1.location.0: { approx: 4.0763, tol: 0.001 }
+      details.objects.2.name: Camera
+      details.objects.2.location.0: { approx: 7.3589, tol: 0.001 }
+solution:
+  - tool: scene_run
+    args: { path: cube.kscene, steps: [{ command: mesh.recalculateNormals, params: { objects: Cube } }] }
+since: "2026-11-17"
+timeout_s: 600

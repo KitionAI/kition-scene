@@ -1,0 +1,29 @@
+format: 1
+id: scene.agent.context/explicit-call-context
+feature: scene.agent.context
+intent: >-
+  An agent's step names what it acts on and when, and nothing it does depends on or leaves behind
+  the editor's selection, active object, mode, edited mesh elements, current frame or viewport:
+  set_context makes `on` (object ids or names) the selection and `at.time` (seconds, counted as
+  file.render's target.time) the current frame without an edit, and restore_editor_state puts all
+  of it back, dropping what the run deleted; object.parent driven by `on` and anim.insertKey at 2 s
+  change exactly what they name; an agent's command given its objects leaves the selection (a
+  person's duplicate still selects the copies); an edit-mode command given `elements` extrudes a
+  face in one step from object mode; a run that entered edit mode is put back after a failing
+  step; unknown objects, a time outside the animation and a part are refused saying what is valid.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: context
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

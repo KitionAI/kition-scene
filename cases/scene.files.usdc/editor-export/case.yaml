@@ -1,0 +1,20 @@
+format: 1
+id: scene.files.usdc/editor-export
+feature: scene.files.usdc
+intent: The File menu opens Scene's format dialog and exports binary USD through the host file API with the PXR-USDC header.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: web/tests/flow.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [sh, -c, "cd web && node tests/flow.mjs chromium"]
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+requires: [chromium]
+since: "2026-11-17"

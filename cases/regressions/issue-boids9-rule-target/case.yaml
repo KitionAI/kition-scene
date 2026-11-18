@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-boids9-rule-target
+feature: scene.particles.boids
+intent: Switching a configured Goal rule to Avoid preserves its target; person undo restores the original Goal and target.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Boids panel rule kind changes
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/boids9.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/boids9.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+requires: [chromium, webkit]
+since: "2026-11-17"
+timeout_s: 60

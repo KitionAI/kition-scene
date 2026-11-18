@@ -1,0 +1,9 @@
+*~
+/target
+/target-*/
+/dist
+/corpus
+.DS_Store
+node_modules/
+web/dist/
+web/public/engine/

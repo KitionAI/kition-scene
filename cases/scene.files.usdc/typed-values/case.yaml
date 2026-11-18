@@ -1,0 +1,32 @@
+format: 1
+id: scene.files.usdc/typed-values
+feature: scene.files.usdc
+intent: Binary USD keeps declared numeric precision, arrays, quaternion component order, uniform and custom qualifiers, connection and relationship targets, nested boolean custom data, schema lists, and time samples as read by Blender's bundled OpenUSD.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/formats/usd/tests/blender/usdc_stage.py
+  license: owned
+  note: The synthetic typed.usda input was measured by OpenUSD 0.26.3 bundled with Blender 5.2.3 LTS.
+input:
+  - repo:crates/formats/usd/tests/fixtures/usdc6/typed.usda
+steps:
+  - cargo-test:
+      package: kition-scene-usd
+      test: usdc_write
+      filter: binary_values_match_blenders_independent_openusd_reader
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+reference:
+  - id: openusd-values
+    tool: UPSTREAM
+    version: "Blender 5.2.3 LTS / OpenUSD 0.26.3"
+    platform: macOS
+    made: "2026-10-30"
+    how: tests/blender/usdc_stage.py queries each authored property's type, variability, custom flag, default, connections, targets, every sample, authored custom data and schema lists through Usd.Stage.
+    kind: external
+since: "2026-11-17"
+timeout_s: 60

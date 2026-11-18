@@ -1,0 +1,29 @@
+{
+  "version": "5.2.3 LTS",
+  "engine": "CYCLES",
+  "samples": 512,
+  "size": [
+    64,
+    48
+  ],
+  "viewTransform": "Standard",
+  "shadingTypes": [
+    "WIREFRAME",
+    "SOLID",
+    "MATERIAL",
+    "RENDERED"
+  ],
+  "renderedUsesSceneLights": true,
+  "renderedUsesSceneWorld": true,
+  "orbit": {
+    "target": [
+      0,
+      0,
+      1
+    ],
+    "distance": 8,
+    "tilt": 60,
+    "turn": 30,
+    "lens": 50
+  }
+}

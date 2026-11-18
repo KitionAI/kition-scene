@@ -1,0 +1,19 @@
+format: 1
+id: scene.viewport.rendered/engine-and-reference
+feature: scene.viewport.rendered
+intent: Rendered orbit and camera views use scene light with progressive sampling, retain full-resolution picking and overlays, and discard stale input revisions without changing document history.
+layer: gate
+dimension: fidelity
+source:
+  kind: probe
+  from: crates/render/trace/tests/blender/viewport7.py
+  license: owned
+  note: Blender public Python API observations and independently constructed scenes; no source implementation consulted.
+input: []
+steps:
+  - cargo-test: { package: kition-scene-trace, test: viewport7 }
+  - cargo-test: { package: kition-scene-kit, test: viewport7 }
+expected:
+  - { actual: "out:exit", compare: exit, value: 0 }
+since: "2026-11-17"
+timeout_s: 60

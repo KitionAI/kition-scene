@@ -1,0 +1,41 @@
+[package]
+name = "kition-scene-kit"
+description = "The Scene engine for Kition's in-page editor: open, model, render, and save Kition Scene files (.kscene) from JavaScript (WebAssembly), on the Kition SDK."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-scene-model = { workspace = true }
+kition-scene-physics = { workspace = true }
+kition-scene-nodes = { workspace = true }
+kition-scene-compositor = { workspace = true }
+kition-scene-sequencer = { workspace = true }
+kition-scene-raster = { workspace = true }
+kition-scene-trace = { workspace = true }
+kition-scene-kscene = { workspace = true }
+kition-scene-kdm = { workspace = true }
+kition-scene-exchange = { workspace = true }
+kition-scene-blend = { workspace = true }
+kition-scene-fbx = { workspace = true }
+kition-scene-usd = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+png = { workspace = true }
+zip = { workspace = true }
+
+[dev-dependencies]
+# The showcase sample builder (examples/showcase.rs) saves its thumbnails.
+image = { version = "0.25", default-features = false, features = ["png"] }
+kition-convergence = { workspace = true }
+png = { workspace = true }

@@ -1,0 +1,20 @@
+/* Force field and rigid body constraint cards in the Physics panel: limit ranges and the
+   generic spring's per-axis rows. */
+
+.scene-physics-range {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0 4px;
+}
+
+.scene-physics-axes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scene-physics-axis {
+  padding: 4px 0;
+  border-top: 1px solid var(--kit-border);
+}

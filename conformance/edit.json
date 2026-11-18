@@ -1,0 +1,5 @@
+{
+  "steps": [
+    { "command": "add.cube", "params": { "name": "Box", "location": [2.5, 0, 0], "scale": [0.5, 0.5, 0.5] } }
+  ]
+}

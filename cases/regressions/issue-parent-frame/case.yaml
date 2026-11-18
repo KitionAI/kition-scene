@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-parent-frame
+feature: scene.object.transform
+intent: >-
+  object.translate, object.rotate, object.lookAt and camera.move turn a world offset, axis or
+  place through the parent's frame (the parent's world times the parent inverse), never through
+  the object's own constraints: a cube turned 90 degrees by a Copy Rotation and moved by [1, 0, 0]
+  moves by [1, 0, 0], not by [0, -1, 0].
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/world_results.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: world_results
+      filter: parent_frame_
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 300

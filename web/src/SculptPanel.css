@@ -1,0 +1,12 @@
+/* Sculpt mode's side panel sections and the Multires modifier's card: rows of small buttons. */
+.scene-sculpt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 8px 8px;
+}
+
+.scene-sculpt-note {
+  margin: 0 8px 6px;
+  font-size: 12px;
+}

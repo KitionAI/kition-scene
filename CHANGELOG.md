@@ -3,6 +3,12 @@
 Changes to Kition Scene, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.1
+
+- The viewport takes no clicks before the document is its size: a click right after opening no longer lands in a picture framed for the old size (selecting nothing and clearing the selection).
+- Cmd+S after deleting an object from the outliner saves the document.
+- The viewport follows the host's dark scheme: its background, grid floor and the shade outside a camera's frame are drawn dark in a dark host, live both ways.
+
 ## 0.1.0
 
 First public release of the source, under the Apache License 2.0. It contains:

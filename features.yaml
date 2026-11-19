@@ -303,7 +303,7 @@ features:
     commands: [add.cube, add.cylinder, add.uvSphere, object.transform, edit.delete]
     paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/scene.rs, bindings/wasm/tests/round_trip.rs]
     target: Blender 5.2.3 LTS
-    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references]
+    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-outliner-delete-save]
     since: "2026-11-17"
   - id: scene.material.basics
     title: Make, rename, colour and assign materials (roughness, transmission, IOR)
@@ -438,7 +438,7 @@ features:
     paths: [bindings/wasm/examples/bench.rs, bindings/wasm/examples/sculpt_bench.rs, bindings/wasm/src/viewport_trace.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    cases: [regressions/issue-1, regressions/issue-2]
+    cases: [regressions/issue-1, regressions/issue-2, regressions/issue-early-viewport-input]
     since: "2026-11-17"
   - id: scene.uv.editing
     title: "UV projections and UV editing"

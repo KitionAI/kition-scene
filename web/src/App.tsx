@@ -187,6 +187,11 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     const tool = tools.toolForKey(key, shift)
     if (tool) tools.select(tool)
   }
+  /** A key one of the editor's single-key shortcuts or Delete answers, enabled or not. */
+  const editorKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>) => {
+    const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+    return (plainKey && (event.key === 'Delete' || event.key === 'Backspace')) || plain.some((item) => keyMatches(item.shortcut!, event))
+  }
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return false
     // Delete and Backspace delete the selection from a panel too (an outliner row keeps the focus
@@ -195,10 +200,6 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     const deletes = plainKey && (event.key === 'Delete' || event.key === 'Backspace') && editor.enabled('edit.delete')
     if (deletes) void editor.run('edit.delete', {})
     else if (!runPlain(event)) return false
-    // The control that had the focus may go away with the mode (a panel button disabled in edit
-    // mode) or with what it showed (a deleted object's outliner row): the editor keeps it, so the
-    // next key reaches it too.
-    if (event.target instanceof HTMLButtonElement) event.currentTarget.focus({ preventScroll: true })
     return true
   }
   // A key pressed while nothing in the editor has the focus (it fell to the page): the editor's
@@ -223,9 +224,17 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       if (editor.enabled('render.image')) void renderImage()
       return
     }
+    // A key for the editor pressed on a panel's button (an outliner row keeps the focus after a
+    // click) gives the editor the keyboard first, whoever runs it: the engine's tools hold a key
+    // while a pointer event is under way and run it afterwards. The button may go away with the
+    // mode (disabled in edit mode) or with what it showed (a deleted object's row), and the focus
+    // would fall to the page, where Cmd+S and Cmd+Z reach nothing.
+    const target = event.target
+    if (target instanceof HTMLButtonElement && event.key !== ' ' && event.key !== 'Enter' && editorKey(event)) {
+      event.currentTarget.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
+    }
     // A checkbox or radio keeps the focus after a click, and the frame takes any input for a
     // text field; single-key shortcuts still answer there, and the editor takes the focus back.
-    const target = event.target
     if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio') && runPlain(event)) {
       event.preventDefault()
       event.stopPropagation()

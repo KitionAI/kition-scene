@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-early-viewport-input
+feature: scene.view.viewport
+intent: >-
+  A document opens at the size it was saved with and the editor then resizes it to its viewport.
+  Until the document is first the viewport's size, the viewport says it is not ready
+  (data-ready="false"), shows no picture, and passes no pointer input to the engine, so a click
+  there neither selects nor clears anything; once ready, a click on the cube in the middle selects
+  it and Shift+D duplicates it. Before, a click right after the scene opened was picked in a picture
+  framed for the saved size, cleared the selection, and the Shift+D after it duplicated nothing.
+layer: gate
+dimension: robustness
+source:
+  kind: issue
+  from: Kition interaction suite, scene host matrix H4, H5, H6, H7, H15 (B2)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/early-input.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/early-input.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-18"
+timeout_s: 90

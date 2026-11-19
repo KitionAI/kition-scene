@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-outliner-delete-save
+feature: scene.object.basics
+intent: >-
+  X on an outliner row deletes the object and the row goes with it; the editor has the keyboard
+  by then, so the Cmd+S that follows saves the deletion. This holds when the engine's tools are
+  busy with a pointer event and run the X afterwards: before, the keyboard stayed on the row, fell
+  to the page when the row went, and Cmd+S reached nothing.
+layer: gate
+dimension: data-safety
+source:
+  kind: issue
+  from: Kition interaction suite, scene "an object selected in the outliner and deleted stays deleted after a save" (B3)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/delete-focus.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/delete-focus.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-18"
+timeout_s: 90

@@ -22,6 +22,10 @@ type Pending = { orbit: [number, number]; pan: [number, number]; zoom: number }
  * document is the viewport, `view.resize` keeps its size the canvas's), with a modeller's
  * navigation: the wheel zooms, the middle button (or Alt with the left) orbits, Shift pans. Every
  * move is an engine view command, coalesced to one per frame with one in flight.
+ *
+ * A document opens at the size it was saved with. Until it is first the viewport's size, the
+ * viewport is not ready (`data-ready="false"`): it shows no picture and takes no pointer input, as
+ * the engine would pick in a picture framed for another size, one nobody saw.
  */
 export function SceneViewport({
   canvas,
@@ -50,6 +54,19 @@ export function SceneViewport({
   const gpuRef = useRef(gpu)
   gpuRef.current = gpu
   const wheelCommit = useRef(0)
+  // The document that was the viewport's size once: until then, the viewport is not ready.
+  const [readyDoc, setReadyDoc] = useState<typeof doc>(null)
+  const ready = doc != null && readyDoc === doc
+  const readyRef = useRef(ready)
+  readyRef.current = ready
+  /** The canvas's size in device pixels, as last measured. */
+  const measured = useRef<{ width: number; height: number } | null>(null)
+  const checkReady = useRef(() => {})
+  checkReady.current = () => {
+    const open = latest.current.doc
+    const size = measured.current
+    if (open && size && open.width === size.width && open.height === size.height) setReadyDoc(open)
+  }
 
   // View commands, coalesced: one per animation frame, never two at once.
   const pending = useRef<Pending>({ orbit: [0, 0], pan: [0, 0], zoom: 1 })
@@ -73,7 +90,14 @@ export function SceneViewport({
     if (!steps.length) return
     busy.current = true
     void (async () => {
-      for (const [command, params] of steps) await current.session.run(command, params).catch((error) => current.report('View', error))
+      for (const [command, params] of steps) {
+        await current.session.run(command, params).catch((error) => {
+          current.report('View', error)
+          // A document the engine would not resize still shows, as it is.
+          if (command === 'view.resize' && latest.current.doc) setReadyDoc(latest.current.doc)
+        })
+      }
+      checkReady.current()
       busy.current = false
       const next = pending.current
       if (resize.current || next.orbit[0] || next.orbit[1] || next.pan[0] || next.pan[1] || next.zoom !== 1) schedule()
@@ -97,6 +121,8 @@ export function SceneViewport({
     if (Math.abs(view.x) > 1e-6 || Math.abs(view.y) > 1e-6) handle.panTo(0, 0)
     const width = Math.max(1, Math.round(view.width * dpr))
     const height = Math.max(1, Math.round(view.height * dpr))
+    measured.current = { width, height }
+    checkReady.current()
     const open = latest.current.doc
     if (open && (open.width !== width || open.height !== height) && (resize.current?.width !== width || resize.current?.height !== height)) {
       resize.current = { width, height }
@@ -104,16 +130,26 @@ export function SceneViewport({
     }
   }
 
+  // The document's size changed (the engine answered `view.resize`): the viewport may be ready.
+  useEffect(() => checkReady.current(), [doc, info])
+
   // Navigation, ahead of the canvas's own handlers (capture phase): its wheel and middle button
-  // would scroll the 2D picture.
+  // would scroll the 2D picture. Before the viewport is ready, the canvas takes no pointer input.
   useEffect(() => {
     const element = region.current
     if (!element) return undefined
     const height = () => Math.max(1, element.clientHeight)
+    const unready = (event: Event) => {
+      if (readyRef.current || !(event.target instanceof HTMLCanvasElement)) return false
+      event.preventDefault()
+      event.stopPropagation()
+      return true
+    }
     const wheel = (event: WheelEvent) => {
       if (!(event.target instanceof HTMLCanvasElement)) return
       event.preventDefault()
       event.stopPropagation()
+      if (!readyRef.current) return
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1)
       const proportional = latest.current.info?.proportional
       if (toolDrag.current && proportional) {
@@ -133,7 +169,7 @@ export function SceneViewport({
     }
     let drag: { x: number; y: number; pan: boolean; id: number } | null = null
     const down = (event: PointerEvent) => {
-      if (!(event.target instanceof HTMLCanvasElement)) return
+      if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       const orbit = event.button === 1 || (event.button === 0 && event.altKey)
       if (!orbit) {
         if (event.button === 0) toolDrag.current = true
@@ -146,6 +182,7 @@ export function SceneViewport({
       element.dataset.navigating = drag.pan ? 'pan' : 'orbit'
     }
     const move = (event: PointerEvent) => {
+      if (!drag && unready(event)) return
       if (!drag || event.pointerId !== drag.id) return
       event.stopPropagation()
       const dx = event.clientX - drag.x
@@ -169,6 +206,7 @@ export function SceneViewport({
     }
     const up = (event: PointerEvent) => {
       if (event.button === 0) toolDrag.current = false
+      if (!drag && unready(event)) return
       if (!drag || event.pointerId !== drag.id) return
       event.stopPropagation()
       drag = null
@@ -240,6 +278,8 @@ export function SceneViewport({
       ref={region}
       className="kui-row scene-viewport"
       data-testid="scene-viewport"
+      data-ready={ready}
+      aria-busy={!ready || undefined}
       onContextMenu={(event) => {
         if (!(event.target instanceof HTMLCanvasElement)) return
         event.preventDefault()

@@ -18,6 +18,15 @@
   cursor: move !important;
 }
 
+/* Not ready (the document is not the viewport's size yet): no picture, and no pointer input. */
+.scene-viewport[data-ready='false'] canvas {
+  visibility: hidden;
+}
+
+.scene-viewport[data-ready='false'] {
+  cursor: progress;
+}
+
 .scene-nav {
   position: absolute;
   top: 10px;

@@ -25,6 +25,7 @@ fn sample_params(id: &str) -> Value {
         "view.shading" => json!({ "mode": "solid" }),
         "view.zoom" => json!({ "factor": 1.5 }),
         "view.resize" => json!({ "width": 640, "height": 480 }),
+        "view.scheme" => json!({ "scheme": "dark" }),
         "frame.set" => json!({ "frame": 10 }),
         "file.export" => json!({ "format": "obj" }),
         "presence.peers" => json!({ "peers": [] }),

@@ -9,6 +9,7 @@ import { PresenceLayer, type PlacedPeer } from './Presence'
 import { useGpuViewport } from './GlViewport'
 import { RenderedViewport } from './RenderedViewport'
 import { orbit, pan, zoom } from './gl/camera'
+import { useColorScheme } from './colorScheme'
 
 /** Degrees the view turns per CSS pixel of an orbit drag. */
 const ORBIT_SPEED = 0.4
@@ -132,6 +133,15 @@ export function SceneViewport({
 
   // The document's size changed (the engine answered `view.resize`): the viewport may be ready.
   useEffect(() => checkReady.current(), [doc, info])
+
+  // The host's color scheme: the engine paints the viewport's background, grid and frame shade in
+  // it (the editor's colours, as a modeller's theme; never the scene's, never saved), at open and
+  // whenever the host changes it.
+  const scheme = useColorScheme()
+  useEffect(() => {
+    if (!doc) return
+    void latest.current.editor.session.run('view.scheme', { scheme }).catch((error) => latest.current.editor.report('View', error))
+  }, [doc, scheme])
 
   // Navigation, ahead of the canvas's own handlers (capture phase): its wheel and middle button
   // would scroll the 2D picture. Before the viewport is ready, the canvas takes no pointer input.

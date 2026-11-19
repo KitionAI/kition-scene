@@ -4,7 +4,7 @@
 use std::collections::BTreeSet;
 
 use kition_scene_model::Scene;
-use kition_scene_raster::{Overlays, Shading, ViewState, hit, render_camera, render_viewport};
+use kition_scene_raster::{Overlays, Scheme, Shading, ViewState, hit, render_camera, render_viewport};
 
 fn save(name: &str, canvas: &kition_scene_raster::Canvas) {
     // KITION_SCENE_SNAPSHOTS=<dir> writes the pictures for a person to look at.
@@ -20,6 +20,7 @@ fn the_cube_fills_the_middle_of_the_default_view() {
     let scene = Scene::starter();
     let cube = scene.object_named("Cube").unwrap().id;
     let overlays = Overlays {
+        scheme: Scheme::Light,
         grid: true,
         selected: BTreeSet::from([cube]),
         active: Some(cube),
@@ -126,4 +127,37 @@ fn a_custom_shape_draws_a_bone_with_its_faces_or_as_wire() {
     let wire = render_viewport(&scene, &view, 320, 240, Shading::Solid, &overlays);
     assert_eq!(wire.pixel(x, y), background.pixel(x, y), "a wire shape leaves its faces out");
     assert!(wire.pixel(edge.x as u32, edge.y as u32).unwrap()[0] < 0.1, "and draws its edges");
+}
+
+/// Relative luminance of a linear colour.
+fn luminance(color: [f32; 4]) -> f32 {
+    0.2126 * color[0] + 0.7152 * color[1] + 0.0722 * color[2]
+}
+
+#[test]
+fn the_viewport_follows_the_editor_scheme_and_draws_the_scene_the_same() {
+    let scene = Scene::starter();
+    let cube = scene.object_named("Cube").unwrap().id;
+    let light = Overlays { grid: true, selected: BTreeSet::from([cube]), active: Some(cube), ..Overlays::default() };
+    let dark = Overlays { scheme: Scheme::Dark, ..light.clone() };
+    // The light scheme is the default: a picture made without a scheme is the light one.
+    assert_eq!(Overlays::default().scheme, Scheme::Light);
+    let view = ViewState::default();
+    let in_light = render_viewport(&scene, &view, 640, 400, Shading::Solid, &light);
+    let in_dark = render_viewport(&scene, &view, 640, 400, Shading::Solid, &dark);
+    save("viewport-solid-dark", &in_dark);
+    // The background is dark at the top and the bottom, and light in the light scheme.
+    for (x, y) in [(5, 5), (635, 5), (5, 395)] {
+        assert!(luminance(in_dark.pixel(x, y).unwrap()) < 0.06, "dark background at {x},{y}: {:?}", in_dark.pixel(x, y));
+        assert!(luminance(in_light.pixel(x, y).unwrap()) > 0.7, "light background at {x},{y}: {:?}", in_light.pixel(x, y));
+    }
+    // The cube is drawn the same in both: its pixels away from its outline match exactly.
+    for (x, y) in [(320, 200), (300, 190), (340, 215)] {
+        assert_eq!(hit(&in_dark, x, y).map(|found| found.object), Some(cube));
+        assert_eq!(in_dark.pixel(x, y), in_light.pixel(x, y), "the cube at {x},{y}");
+    }
+    // The grid floor is drawn in the scheme's grid colour: lines lighter than the dark background.
+    let floor = (0..400).flat_map(|y| (0..640).map(move |x| (x, y))).filter(|(x, y)| hit(&in_dark, *x, *y).is_none());
+    let lifted = floor.filter(|(x, y)| luminance(in_dark.pixel(*x, *y).unwrap()) > 0.06).count();
+    assert!(lifted > 500, "grid lines show on the dark background ({lifted} pixels)");
 }

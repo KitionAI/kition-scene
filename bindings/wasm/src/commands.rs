@@ -644,6 +644,9 @@ static SPECS: &[Spec] = &[
             ("perspective", s::boolean("Perspective or orthographic")),
         ])
     }),
+    spec("view.scheme", "Viewport Color Scheme", &[], None, false, Needs::Always, || {
+        s::of(vec![("scheme", s::required(s::choice("The host's color scheme", &["light", "dark"])))])
+    }),
     spec("view.resize", "Resize View", &[], None, false, Needs::Always, || {
         s::of(vec![("width", s::required(s::integer("Pixels"))), ("height", s::required(s::integer("Pixels")))])
     }),
@@ -1156,6 +1159,14 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
                 view.perspective = perspective;
             }
             view.camera = None;
+        }
+        "view.scheme" => {
+            let name = params::string(params, "scheme")?.ok_or_else(|| bad("`scheme` is required"))?;
+            let scheme = kition_scene_raster::Scheme::parse(name).ok_or_else(|| bad(format!("`scheme` must be light or dark, not {name}")))?;
+            if scheme == doc.session.scheme {
+                return Ok(json!({ "changed": false }));
+            }
+            doc.session.scheme = scheme;
         }
         "view.resize" => {
             let width = params::integer(params, "width")?.ok_or_else(|| bad("`width` is required"))?;

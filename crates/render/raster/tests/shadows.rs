@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use kition_scene_model::glam::Vec3;
 use kition_scene_model::{Light, LightKind, ObjectData, Primitive, Scene};
 use kition_scene_raster::view::camera_view;
-use kition_scene_raster::{Canvas, Overlays, RenderOptions, Shading, ViewState, render_camera_with, render_viewport};
+use kition_scene_raster::{Canvas, Overlays, RenderOptions, Scheme, Shading, ViewState, render_camera_with, render_viewport};
 
 fn save(name: &str, canvas: &Canvas) {
     // KITION_SCENE_SNAPSHOTS=<dir> writes the pictures for a person to look at.
@@ -94,6 +94,7 @@ fn the_material_viewport_shows_shadows() {
     let (scene, behind) = cube_on_a_floor();
     let view = ViewState { camera: scene.camera, ..ViewState::default() };
     let overlays = Overlays {
+        scheme: Scheme::Light,
         grid: false,
         selected: BTreeSet::new(),
         active: None,

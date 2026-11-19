@@ -193,6 +193,9 @@ pub struct Session {
     pub physics: commands_physics::PhysicsSession,
     /// A hair system being groomed (the document is otherwise in object mode).
     pub particle_edit: Option<commands_particles::ParticleEditSession>,
+    /// The host's colour scheme, which the viewport's background and grid follow (`view.scheme`).
+    /// The editor's, never the file's: it is not saved and leaves the document as it is.
+    pub scheme: kition_scene_raster::Scheme,
 }
 
 /// The state a command started from, to put back if it fails (the replica keeps the history).
@@ -325,6 +328,7 @@ impl SceneDocument {
                 sculpt: None,
                 physics: commands_physics::PhysicsSession::default(),
                 particle_edit: None,
+                scheme: kition_scene_raster::Scheme::Light,
             },
             replica,
             blobs,
@@ -569,7 +573,7 @@ impl SceneDocument {
 
     fn overlays(&self) -> Overlays {
         if !self.session.editor.overlays {
-            return Overlays { hide_extras: true, ..Overlays::default() };
+            return Overlays { scheme: self.session.scheme, hide_extras: true, ..Overlays::default() };
         }
         let edit = match self.session.mode {
             Mode::Edit(object) => {
@@ -585,6 +589,7 @@ impl SceneDocument {
             Mode::Object => None,
         };
         Overlays {
+            scheme: self.session.scheme,
             grid: self.session.editor.grid,
             selected: self.session.editor.selected.iter().copied().collect(),
             active: self.session.editor.active,

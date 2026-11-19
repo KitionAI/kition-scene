@@ -231,6 +231,9 @@
   "agent": {
     "prefix": "scene",
     "tools": "document",
+    "exclude": [
+      "view.scheme"
+    ],
     "drafts": false,
     "objectModel": true,
     "layout": false,

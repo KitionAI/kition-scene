@@ -86,7 +86,10 @@ export type GlFrame = {
   origins: Array<{ at: Vec3; active: boolean }>
   edit: { object: number; vertices: number[]; faces: number[] } | null
   peers: Array<{ color: Vec3 }>
-  colors: { selected: Vec3; active: Vec3; wire: Vec3; outside: Vec3 }
+  /** The viewport's background from its top to its bottom: the editor's, in the host's color scheme. */
+  background: { top: Vec3; bottom: Vec3 }
+  /** Linear RGB; `outside` and `grid` follow the host's color scheme. */
+  colors: { selected: Vec3; active: Vec3; wire: Vec3; outside: Vec3; grid: Vec3 }
 }
 
 /** One object's geometry, decoded (views into the engine's buffer). */

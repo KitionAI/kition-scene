@@ -430,10 +430,6 @@ void outlined() {
   else if (best >= 3) oColor = vec4(encode(uPeers[min(best - 3, 7)]), 1.0);
 }`
 
-/** The background's top and bottom (sRGB #f4f4f6 and #e2e2e6, as linear). */
-const TOP = srgb(0xf4f4f6)
-const BOTTOM = srgb(0xe2e2e6)
-const GRID = srgb(0xb4b4ba)
 const AXIS_X = srgb(0xff3352)
 const AXIS_Y = srgb(0x8bdc00)
 const EDIT_VERTEX: [number, number, number] = [0, 0, 0]
@@ -930,7 +926,8 @@ export class GlRenderer {
     gl.bindVertexArray(null)
   }
 
-  private gridLines(view: OrbitView) {
+  /** The grid floor in `grid`, the scheme's colour (the engine's frame says it). */
+  private gridLines(view: OrbitView, grid: number[]) {
     const scale = 10 ** Math.floor(Math.log10(Math.max(view.distance / 4, 0.01)))
     const lines = 40
     const extent = scale * lines
@@ -946,8 +943,8 @@ export class GlRenderer {
       const offset = step * scale
       const [x, y] = [cx + offset, cy + offset]
       const alpha = 0.55 * (1 - (Math.abs(offset) / extent) ** 2)
-      if (Math.abs(x) > scale * 0.01) push([x, cy - extent, 0], [x, cy + extent, 0], GRID, alpha)
-      if (Math.abs(y) > scale * 0.01) push([cx - extent, y, 0], [cx + extent, y, 0], GRID, alpha)
+      if (Math.abs(x) > scale * 0.01) push([x, cy - extent, 0], [x, cy + extent, 0], grid, alpha)
+      if (Math.abs(y) > scale * 0.01) push([cx - extent, y, 0], [cx + extent, y, 0], grid, alpha)
     }
     push([cx - extent, 0, 0], [cx + extent, 0, 0], AXIS_X, 0.9)
     push([0, cy - extent, 0], [0, cy + extent, 0], AXIS_Y, 0.9)
@@ -1092,8 +1089,9 @@ export class GlRenderer {
     gl.disable(gl.DEPTH_TEST)
     gl.depthMask(false)
     gl.useProgram(this.background.program)
-    gl.uniform3fv(this.uniform(this.background, 'uTop'), TOP)
-    gl.uniform3fv(this.uniform(this.background, 'uBottom'), BOTTOM)
+    // The background is the editor's, in the host's color scheme (the frame's).
+    gl.uniform3fv(this.uniform(this.background, 'uTop'), frame.background.top)
+    gl.uniform3fv(this.uniform(this.background, 'uBottom'), frame.background.bottom)
     gl.uniform2f(this.uniform(this.background, 'uSize'), width, height)
     gl.uniformMatrix4fv(this.uniform(this.background, 'uInverse'), false, invert(viewProj))
     this.bindEnvironment(this.background, frame)
@@ -1129,7 +1127,7 @@ export class GlRenderer {
     }
     gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE])
     if (frame.grid) {
-      const grid = this.gridLines(r)
+      const grid = this.gridLines(r, frame.colors.grid)
       this.drawLines(gl.LINES, viewProj, grid.positions, grid.colors, null, 0, true)
     }
     // Wires: every edge in wireframe view (seen through), and wire-only meshes (a curve without

@@ -51,9 +51,60 @@ pub struct EditOverlay {
     pub faces: BTreeSet<u32>,
 }
 
+/// The editor's colour scheme, which the viewport's own colours follow (the host's light or dark
+/// scheme): its background, grid floor and the shade outside a camera's frame. They are the
+/// editor's, not the scene's, so nothing of the scheme is saved with the file, and object colours,
+/// materials and the world are drawn the same in both. Renders, exports and headless pictures draw
+/// in the light scheme.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Scheme {
+    #[default]
+    Light,
+    Dark,
+}
+
+impl Scheme {
+    /// `light` or `dark`.
+    pub fn parse(name: &str) -> Option<Self> {
+        match name {
+            "light" => Some(Self::Light),
+            "dark" => Some(Self::Dark),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+
+    /// The viewport's own colours in this scheme, linear RGB.
+    pub fn colors(self) -> ViewportColors {
+        let [top, bottom, grid, outside] = match self {
+            Self::Light => [palette::BACKGROUND_TOP, palette::BACKGROUND_BOTTOM, palette::GRID, palette::OUTSIDE_FRAME],
+            Self::Dark => [palette::DARK_BACKGROUND_TOP, palette::DARK_BACKGROUND_BOTTOM, palette::DARK_GRID, palette::DARK_OUTSIDE_FRAME],
+        };
+        ViewportColors { top: hex(top), bottom: hex(bottom), grid: hex(grid), outside: hex(outside) }
+    }
+}
+
+/// The viewport's own colours (linear RGB): the background from its top to its bottom, the grid
+/// floor's lines, and the shade blended over what lies outside a camera's frame.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ViewportColors {
+    pub top: [f32; 3],
+    pub bottom: [f32; 3],
+    pub grid: [f32; 3],
+    pub outside: [f32; 3],
+}
+
 /// The overlays drawn over the viewport.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Overlays {
+    /// The editor's colour scheme: the background, grid and frame shade follow it.
+    pub scheme: Scheme,
     pub grid: bool,
     pub selected: BTreeSet<Id>,
     pub active: Option<Id>,
@@ -171,6 +222,12 @@ mod palette {
     pub const EDIT_VERTEX: u32 = 0x00_00_00;
     pub const OUTSIDE_FRAME: u32 = 0x9a_9a_a0;
     pub const SHAPE_FILL: u32 = 0xc4_c4_cc;
+    /// The dark scheme's background, grid and frame shade: dark greys, so the grey surfaces of
+    /// solid shading, the axes and the selection read as they do on the light background.
+    pub const DARK_BACKGROUND_TOP: u32 = 0x3d_3d_40;
+    pub const DARK_BACKGROUND_BOTTOM: u32 = 0x2b_2b_2e;
+    pub const DARK_GRID: u32 = 0x60_60_66;
+    pub const DARK_OUTSIDE_FRAME: u32 = 0x16_16_18;
 }
 
 /// The colour of a viewport surface.
@@ -217,7 +274,8 @@ pub fn render_viewport_picture(
     cache.retain(scene);
     let projector = view.projector(scene, width, height);
     let mut canvas = Canvas::new(width, height, [0.0, 0.0, 0.0, 1.0]);
-    let (top, bottom) = (hex(palette::BACKGROUND_TOP), hex(palette::BACKGROUND_BOTTOM));
+    let colors = overlays.scheme.colors();
+    let (top, bottom) = (colors.top, colors.bottom);
     for y in 0..height {
         let t = y as f32 / height.max(1) as f32;
         let color = [top[0] + (bottom[0] - top[0]) * t, top[1] + (bottom[1] - top[1]) * t, top[2] + (bottom[2] - top[2]) * t, 1.0];
@@ -329,7 +387,7 @@ pub fn render_viewport_picture(
         }
     }
     if overlays.grid {
-        draw_grid(&mut canvas, &projector, view);
+        draw_grid(&mut canvas, &projector, view, colors.grid);
     }
     if shading == Shading::Wireframe {
         for (id, prepared, world) in &wires {
@@ -413,7 +471,7 @@ pub fn render_viewport_picture(
         }
     }
     if let Some([x0, y0, x1, y1]) = projector.frame {
-        dim_outside(&mut canvas, [x0, y0, x1, y1]);
+        dim_outside(&mut canvas, [x0, y0, x1, y1], colors.outside);
     }
     canvas
 }
@@ -857,12 +915,11 @@ fn draw_edit(canvas: &mut Canvas, projector: &Projector, mesh: &Mesh, world: Mat
 }
 
 /// A ground grid on z = 0 whose spacing follows the zoom, with the X and Y axes drawn in colour.
-fn draw_grid(canvas: &mut Canvas, projector: &Projector, view: &ViewState) {
+fn draw_grid(canvas: &mut Canvas, projector: &Projector, view: &ViewState, grid: [f32; 3]) {
     let scale = 10f32.powf((view.distance / 4.0).max(0.01).log10().floor());
     let lines = 40;
     let extent = scale * lines as f32;
     let centre = (view.target / scale).round() * scale;
-    let grid = hex(palette::GRID);
     for step in -lines..=lines {
         let offset = step as f32 * scale;
         let (x, y) = (centre.x + offset, centre.y + offset);
@@ -1112,9 +1169,8 @@ fn outline(canvas: &mut Canvas, overlays: &Overlays) {
     }
 }
 
-fn dim_outside(canvas: &mut Canvas, frame: [f32; 4]) {
+fn dim_outside(canvas: &mut Canvas, frame: [f32; 4], shade: [f32; 3]) {
     let [x0, y0, x1, y1] = frame;
-    let shade = hex(palette::OUTSIDE_FRAME);
     for y in 0..canvas.height {
         for x in 0..canvas.width {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);

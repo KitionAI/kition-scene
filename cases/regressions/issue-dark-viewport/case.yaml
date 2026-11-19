@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-dark-viewport
+feature: scene.platform.color-scheme
+intent: >-
+  The viewport's background, grid floor and frame shade are the editor's, not the scene's, so they
+  follow the host's color scheme: opened in the dark scheme the viewport is dark (median relative
+  luminance at most 0.1), switched live to light it is light (at least 0.5), and back. The cube is
+  drawn the same in both, the scheme never makes the document dirty, and the file saved in the dark
+  scheme is byte for byte the one saved in the light. Checked on the GPU viewport (Chromium on the
+  machine's GPU), on WebKit, and on the software viewport. Before, the viewport stayed a light grey
+  gradient with a light grid in a dark host (median luminance 0.81).
+layer: gate
+dimension: platform
+source:
+  kind: issue
+  from: Kition interaction suite, row H16 (scene in the dark scheme)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/scheme.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/scheme.mjs, webkit] }
+  - exec: { cmd: [node, web/tests/scheme.mjs, chromium, software] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-19"
+timeout_s: 300

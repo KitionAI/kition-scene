@@ -1,6 +1,6 @@
 format: 1
 kit: scene
-updated: "2026-11-17"
+updated: "2026-11-19"
 gate_budget_s: 600
 protected:
   - bindings/wasm/tests/fixtures/released-0.17.0.kscene
@@ -429,6 +429,16 @@ features:
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
     since: "2026-11-17"
+  - id: scene.platform.color-scheme
+    title: "The viewport's background, grid and frame shade follow the host's light or dark color scheme, live; the scene's colours, the file and renders do not"
+    dimension: [platform, function]
+    priority: P1
+    status: has
+    commands: [view.scheme]
+    paths: [crates/render/raster/src/lib.rs, bindings/wasm/src/gl.rs, bindings/wasm/src/commands.rs, web/src/colorScheme.ts, web/src/Viewport.tsx, web/src/gl/renderer.ts, web/tests/scheme.mjs]
+    gap: "Renders, exports, the headless kit's pictures and previews stay in the light scheme by design. A scene opened in dark can show its light viewport for a frame before the scheme reaches the engine."
+    cases: [regressions/issue-dark-viewport]
+    since: "2026-11-19"
   - id: scene.view.viewport
     title: "Viewport shading, views and overlays"
     dimension: [function]

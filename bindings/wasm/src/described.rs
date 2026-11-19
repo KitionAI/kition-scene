@@ -222,6 +222,9 @@ fn describe(id: &str) -> &'static str {
         "view.pan" => "Pans the viewport by `right` and `up`.",
         "view.zoom" => "Zooms the viewport by `factor` (above 1 zooms in).",
         "view.set" => "Sets the viewport's target, distance, turn, tilt and projection at once.",
+        "view.scheme" => {
+            "The editor's command for the host's color scheme: the viewport's background, grid and frame shade follow it; the scene, the file and renders do not change."
+        }
         "view.resize" => "Sets the viewport size in pixels, which previews and the camera view use.",
         "mesh.extrudeIndividual" => {
             "Extrudes each selected face separately along its own normal by `distance`, in edit mode on the edited mesh's selected elements (`mode.set {mode: \"edit\"}` and `mesh.select` first)."
@@ -575,6 +578,7 @@ fn output(id: &str) -> Option<Value> {
         "view.pan" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.zoom" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.set" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "view.scheme" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.resize" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "mesh.proportional" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"proportional":{"type":"object","additionalProperties":true,"properties":{"connected":{"type":"boolean"},"falloff":{"type":"string"},"radius":{"type":"number"}}}}}"#

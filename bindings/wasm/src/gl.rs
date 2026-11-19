@@ -44,7 +44,6 @@ const SELECTED: u32 = 0xf1_58_00;
 const ACTIVE: u32 = 0xff_aa_40;
 const WIRE: u32 = 0x1a_1a_1a;
 const HANDLE: u32 = 0x7a_7a_82;
-const OUTSIDE_FRAME: u32 = 0x9a_9a_a0;
 
 fn linear(rgb: u32) -> [f32; 3] {
     kition_scene_raster::draw::hex(rgb)
@@ -391,6 +390,7 @@ impl SceneDocument {
         let shown = self.shown_scene();
         let scene = shown.as_ref().unwrap_or(&self.scene);
         let editor = &self.session.editor;
+        let scheme = self.session.scheme.colors();
         let (width, height) = (self.session.width, self.session.height);
         let view = &editor.view;
         let projector = view.projector(scene, width, height);
@@ -547,7 +547,10 @@ impl SceneDocument {
             "origins": origins,
             "edit": edit,
             "peers": peers,
-            "colors": { "selected": linear(SELECTED), "active": linear(ACTIVE), "wire": linear(WIRE), "outside": linear(OUTSIDE_FRAME) },
+            // The editor's own colours follow the host's scheme (`view.scheme`), as the software
+            // viewport's do.
+            "background": { "top": scheme.top, "bottom": scheme.bottom },
+            "colors": { "selected": linear(SELECTED), "active": linear(ACTIVE), "wire": linear(WIRE), "outside": scheme.outside, "grid": scheme.grid },
         })
     }
 

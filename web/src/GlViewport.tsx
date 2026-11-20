@@ -41,6 +41,11 @@ export type GpuViewport = {
   move: (step: (view: OrbitView) => OrbitView) => void
   /** Hands the engine the view the gesture ended with. */
   commit: () => void
+  /**
+   * Resolves once the GPU viewport has asked the engine for its frame after this call and drawn
+   * it (at once when it draws nothing): what it shows then is the engine's state now.
+   */
+  settled: () => Promise<void>
 }
 
 /** For tests and measurement: frames drawn, and whether the GPU viewport is on. */
@@ -82,7 +87,10 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     again: boolean
     raf: number
     failed: boolean
-  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, fetching: false, again: false, raf: 0, failed: !wanted() })
+    /** Callers of `settled` waiting for the next frame asked for, then for its drawing. */
+    asking: Array<() => void>
+    drawing: Array<() => void>
+  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, fetching: false, again: false, raf: 0, failed: !wanted(), asking: [], drawing: [] })
   const probe = useRef<Probe>({ active: false, frames: 0, reason: null, lastFrameMs: 0 })
   const latest = useRef({ doc, editor, enabled })
   latest.current = { doc, editor, enabled }
@@ -98,10 +106,22 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     setActive(on)
   }
 
+  /** Lets every `settled` caller in `waiting` go. */
+  const release = (waiting: Array<() => void>) => {
+    for (const done of waiting.splice(0)) done()
+  }
   const draw = () => {
     const s = state.current
     s.raf = 0
     const { renderer, frame, canvas } = s
+    const drawn = s.drawing.splice(0)
+    try {
+      paint(s, renderer, frame, canvas)
+    } finally {
+      release(drawn)
+    }
+  }
+  const paint = (s: typeof state.current, renderer: GlRenderer | null, frame: GlFrame | null, canvas: HTMLCanvasElement | null) => {
     if (!latest.current.enabled || !renderer || !frame || !canvas || !frame.supported || s.failed) return
     const dpr = window.devicePixelRatio || 1
     const width = Math.max(1, Math.round(canvas.clientWidth * dpr))
@@ -146,6 +166,8 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     s.renderer = null
     s.canvas?.remove()
     s.canvas = null
+    release(s.asking)
+    release(s.drawing)
     setOn(false)
     latest.current.editor.report('GPU viewport', error)
   }
@@ -156,21 +178,29 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     const open = latest.current.doc
     if (!latest.current.enabled) {
       setOn(false)
+      release(s.asking)
       return
     }
-    if (!open || !s.renderer || s.failed) return
+    if (!open || !s.renderer || s.failed) {
+      release(s.asking)
+      return
+    }
     if (s.fetching) {
       s.again = true
       return
     }
     s.fetching = true
+    const asked: Array<() => void> = []
     try {
       do {
         s.again = false
+        // Who asked before this frame was asked for: let go once it is drawn.
+        asked.push(...s.asking.splice(0))
         const frame = JSON.parse(await open.invoke<string>('glScene')) as GlFrame
         const renderer = s.renderer
         if (!renderer || !latest.current.enabled) {
           setOn(false)
+          release(asked)
           return
         }
         const held = renderer.heldKeys()
@@ -189,6 +219,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         // Geometry and environment requests can finish after rendered shading takes over.
         if (!latest.current.enabled) {
           setOn(false)
+          release(asked)
           return
         }
         s.frame = frame
@@ -197,9 +228,11 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         probe.current.reason = missing ? 'shadows need float render targets' : frame.reason
         if (!s.holding) s.local = null
         setOn(frame.supported && !missing)
+        s.drawing.push(...asked.splice(0))
         schedule()
       } while (s.again)
     } catch (error) {
+      release(asked)
       fail(error)
     } finally {
       s.fetching = false
@@ -261,6 +294,8 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
       resize.disconnect()
       canvas.removeEventListener('webglcontextlost', lost)
       cancelAnimationFrame(s.raf)
+      release(s.asking)
+      release(s.drawing)
       s.renderer?.dispose()
       s.renderer = null
       canvas.remove()
@@ -287,6 +322,11 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
       s.local = step({ ...base, target: [...base.target] as OrbitView['target'] })
       schedule()
     },
+    settled: () =>
+      new Promise<void>((done) => {
+        state.current.asking.push(done)
+        void refreshRef.current()
+      }),
     commit: () => {
       const s = state.current
       const view = s.local

@@ -57,7 +57,10 @@ export function SceneViewport({
   const wheelCommit = useRef(0)
   // The document that was the viewport's size once: until then, the viewport is not ready.
   const [readyDoc, setReadyDoc] = useState<typeof doc>(null)
-  const ready = doc != null && readyDoc === doc
+  // The document the engine paints in the host's color scheme, both pictures drawn since: until
+  // then, the viewport is not ready either (an engine opens in the light scheme).
+  const [schemedDoc, setSchemedDoc] = useState<typeof doc>(null)
+  const ready = doc != null && readyDoc === doc && schemedDoc === doc
   const readyRef = useRef(ready)
   readyRef.current = ready
   /** The canvas's size in device pixels, as last measured. */
@@ -137,10 +140,22 @@ export function SceneViewport({
   // The host's color scheme: the engine paints the viewport's background, grid and frame shade in
   // it (the editor's colours, as a modeller's theme; never the scene's, never saved), at open and
   // whenever the host changes it.
+  // The viewport is ready only once the software picture and the GPU's have been drawn after the
+  // scheme reached the engine, so its first frame shown is in the host's scheme.
   const scheme = useColorScheme()
   useEffect(() => {
-    if (!doc) return
-    void latest.current.editor.session.run('view.scheme', { scheme }).catch((error) => latest.current.editor.report('View', error))
+    if (!doc) return undefined
+    let current = true
+    void latest.current.editor.session
+      .run('view.scheme', { scheme })
+      .catch((error) => latest.current.editor.report('View', error))
+      .then(() => (current ? Promise.all([canvas.current?.retryRender().catch(() => false), gpuRef.current.settled()]) : null))
+      .then(() => {
+        if (current) setSchemedDoc(doc)
+      })
+    return () => {
+      current = false
+    }
   }, [doc, scheme])
 
   // Navigation, ahead of the canvas's own handlers (capture phase): its wheel and middle button

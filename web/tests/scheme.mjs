@@ -4,7 +4,8 @@
 // modeller's theme is): opened in the dark scheme the viewport is dark; switched to light and back
 // without a reload it repaints each time. The scene's own colours (the cube) are drawn the same in
 // both, the document stays clean, and a file saved in the dark scheme holds the same editor state
-// (`editor.json`) as one saved in the light, with no scheme in it. Needs the engine built into public/ (pnpm run engine).
+// (`editor.json`) as one saved in the light, with no scheme in it. Every frame the ready viewport
+// shows from the open is checked: none is light. Needs the engine built into public/ (pnpm run engine).
 // SHOT=<dir> writes the viewport in both schemes there.
 import assert from 'node:assert/strict'
 import { inflateRawSync } from 'node:zlib'
@@ -22,6 +23,52 @@ const origin = `http://127.0.0.1:${server.httpServer.address().port}`
 const browser = await (which === 'webkit' ? webkit : chromium).launch(which === 'webkit' || software ? {} : { args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] })
 const context = await browser.newContext({ viewport: { width: 1280, height: 860 } })
 if (software) await context.addInitScript(() => window.localStorage.setItem('kition.scene.gl', 'off'))
+// What the viewport shows on every animation frame from the kit's start, while it is ready (before,
+// it shows nothing): the GPU viewport's background (the top colour of the last frame it drew, read
+// from its uniform) or the software picture's median luminance.
+await context.addInitScript(() => {
+  if (window === window.top) return
+  const seen = []
+  window.__sceneFrames = seen
+  let top = null
+  const names = new WeakMap()
+  const locate = WebGL2RenderingContext.prototype.getUniformLocation
+  WebGL2RenderingContext.prototype.getUniformLocation = function (program, name) {
+    const location = locate.call(this, program, name)
+    if (location) names.set(location, name)
+    return location
+  }
+  const uniform = WebGL2RenderingContext.prototype.uniform3fv
+  WebGL2RenderingContext.prototype.uniform3fv = function (location, value, ...rest) {
+    if (location && names.get(location) === 'uTop') top = Array.from(value)
+    return uniform.call(this, location, value, ...rest)
+  }
+  const linear = (byte) => {
+    const value = byte / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  const luminance = ([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+  const look = () => {
+    const viewport = document.querySelector('[data-testid="scene-viewport"]')
+    if (viewport?.dataset.ready === 'true') {
+      if (viewport.dataset.gpu === 'on') {
+        if (top) seen.push({ gpu: true, luminance: luminance(top.map((channel) => channel * 255)) })
+      } else {
+        const canvas = viewport.querySelector('[data-testid="scene-canvas"] canvas')
+        const context = canvas?.width && canvas.height ? canvas.getContext('2d', { willReadFrequently: true }) : null
+        if (context) {
+          const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+          const values = []
+          for (let at = 0; at < data.length; at += 4 * 61) if (data[at + 3] > 0) values.push(luminance([data[at], data[at + 1], data[at + 2]]))
+          values.sort((a, b) => a - b)
+          if (values.length) seen.push({ gpu: false, luminance: values[Math.floor(values.length / 2)] })
+        }
+      }
+    }
+    requestAnimationFrame(look)
+  }
+  requestAnimationFrame(look)
+})
 const page = await context.newPage()
 const errors = []
 page.on('pageerror', (error) => errors.push(error.message))
@@ -137,6 +184,11 @@ try {
   assert.ok(!before.includes('unsaved'), `the document opens clean: ${before}`)
 
   await until(isDark, 'opened in the dark scheme, the viewport is dark')
+  // From the first frame it shows, the viewport is dark: no light frame before the scheme reaches the engine.
+  const shown = await page.frames().find((frame) => frame.url().includes('index.html')).evaluate(() => window.__sceneFrames)
+  assert.ok(shown.length > 0, 'the viewport was seen while ready')
+  const lit = shown.filter((frame) => frame.luminance > 0.4)
+  assert.equal(lit.length, 0, `no frame the viewport shows is light: ${lit.length} of ${shown.length}, first ${JSON.stringify(shown.slice(0, 4))}`)
   const cubeInDark = await middle()
   if (shots) await canvas.screenshot({ path: `${shots}/scene-dark-${which}${software ? '-software' : ''}.png` })
 

@@ -435,9 +435,9 @@ features:
     priority: P1
     status: has
     commands: [view.scheme]
-    paths: [crates/render/raster/src/lib.rs, bindings/wasm/src/gl.rs, bindings/wasm/src/commands.rs, web/src/colorScheme.ts, web/src/Viewport.tsx, web/src/gl/renderer.ts, web/tests/scheme.mjs]
-    gap: "Renders, exports, the headless kit's pictures and previews stay in the light scheme by design. A scene opened in dark can show its light viewport for a frame before the scheme reaches the engine."
-    cases: [regressions/issue-dark-viewport]
+    paths: [crates/render/raster/src/lib.rs, bindings/wasm/src/gl.rs, bindings/wasm/src/commands.rs, web/src/colorScheme.ts, web/src/Viewport.tsx, web/src/GlViewport.tsx, web/src/gl/renderer.ts, web/tests/scheme.mjs]
+    gap: "Renders, exports, the headless kit's pictures and previews stay in the light scheme by design."
+    cases: [regressions/issue-dark-viewport, regressions/issue-dark-first-frame]
     since: "2026-11-19"
   - id: scene.view.viewport
     title: "Viewport shading, views and overlays"

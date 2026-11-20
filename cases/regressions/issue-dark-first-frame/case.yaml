@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-dark-first-frame
+feature: scene.platform.color-scheme
+intent: >-
+  A scene opened in a dark host shows no light frame: on every animation frame from the open on
+  which the viewport is ready (data-ready="true"; before, it shows no picture and takes no pointer
+  input), the software picture's median luminance and the GPU viewport's background are dark. The
+  viewport is ready only once the document is the viewport's size and both pictures have been
+  drawn after the scheme reached the engine. Before, a document saved at the viewport's size was
+  ready at once and showed its light software picture for a frame or two.
+layer: gate
+dimension: platform
+source:
+  kind: issue
+  from: features.yaml gap of scene.platform.color-scheme (light viewport for a frame on open in dark)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/scheme.mjs, chromium, software] }
+  - exec: { cmd: [node, web/tests/scheme.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/scheme.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-19"
+timeout_s: 300

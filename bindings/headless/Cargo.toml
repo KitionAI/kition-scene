@@ -13,12 +13,18 @@ workspace = true
 [dependencies]
 kition-scene-kit = { path = "../wasm" }
 kition-headless = { workspace = true }
-
-[dev-dependencies]
+# The scene container's replica (`SceneFiles`, document.identity): its schema, blobs and error type.
 kition-kit = { workspace = true, features = ["session"] }
 kition-kit-server = { workspace = true }
+kition-scene-kdm = { workspace = true }
+kition-scene-kscene = { workspace = true }
+
+[dev-dependencies]
 serde_json = { workspace = true }
 # ids.rs and outside.rs drive the kit through the kits' MCP server's tools, as an agent does.
 kition-kits = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 zip = { workspace = true }
+# document.identity and document.fork through the real process (tests/identity.rs).
+kition-kit-host = { workspace = true }
+sha2 = { workspace = true }

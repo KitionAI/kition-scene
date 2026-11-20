@@ -1,0 +1,22 @@
+format: 1
+id: scene.platform.document-identity/no-replica
+feature: scene.platform.document-identity
+intent: >-
+  Through the real kition-scene process: an empty .kscene (made for the kit before it saved a
+  scene) carries no identity, and its fork is the same bytes with no docId; bytes that are not a
+  scene, and a scene whose replica.kdm is damaged, are refused as unsupported_format by both
+  document.identity and document.fork, never answered with no identity, and the fork writes
+  nothing.
+layer: gate
+dimension: platform
+source:
+  kind: synthetic
+  from: bindings/headless/tests/identity.rs (an_unsaved_scene_has_no_identity_and_bytes_that_are_no_scene_are_refused)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene, test: identity, filter: an_unsaved_scene_has_no_identity_and_bytes_that_are_no_scene_are_refused }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-20"
+timeout_s: 120

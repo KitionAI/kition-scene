@@ -184,7 +184,7 @@ and objects outside the shot. The agent's guide is [agent/guide.md](agent/guide.
 
 ## Maturity
 
-Preview: early, expect gaps. Version 0.1.2 · KHP 1.0, conformance level `basic`.
+Preview: early, expect gaps. Version 0.1.3 · KHP 1.0, conformance level `basic`.
 
 | Works today | Partly there | Not yet |
 | --- | --- | --- |

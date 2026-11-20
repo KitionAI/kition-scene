@@ -262,6 +262,13 @@ its history), `blobs/<sha256>` (every mesh and image the state references), and 
 (view, selection, the current frame). Opening it opens the replica as a new actor; the document
 keeps its KDM identity across saves.
 
+Identity and forks (Kit Process Protocol 5.6, KitModel M7a; `kition_scene::SceneFiles`, served as
+`document.identity` and `document.fork`): the file embeds its replica, so a byte copy is the same
+document. Its identity is the docId of `replica.kdm`; an empty file has none, and other bytes or a
+damaged replica are refused. A fork writes the SDK's copy under a new docId (no history: the old
+snapshot was the only place it lived) as `replica.kdm`, keeps only the blobs its state references,
+and keeps `editor.json`, whose view and selection name objects by ids the copy keeps.
+
 ### Rigid body motors
 
 The Physics constraint type **Motor** independently enables linear and angular drives along

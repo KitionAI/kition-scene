@@ -1,0 +1,24 @@
+format: 1
+id: scene.platform.document-identity/fork
+feature: scene.platform.document-identity
+intent: >-
+  Through the real kition-scene process: document.identity answers the docId a .kscene carries
+  (its replica.kdm's), and a byte copy answers the same one; document.fork writes a new document
+  to a new file: a new docId, the same objects, ids and values (model.batch), a replica that
+  travels as a draft, editor.json as it was, the blobs the scene references and none it does not;
+  the name of an object deleted before the fork is in the source's replica and not the fork's;
+  the fork edits, saves and reopens under its own id; a fork of the fork is a third document; a
+  fork never replaces an existing file.
+layer: gate
+dimension: platform
+source:
+  kind: synthetic
+  from: bindings/headless/tests/identity.rs (a_scene_tells_its_identity_and_forks_into_a_new_document_without_history)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene, test: identity, filter: a_scene_tells_its_identity_and_forks_into_a_new_document_without_history }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-20"
+timeout_s: 120

@@ -3,6 +3,11 @@
 Changes to Kition Scene, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.3
+
+- A host tells a scene file's document id (`document.identity`) and makes a copied scene a new document (`document.fork`): the fork keeps the objects and their ids, the editor's view and selection, and carries a new id, none of the source's history and only the blobs the scene uses (Kit Process Protocol section 5.6, kition-sdk 6b4d471). Two copies of the same `.kscene` were one document until now.
+- The headless program speaks Kit Process Protocol version 1 (`headless.protocol` is `kition-kit/1`), as hosts on kition-sdk from bb1b07b require.
+
 ## 0.1.2
 
 - A scene opened in a dark host shows no light frame first: the viewport is ready only once the engine has the host's scheme and has drawn with it.

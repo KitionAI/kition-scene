@@ -1,6 +1,6 @@
 format: 1
 kit: scene
-updated: "2026-11-19"
+updated: "2026-11-20"
 gate_budget_s: 600
 protected:
   - bindings/wasm/tests/fixtures/released-0.17.0.kscene
@@ -439,6 +439,14 @@ features:
     gap: "Renders, exports, the headless kit's pictures and previews stay in the light scheme by design."
     cases: [regressions/issue-dark-viewport, regressions/issue-dark-first-frame]
     since: "2026-11-19"
+  - id: scene.platform.document-identity
+    title: "A host reads the document id a .kscene carries and forks a copied scene into a new document with no history (document.identity, document.fork; Kit Process Protocol 5.6)"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/headless/src/lib.rs, bindings/headless/src/main.rs, bindings/headless/tests/identity.rs, kit.json]
+    cases: [scene.platform.document-identity/fork, scene.platform.document-identity/no-replica]
+    since: "2026-11-20"
   - id: scene.view.viewport
     title: "Viewport shading, views and overlays"
     dimension: [function]

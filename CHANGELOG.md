@@ -3,6 +3,11 @@
 Changes to Kition Scene, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.2
+
+- A scene opened in a dark host shows no light frame first: the viewport is ready only once the engine has the host's scheme and has drawn with it.
+- `kit.json` declares the engine's editor state as `engine.editorState`, so a host that does not run the engine's Rust code reads `inspect()` without it.
+
 ## 0.1.1
 
 - The viewport takes no clicks before the document is its size: a click right after opening no longer lands in a picture framed for the old size (selecting nothing and clearing the selection).

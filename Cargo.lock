@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-headless",
  "kition-kit",
@@ -879,7 +879,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-blend"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-exchange",
  "kition-scene-model",
@@ -889,7 +889,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-compositor"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-model",
  "serde_json",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-exchange"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-model",
  "png 0.17.16",
@@ -907,7 +907,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-fbx"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-exchange",
  "kition-scene-model",
@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-kdm"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-kit",
@@ -928,7 +928,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-kit"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "image",
@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-kscene"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
  "zip",
@@ -963,7 +963,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-model"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-particles",
@@ -978,7 +978,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-nodes"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-model",
@@ -987,7 +987,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-particles"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "serde",
@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-physics"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-exchange",
@@ -1007,7 +1007,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-raster"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-model",
@@ -1018,7 +1018,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-sequencer"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-model",
  "serde_json",
@@ -1026,7 +1026,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-shader"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-compositor",
@@ -1037,7 +1037,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-trace"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "glam",
  "kition-scene-compositor",
@@ -1051,7 +1051,7 @@ dependencies = [
 
 [[package]]
 name = "kition-scene-usd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "kition-scene-exchange",
  "kition-scene-model",
@@ -2307,7 +2307,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde_json",
 ]

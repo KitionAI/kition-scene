@@ -18,6 +18,10 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 900 
 let gpu = process.env.KITION_SCENE_GL !== 'off'
 if (!gpu) await context.addInitScript(() => window.localStorage.setItem('kition.scene.gl', 'off'))
 const page = await context.newPage()
+// The editor's shortcuts take Cmd where the page says it runs on a Mac (kit-editor reads
+// navigator.platform), else Ctrl. Playwright's ControlOrMeta follows the machine running the test
+// instead, and its WebKit says Mac on Linux too, so the test asks the page.
+const mod = (await page.evaluate(() => /Mac|iPhone|iPad/i.test(navigator.platform))) ? 'Meta' : 'Control'
 const errors = []
 let failures = 0
 page.on('pageerror', (error) => errors.push(error.message))
@@ -95,7 +99,7 @@ try {
   /** Runs `commands`, waits for both pictures to settle, and steps whether the GPU viewport draws
    * the state itself and matches the software picture within `limit` levels on average. */
   const gpuDraws = async (name, commands, limit = 3) => {
-    await page.evaluate((commands) => window.devHost.connection().ai.run(commands, false), commands)
+    await frame.evaluate((commands) => window.kitScene.run(commands), commands)
     let last = null
     for (let same = 0, tries = 0; same < 4 && tries < 150; tries += 1) {
       await page.waitForTimeout(150)
@@ -155,7 +159,7 @@ try {
   await page.keyboard.press('Shift+D')
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Cube.001"]').count()) === 1)
   step('Shift+D duplicates the cube', (await kit.locator('[data-testid="scene-outliner-item"][data-name="Cube.001"]').count()) === 1)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Cube.001"]').count()) === 0)
 
   await kit.getByTestId('scene-menu-Add').click()
@@ -168,7 +172,7 @@ try {
   await page.keyboard.press('Delete')
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"]').count()) === 0)
   step('Delete removes the object selected in the outliner', (await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"]').count()) === 0)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"]').count()) === 1)
   await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"] .scene-outliner-name').click()
 
@@ -228,12 +232,12 @@ try {
   const vertexCount = (await edited())?.mesh?.vertices ?? 0
   await page.keyboard.press('1')
   await until(async () => (await details()).mode.select === 'vertex')
-  await page.evaluate(async () => window.devHost.connection().ai.run([{ command: 'mesh.select', params: { vertices: [0] } }], false))
+  await frame.evaluate(async () => window.kitScene.run([{ command: 'mesh.select', params: { vertices: [0] } }]))
   await kit.getByTestId('scene-viewport').hover()
   await page.keyboard.press('e')
   await until(async () => (await edited())?.mesh?.vertices === vertexCount + 1)
   step('E extrudes a lone vertex', (await edited())?.mesh?.vertices === vertexCount + 1)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await edited())?.mesh?.vertices === vertexCount)
   step('undo takes the extruded vertex back', (await edited())?.mesh?.vertices === vertexCount)
   await kit.getByTestId('scene-proportional').click()
@@ -259,7 +263,7 @@ try {
   step('the wheel grows the radius during a drag, and the view stays', grown > radiusBefore && (await details()).view.distance === distanceBefore, `${radiusBefore} → ${grown}`)
   // Take the drag back only if it moved something (Move is the last step then).
   if ((await details()).undo === 'Move') {
-    await page.keyboard.press('ControlOrMeta+z')
+    await page.keyboard.press(`${mod}+z`)
     await until(async () => (await details()).undo !== 'Move')
   }
   await page.keyboard.press('w')
@@ -270,7 +274,7 @@ try {
   step('O turns proportional editing off', (await details()).mode.proportional == null)
   // The UV editor beside the viewport: a click inside a face selects its island, and a drag on
   // the selection moves its coordinates in one step.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.all', params: { action: 'deselect' } }], false))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.all', params: { action: 'deselect' } }]))
   await kit.getByTestId('scene-uv-toggle').click()
   await until(async () => (await kit.locator('.scene-uv-face').count()) > 0)
   step('the UV editor shows the faces', (await kit.locator('.scene-uv-face').count()) === (await edited())?.mesh?.faces)
@@ -297,7 +301,7 @@ try {
     if (settled) break
   }
   // Nothing selected first, so only the click can select the island.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mesh.select', params: { vertices: [] } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'mesh.select', params: { vertices: [] } }]))
   await until(async () => (await details()).selection.vertices?.length === 0 && (await kit.locator('.scene-uv-face[data-selected]').count()) === 0)
   const hitBefore = await frame.evaluate(({ x, y }) => {
     const element = document.elementFromPoint(x, y)
@@ -317,12 +321,12 @@ try {
   await page.mouse.up()
   await until(async () => (await details()).undo === 'Move UVs')
   step('a drag in the UV editor moves the island', (await details()).undo === 'Move UVs', (await details()).undo)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await details()).undo !== 'Move UVs')
   await kit.getByTestId('scene-uv-close').click()
   await until(async () => (await kit.getByTestId('scene-uv-editor').count()) === 0)
   // The knife across the middle of the view, confirmed with Enter.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.all', params: {} }, { command: 'view.frameSelected', params: {} }, { command: 'select.all', params: { action: 'deselect' } }], false))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.all', params: {} }, { command: 'view.frameSelected', params: {} }, { command: 'select.all', params: { action: 'deselect' } }]))
   const facesBefore = (await edited())?.mesh?.faces
   const area = await kit.getByTestId('scene-viewport').boundingBox()
   await kit.getByTestId('scene-viewport').hover()
@@ -337,7 +341,7 @@ try {
   await page.keyboard.press('Enter')
   await until(async () => (await edited())?.mesh?.faces > facesBefore)
   step('the knife cuts across the mesh', (await edited())?.mesh?.faces > facesBefore, `${facesBefore} → ${(await edited())?.mesh?.faces}`)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await edited())?.mesh?.faces === facesBefore)
   step('undo puts the cut back', (await edited())?.mesh?.faces === facesBefore)
   await page.keyboard.press('w')
@@ -346,10 +350,10 @@ try {
   await until(async () => (await details()).mode.mode === 'object')
   step('Tab leaves edit mode', (await details()).mode.mode === 'object')
 
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => !(await object('Sphere'))?.modifiers?.length)
   step('Cmd/Ctrl+Z undoes the bevel modifier', !(await object('Sphere'))?.modifiers?.length)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await object('Sphere'))?.location[0] === 0)
   step('Cmd/Ctrl+Z undoes the move', (await object('Sphere'))?.location[0] === 0)
 
@@ -396,10 +400,10 @@ try {
   await page.waitForTimeout(150)
   // An image in the cube's material: the panel shows its thumbnail and the material view paints it.
   const RED_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGP4z8DwH4QZYAwAR8oH+WdZbrcAAAAASUVORK5CYII='
-  await page.evaluate((base64) => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: 'Cube' } }, { command: 'material.setTexture', params: { material: 'Material', base64, name: 'red.png' } }], false), RED_PNG)
+  await frame.evaluate((base64) => window.kitScene.run([{ command: 'select.objects', params: { objects: 'Cube' } }, { command: 'material.setTexture', params: { material: 'Material', base64, name: 'red.png' } }]), RED_PNG)
   await until(async () => (await kit.locator('[data-testid="scene-texture-baseColor"] img').count()) === 1)
   step('the material panel shows the image', (await kit.locator('[data-testid="scene-texture-baseColor"] img').count()) === 1)
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'view.shading', params: { mode: 'material' } }, { command: 'select.objects', params: { objects: 'Cube' } }, { command: 'view.frameSelected', params: {} }], false))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'view.shading', params: { mode: 'material' } }, { command: 'select.objects', params: { objects: 'Cube' } }, { command: 'view.frameSelected', params: {} }]))
   const reddened = await until(async () => {
     const { centre } = await sample()
     return centre[0] > centre[1] + 40 && centre[0] > centre[2] + 40
@@ -411,7 +415,7 @@ try {
   }
 
   // Path tracing in the render dialog: a small render, a few samples, stepped in the worker.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'render.set', params: { width: 160, height: 90 } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'render.set', params: { width: 160, height: 90 } }]))
   await kit.getByTestId('scene-render').click()
   await until(async () => (await kit.getByTestId('scene-render-image').count()) === 1, 150)
   step('the render dialog opens with a fast render', (await kit.getByTestId('scene-render-image').count()) === 1)
@@ -470,7 +474,7 @@ try {
     for (const byte of bytes) binary += String.fromCharCode(byte)
     return btoa(binary)
   })
-  await page.evaluate((base64) => window.devHost.connection().ai.run([{ command: 'world.setImage', params: { base64, name: 'Sky.hdr' } }]), sky)
+  await frame.evaluate((base64) => window.kitScene.run([{ command: 'world.setImage', params: { base64, name: 'Sky.hdr' } }]), sky)
   await until(async () => (await details()).world?.image != null)
   const settings = kit.getByTestId('scene-settings')
   if ((await settings.getAttribute('data-open')) !== 'true') await settings.locator('.kui-panel-section-toggle').first().click()
@@ -483,7 +487,7 @@ try {
   step('the camera panel turns depth of field on', (await cameraOf())?.depthOfField === true)
   // Rigging: an armature from the Add menu, a bone extruded in its edit mode, the sphere bound
   // with automatic weights, a bone posed and keyed, and its curve in the graph editor.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'view.shading', params: { mode: 'solid' } }, { command: 'frame.set', params: { frame: 1 } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'view.shading', params: { mode: 'solid' } }, { command: 'frame.set', params: { frame: 1 } }]))
   await kit.getByTestId('scene-menu-Add').click()
   await kit.getByTestId('scene-cmd-add.armature').click()
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Armature"]').count()) === 1)
@@ -498,8 +502,8 @@ try {
   await kit.getByTestId('scene-bone-extrude').click()
   await until(async () => (await object('Armature'))?.armature?.bones?.length === 2)
   step('Extrude grows a connected bone', (await object('Armature'))?.armature?.bones?.[1]?.connected === true)
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'mode.armature', params: {} },
       // The sphere's middle on the joint, so bone heat shares it between the two bones.
       { command: 'object.transform', params: { objects: 'Sphere', location: [0, 0, 1] } },
@@ -510,7 +514,7 @@ try {
   await until(async () => (await object('Sphere'))?.vertexGroups?.length === 2)
   step('the sphere is bound with automatic weights', (await object('Sphere'))?.vertexGroups?.length === 2)
   await kit.getByRole('radio', { name: /Pose/ }).first().click().catch(async () => {
-    await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.pose', params: { object: 'Armature', on: true } }]))
+    await frame.evaluate(() => window.kitScene.run([{ command: 'mode.pose', params: { object: 'Armature', on: true } }]))
   })
   await until(async () => (await details()).mode.mode === 'pose')
   await kit.locator('[data-testid="scene-bone-item"][data-name="Bone.001"]').click()
@@ -528,7 +532,7 @@ try {
   step('posing the bone bends the bound sphere', JSON.stringify((await object('Sphere')).dimensions) !== JSON.stringify(unposed))
   await kit.getByTestId('scene-graph-toggle').click()
   await kit.locator('[data-testid="scene-bone-item"][data-name="Bone.001"]').scrollIntoViewIfNeeded()
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.pose', params: { on: false } }, { command: 'select.objects', params: { objects: 'Armature' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'mode.pose', params: { on: false } }, { command: 'select.objects', params: { objects: 'Armature' } }]))
   await until(async () => (await kit.getByTestId('scene-graph-key').count()) > 0)
   step('the graph editor shows the bone curves', (await kit.getByTestId('scene-graph-key').count()) > 0)
   if (process.env.KITION_SCENE_SNAPSHOT && which === 'chromium') {
@@ -536,7 +540,7 @@ try {
   }
 
   // Constraints: the camera aims at the sphere from the Constraints panel, and a posed bone gets IK.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: 'Camera' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.objects', params: { objects: 'Camera' } }]))
   await kit.getByTestId('scene-constraints').waitFor()
   await kit.getByTestId('scene-constraints').getByTestId('scene-add-constraint').click()
   await kit.getByTestId('scene-add-constraint-trackTo').click()
@@ -550,7 +554,7 @@ try {
   await influence.press('Enter')
   await until(async () => (await object('Camera'))?.constraints?.[0]?.influence === 0.5)
   step('the influence field blends the constraint', (await object('Camera'))?.constraints?.[0]?.influence === 0.5)
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.pose', params: { object: 'Armature', on: true } }, { command: 'bone.select', params: { bones: ['Bone.001'] } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'mode.pose', params: { object: 'Armature', on: true } }, { command: 'bone.select', params: { bones: ['Bone.001'] } }]))
   await kit.getByTestId('scene-bone-constraints').waitFor()
   await kit.getByTestId('scene-bone-constraints').getByTestId('scene-add-constraint').click()
   await kit.getByTestId('scene-add-constraint-ik').click()
@@ -563,7 +567,7 @@ try {
   await until(async () => (await ik()) === undefined)
   step('the remove button takes the IK away', (await ik()) === undefined)
   // Weight paint: the status bar's switch, the brush, a stroke on the sphere, and Normalize All.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.pose', params: { on: false } }, { command: 'select.objects', params: { objects: 'Sphere' } }, { command: 'view.frameSelected', params: {} }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'mode.pose', params: { on: false } }, { command: 'select.objects', params: { objects: 'Sphere' } }, { command: 'view.frameSelected', params: {} }]))
   await kit.getByTestId('scene-weight-paint').click()
   await until(async () => (await details()).mode.mode === 'weightPaint')
   step('the status bar switches to weight paint', /Weight Paint/.test(await kit.getByTestId('scene-status').first().textContent()) && (await kit.getByTestId('scene-weight-toolbar').count()) === 1)
@@ -616,7 +620,7 @@ try {
   await page.keyboard.press('Tab')
   await until(async () => (await details()).mode.mode === 'curveEdit')
   step('Tab edits the curve', (await details()).mode.mode === 'curveEdit' && /Edit/.test(await kit.getByTestId('scene-status').textContent()))
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'curve.select', params: { points: [1] } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'curve.select', params: { points: [1] } }]))
   await until(async () => /Points: 1 selected/.test(await kit.getByTestId('scene-status').textContent()))
   await kit.locator('.kui-app').focus()
   await page.keyboard.press('e')
@@ -651,8 +655,8 @@ try {
 
   // Sculpt: the status bar's switch, a pointer stroke raising a grid (one undo step), undo, and
   // the mask protecting it.
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.grid', params: { name: 'Clay', xSubdivisions: 60, ySubdivisions: 60, size: 2, location: [12, 12, 0] } },
       { command: 'view.top', params: {} },
       { command: 'view.frameSelected', params: {} },
@@ -674,10 +678,10 @@ try {
   await sculptStroke()
   await until(async () => (await details()).undo === 'Sculpt')
   step('a stroke with Draw raises the grid under the pointer as one step', (await clayHeight()) > 0.001 && (await details()).undo === 'Sculpt', `${await clayHeight()} ${(await details()).undo}`)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await clayHeight()) === 0)
   step('Cmd/Ctrl+Z takes the stroke back', (await clayHeight()) === 0)
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'sculpt.maskFill', params: {} }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'sculpt.maskFill', params: {} }]))
   await until(async () => /masked/.test(await kit.getByTestId('scene-counts').textContent()) && (await details()).mode.sculpt?.masked > 0)
   await sculptStroke()
   await until(async () => (await details()).mode.sculpt?.stroking === false)
@@ -734,8 +738,8 @@ try {
 
   // Multiresolution: the Multires modifier from the panel, two levels by its Subdivide button,
   // and a stroke in sculpt mode shaping level 2 while the base keeps its eight vertices.
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.cube', params: { name: 'Lump', location: [-12, 12, 0] } },
       { command: 'view.frameSelected', params: {} },
     ]),
@@ -770,8 +774,8 @@ try {
     await section.waitFor()
     if ((await section.getAttribute('data-open')) !== 'true') await section.locator('.kui-panel-section-toggle').first().click()
   }
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.plane', params: { name: 'Floor', size: 6, location: [-12, -12, 0] } },
       { command: 'add.cube', params: { name: 'Faller', size: 1, location: [-12, -12, 3] } },
       { command: 'select.objects', params: { objects: 'Floor' } },
@@ -784,7 +788,7 @@ try {
   await kit.getByTestId('scene-rigid-type').selectOption('passive')
   await until(async () => (await physics())?.objects?.[0]?.rigidBody?.kind === 'passive')
   step('the type field makes the floor passive', (await physics())?.objects?.[0]?.rigidBody?.kind === 'passive')
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: 'Faller' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.objects', params: { objects: 'Faller' } }]))
   await openSection('scene-physics')
   await kit.getByTestId('scene-physics-add-rigid').click()
   await until(async () => (await physics())?.objects?.length === 2)
@@ -799,7 +803,7 @@ try {
   const sawBaking = await until(async () => (await physics())?.state === 'baking' || (await physics())?.state === 'baked', 50)
   await until(async () => (await physics())?.state === 'baked', 300)
   step('Bake steps the simulation to the end with its progress', sawBaking && (await physics())?.state === 'baked' && /48/.test(await kit.getByTestId('scene-physics-progress').textContent()), await kit.getByTestId('scene-physics-progress').textContent())
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'frame.set', params: { frame: 48 } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'frame.set', params: { frame: 48 } }]))
   await until(async () => (await object('Faller'))?.worldLocation?.[2] < 1)
   const landed = (await object('Faller'))?.worldLocation?.[2]
   step('the timeline shows the box resting on the floor', Math.abs(landed - 0.5) < 0.05, String(landed))
@@ -812,15 +816,15 @@ try {
     const id = (await object(name))?.id
     return (await physics())?.objects?.find((item) => item.id === id)
   }
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: 'Faller' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.objects', params: { objects: 'Faller' } }]))
   await openSection('scene-physics')
   await kit.getByTestId('scene-rigid-deactivation').click()
   await until(async () => (await physicsOf('Faller'))?.rigidBody?.deactivation === true)
   await kit.getByTestId('scene-rigid-asleep').click()
   await until(async () => (await physicsOf('Faller'))?.rigidBody?.startDeactivated === true)
   step('the rigid body card sets deactivation and starting asleep', (await physicsOf('Faller'))?.rigidBody?.startDeactivated === true)
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.empty', params: { name: 'Gust', location: [-14, -12, 1] } },
       { command: 'add.empty', params: { name: 'Joint', location: [-12, -12, 4], rotation: [90, 0, 0] } },
       { command: 'select.objects', params: { objects: 'Gust' } },
@@ -836,7 +840,7 @@ try {
   await strength.press('Enter')
   await until(async () => (await physicsOf('Gust'))?.field?.strength === 3)
   step('the Physics panel adds a force field to an empty and sets it', (await physicsOf('Gust'))?.field?.kind === 'wind' && (await physicsOf('Gust'))?.field?.strength === 3, JSON.stringify((await physicsOf('Gust'))?.field))
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: 'Joint' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.objects', params: { objects: 'Joint' } }]))
   await openSection('scene-physics')
   await kit.getByTestId('scene-physics-add-constraint').click()
   await until(async () => (await physicsOf('Joint'))?.rigidConstraint != null)
@@ -855,7 +859,7 @@ try {
   await openSection('scene-physics-world')
   await kit.getByTestId('scene-physics-bake').click()
   await until(async () => (await physics())?.state === 'baked', 300)
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'frame.set', params: { frame: 48 } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'frame.set', params: { frame: 48 } }]))
   await page.waitForTimeout(200)
   const hung = (await object('Faller'))?.worldLocation?.[2]
   step('baked, the box asleep on its hinge stays up', (await physics())?.state === 'baked' && Math.abs(hung - 3) < 1e-3, String(hung))
@@ -864,11 +868,11 @@ try {
   step('the constraint card removes the constraint', (await physicsOf('Joint')) == null)
   await kit.getByTestId('scene-physics-free').click()
   await until(async () => (await physics())?.state === 'none')
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'frame.set', params: { frame: 1 } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'frame.set', params: { frame: 1 } }]))
   // Particles: hair added from the Particles panel and drawn, groomed in Particle Edit with a
   // pointer stroke (one undo step), and Particle Edit left from its tool header.
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.uvSphere', params: { name: 'Furball', location: [-12, 12, 0] } },
       { command: 'view.front', params: {} },
       { command: 'view.frameSelected', params: {} },
@@ -896,7 +900,7 @@ try {
   await until(async () => (await details()).undo === 'Groom' && (await hairOf())?.groomed === true)
   step('a comb stroke grooms the hair as one step', (await details()).undo === 'Groom' && (await hairOf())?.groomed === true, `${(await details()).undo}`)
   if (process.env.KITION_SCENE_SNAPSHOT && which === 'chromium') await page.screenshot({ path: process.env.KITION_SCENE_SNAPSHOT.replace(/\.png$/, '-hair.png') })
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await hairOf())?.groomed === false)
   step('Cmd/Ctrl+Z takes the groom back', (await hairOf())?.groomed === false)
   await kit.getByTestId('scene-groom-exit').click()
@@ -905,8 +909,8 @@ try {
   // Geometry nodes: the node editor makes a group on a cube, adds a Grid from the searched menu,
   // links it to the output by a drag, sets a value, moves the node, and deletes it (undo brings
   // it back).
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.cube', params: { name: 'Nodes', location: [-12, -12, 0] } },
       { command: 'select.objects', params: { objects: ['Nodes'] } },
     ]),
@@ -958,7 +962,7 @@ try {
   await page.keyboard.press('Delete')
   await until(async () => (await nodeGroup())?.nodes?.length === 2)
   step('Delete removes the selected node and its links', (await nodeGroup())?.nodes?.length === 2 && (await nodesMesh())?.vertices === 0)
-  await page.keyboard.press('ControlOrMeta+z')
+  await page.keyboard.press(`${mod}+z`)
   await until(async () => (await nodeGroup())?.nodes?.length === 3)
   step('undo brings the node back', (await nodeGroup())?.nodes?.length === 3 && (await nodesMesh())?.vertices === 15)
   if (process.env.KITION_SCENE_SNAPSHOT && which === 'chromium') await page.screenshot({ path: process.env.KITION_SCENE_SNAPSHOT.replace(/\.png$/, '-nodes.png') })
@@ -967,12 +971,12 @@ try {
   // repeat zone comes from the add menu as a pair in a frame, and an item added on its output
   // shows on both of its nodes.
   const outerId = (await nodeGroup()).id
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'nodes.newGroup', params: { name: 'Inner' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'nodes.newGroup', params: { name: 'Inner' } }]))
   await until(async () => (await details()).nodeGroups?.length === 2)
   const innerGroup = (await details()).nodeGroups.find((group) => group.name === 'Inner')
-  await page.evaluate(
+  await frame.evaluate(
     ([inner, outer]) =>
-      window.devHost.connection().ai.run([
+      window.kitScene.run([
         { command: 'nodes.addInput', params: { group: inner, name: 'Height', type: 'float', default: 1 } },
         { command: 'nodes.addOutput', params: { group: inner, name: 'Lift', type: 'float' } },
         { command: 'nodes.addNode', params: { group: outer, kind: 'group', location: [0, 260], values: { group: inner } } },
@@ -1116,8 +1120,8 @@ try {
   await kit.getByTestId('scene-nodes-toggle').click()
   // Lattices and the deforming modifiers: a cube bent by a lattice (added from the Add menu,
   // its points dragged in lattice edit mode), shrinkwrapped onto, and decimated by its panel.
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.cube', params: { name: 'Caged', location: [12, -12, 0] } },
       { command: 'select.objects', params: { objects: ['Caged'] } },
     ]),
@@ -1131,8 +1135,8 @@ try {
   await kit.getByTestId('scene-lattice-u').locator('input').press('Enter')
   await until(async () => (await object('Lattice'))?.lattice?.pointCount === 12)
   step('the Lattice panel sets the points along U', (await object('Lattice'))?.lattice?.resolution?.join() === '3,2,2')
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'object.transform', params: { objects: ['Lattice'], location: [12, -12, 0], scale: [2.5, 2.5, 2.5] } },
       { command: 'select.objects', params: { objects: ['Caged'] } },
     ]),
@@ -1143,7 +1147,7 @@ try {
   await kit.getByTestId('scene-modifier-0-operand').selectOption(String((await object('Lattice')).id))
   await until(async () => (await object('Caged'))?.modifiers?.[0]?.operand === (await object('Lattice')).id)
   step('the modifier panel adds a lattice modifier and picks the lattice', (await object('Caged'))?.modifiers?.[0]?.operand === (await object('Lattice')).id)
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'select.objects', params: { objects: ['Lattice'] } }, { command: 'view.frameSelected', params: {} }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'select.objects', params: { objects: ['Lattice'] } }, { command: 'view.frameSelected', params: {} }]))
   await kit.getByTestId('scene-viewport').hover()
   await page.keyboard.press('Tab')
   await until(async () => (await details()).mode.mode === 'latticeEdit' && /Lattice Edit/.test(await kit.getByTestId('scene-status').first().textContent()))
@@ -1152,7 +1156,7 @@ try {
   await until(async () => (await details()).mode.points?.length === 12)
   step('A selects every lattice point', (await details()).mode.points?.length === 12, JSON.stringify((await details()).mode))
   const cagedBefore = (await object('Caged')).dimensions
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'lattice.select', params: { points: [2, 5, 8, 11] } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'lattice.select', params: { points: [2, 5, 8, 11] } }]))
   await until(async () => (await details()).mode.points?.length === 4)
   await kit.getByTestId('scene-viewport').hover()
   await page.keyboard.press('g')
@@ -1170,8 +1174,8 @@ try {
   await until(async () => (await details()).mode.mode === 'object')
   step('Tab leaves lattice edit mode', (await details()).mode.mode === 'object')
   await page.keyboard.press('w')
-  await page.evaluate(() =>
-    window.devHost.connection().ai.run([
+  await frame.evaluate(() =>
+    window.kitScene.run([
       { command: 'add.uvSphere', params: { name: 'Wrapped', location: [12, -12, 0], radius: 2 } },
       { command: 'select.objects', params: { objects: ['Wrapped'] } },
     ]),
@@ -1198,7 +1202,7 @@ try {
   if (process.env.KITION_SCENE_SNAPSHOT && which === 'chromium') await page.screenshot({ path: process.env.KITION_SCENE_SNAPSHOT.replace(/\.png$/, '-lattice.png') })
 
   // Drivers, keying sets, actions, and Stretch To from the panels.
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'add.empty', params: { name: 'Knob', location: [2, 0, 0] } }, { command: 'select.objects', params: { objects: 'Caged' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'add.empty', params: { name: 'Knob', location: [2, 0, 0] } }, { command: 'select.objects', params: { objects: 'Caged' } }]))
   await kit.getByTestId('scene-drivers').waitFor()
   await kit.getByTestId('scene-add-driver').click()
   await kit.getByTestId('scene-add-driver-location-2').click()
@@ -1264,7 +1268,7 @@ try {
   step('Stop tweaking keeps the strip', (await nlaOf())?.tweak == null && (await nlaOf())?.tracks?.[0]?.strips?.length === 1)
   // Click inside the strip body: its label can extend over the next strip.
   const firstStrip = (await nlaOf()).tracks[0].strips[0]
-  await page.evaluate(async ({ action, start }) => window.devHost.connection().ai.run([{ command: 'nla.addStrip', params: { object: 'Caged', action, track: 0, start } }], false), { action: firstStrip.action, start: firstStrip.end + 10 })
+  await frame.evaluate(async ({ action, start }) => window.kitScene.run([{ command: 'nla.addStrip', params: { object: 'Caged', action, track: 0, start } }]), { action: firstStrip.action, start: firstStrip.end + 10 })
   await until(async () => (await nlaOf())?.tracks?.[0]?.strips?.length === 2)
   await kit.getByTestId('scene-nla-strip-0-0').click({ position: { x: 5, y: 10 } })
   await kit.getByTestId('scene-nla-transition').click()
@@ -1379,7 +1383,7 @@ try {
       { command: 'view.frameSelected', params: {} },
       { command: 'mode.shape', params: {} },
     ])
-    await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.shape', params: {} }], false))
+    await frame.evaluate(() => window.kitScene.run([{ command: 'mode.shape', params: {} }]))
     await until(async () => (await details()).mode.mode === 'object')
     // The view framed on the cube that draws the bone, set where the bone stands, then hidden.
     await gpuDraws('a custom bone shape’s faces and edges', [
@@ -1394,7 +1398,7 @@ try {
       { command: 'bone.set', params: { object: 'Bones', bone: 'Bone', shapeWire: true } },
       { command: 'mode.pose', params: { object: 'Bones', on: true } },
     ])
-    await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'mode.pose', params: { on: false } }], false))
+    await frame.evaluate(() => window.kitScene.run([{ command: 'mode.pose', params: { on: false } }]))
     await until(async () => (await details()).mode.mode === 'object')
   }
 

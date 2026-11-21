@@ -97,6 +97,21 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   latest.current = { editor, host }
   const base = (host.init.document.path.split('/').pop() ?? 'Scene').replace(/\.kscene$/i, '')
 
+  // The development page's flows set the person's selection, view, mode and frame through this:
+  // an agent's ai/run keeps an editor state of its own (C3b), so it cannot set the person's.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const page = window as Window & { kitScene?: { run: (steps: Array<{ command: string; params?: Record<string, unknown> }>) => Promise<void> } }
+    page.kitScene = {
+      run: async (steps) => {
+        for (const step of steps) await latest.current.editor.run(step.command, step.params ?? {})
+      },
+    }
+    return () => {
+      delete page.kitScene
+    }
+  }, [])
+
   const renderImage = useCallback(() => setRendering(true), [])
 
   const importFile = useCallback(async () => {

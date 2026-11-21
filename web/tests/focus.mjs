@@ -12,6 +12,10 @@ const server = await createServer({ configFile: new URL('../vite.config.ts', imp
 await server.listen()
 const browser = await (which === 'webkit' ? webkit : chromium).launch()
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+// The editor's shortcuts take Cmd where the page says it runs on a Mac (kit-editor reads
+// navigator.platform), else Ctrl. Playwright's ControlOrMeta follows the machine running the test
+// instead, and its WebKit says Mac on Linux too, so the test asks the page.
+const mod = (await page.evaluate(() => /Mac|iPhone|iPad/i.test(navigator.platform))) ? 'Meta' : 'Control'
 const errors = []
 page.on('pageerror', (error) => errors.push(error.message))
 const until = async (check, message) => {
@@ -38,7 +42,7 @@ try {
   for (const id of ['scene-timeline', 'scene-graph', 'scene-nla', 'scene-nodes']) await until(async () => (await kit.getByTestId(id).count()) === 1, `${id} shows`)
 
   await app.focus()
-  await page.keyboard.press('ControlOrMeta+Backslash')
+  await page.keyboard.press(`${mod}+Backslash`)
   await until(async () => (await app.getAttribute('data-mode')) === 'focus', 'Cmd+\\ enters Focus')
   for (const id of ['scene-timeline', 'scene-graph', 'scene-nla', 'scene-nodes']) assert.equal(await kit.getByTestId(id).count(), 0, `Focus hides ${id}`)
   assert.ok((await kit.locator('.scene-stage canvas').count()) > 0, 'Focus shows the viewport')

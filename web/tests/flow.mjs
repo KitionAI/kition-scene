@@ -1083,7 +1083,13 @@ try {
     const links = (await compositor())?.links ?? []
     return links.some((link) => link.from === layersNode.id && link.to === exposureNode.id) && links.some((link) => link.from === exposureNode.id && link.to === compositeNode.id)
   })
-  step('drags link Render Layers through Exposure to the output', linkedThrough, JSON.stringify((await compositor())?.links))
+  // What the page hits at each socket's centre: a drop links to the input socket elementFromPoint finds.
+  const hits = linkedThrough ? null : await Promise.all(linkSockets.map((id) => kit.getByTestId(id).evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+    return `${hit?.tagName.toLowerCase()}.${hit?.getAttribute('class') ?? ''}${hit === element ? ' (itself)' : ''}`
+  })))
+  step('drags link Render Layers through Exposure to the output', linkedThrough, JSON.stringify({ links: (await compositor())?.links, hits }))
   const exposureField = kit.getByTestId(new RegExp(`^scene-node-${exposureNode.id}-Exposure-`))
   await exposureField.fill('2')
   await exposureField.press('Enter')

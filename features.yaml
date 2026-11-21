@@ -570,5 +570,5 @@ features:
     priority: P1
     status: has
     paths: [web/src/App.tsx, web/src/scene.ts, web/tests/modes.mjs, web/tests/focus.mjs]
-    cases: [regressions/issue-focus-shows-timeline]
+    cases: [regressions/issue-focus-shows-timeline, regressions/issue-published-editor-shim]
     since: "2026-11-17"

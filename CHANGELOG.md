@@ -7,6 +7,7 @@ each package is published with a `package-v<version>` tag.
 
 - A host tells a scene file's document id (`document.identity`) and makes a copied scene a new document (`document.fork`): the fork keeps the objects and their ids, the editor's view and selection, and carries a new id, none of the source's history and only the blobs the scene uses (Kit Process Protocol section 5.6, kition-sdk 6b4d471). Two copies of the same `.kscene` were one document until now.
 - The headless program speaks Kit Process Protocol version 1 (`headless.protocol` is `kition-kit/1`), as hosts on kition-sdk from bb1b07b require.
+- kition-sdk 6672663: KDM undo and redo pass over a group whose changes came to nothing, so an undo step that changed nothing no longer stops undo.
 
 ## 0.1.2
 

@@ -1059,11 +1059,13 @@ try {
   await kit.getByTestId('scene-nodes-frame').click()
   const linkSockets = [`scene-socket-${layersNode.id}-out-Image`, `scene-socket-${exposureNode.id}-in-Image`, `scene-socket-${exposureNode.id}-out-Image`, `scene-socket-${compositeNode.id}-in-Image`]
   const socketsNow = async () => JSON.stringify(await Promise.all(linkSockets.map(socketCentre)))
-  await until(async () => {
-    const before = await socketsNow()
-    await page.waitForTimeout(100)
-    return before === (await socketsNow())
-  })
+  const socketsSettled = () =>
+    until(async () => {
+      const before = await socketsNow()
+      await page.waitForTimeout(100)
+      return before === (await socketsNow())
+    })
+  await socketsSettled()
   const dragLink = async (from, to) => {
     const [ax, ay] = await socketCentre(from)
     const [bx, by] = await socketCentre(to)
@@ -1073,6 +1075,9 @@ try {
     await page.mouse.up()
   }
   await dragLink(`scene-socket-${layersNode.id}-out-Image`, `scene-socket-${exposureNode.id}-in-Image`)
+  // The second drag starts from where the sockets are once the engine has the first link.
+  await until(async () => ((await compositor())?.links ?? []).some((link) => link.from === layersNode.id && link.to === exposureNode.id))
+  await socketsSettled()
   await dragLink(`scene-socket-${exposureNode.id}-out-Image`, `scene-socket-${compositeNode.id}-in-Image`)
   const linkedThrough = await until(async () => {
     const links = (await compositor())?.links ?? []

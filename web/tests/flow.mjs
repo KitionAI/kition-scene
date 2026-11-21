@@ -196,13 +196,18 @@ try {
   await page.mouse.move(cx + 100, cy + 100)
   const framesBefore = gpu ? (await probe())?.frames ?? 0 : 0
   await page.mouse.down({ button: 'middle' })
+  // On the GPU viewport each move waits for the frame it asks for (moves faster than the page's
+  // animation frames would share one), and the engine's view stays put until the drag ends: the
+  // frames are the GPU viewport's own, drawn as the view moves, not the engine's answers.
   for (let i = 1; i <= 30; i += 1) {
+    const drawn = gpu ? (await probe())?.frames ?? 0 : 0
     await page.mouse.move(cx + 100 + i * 4, cy + 100 + i)
-    if (gpu) await page.waitForTimeout(16)
+    if (gpu) await until(async () => ((await probe())?.frames ?? 0) > drawn, 20)
   }
   const framesDuring = gpu ? ((await probe())?.frames ?? 0) - framesBefore : 0
+  const engineTurnDuring = gpu ? (await details()).view.turn : turn
   await page.mouse.up({ button: 'middle' })
-  if (gpu) step('an orbit drag draws a GPU frame per move', framesDuring >= 20, `${framesDuring} frames in a 30-move drag`)
+  if (gpu) step('an orbit drag draws a GPU frame per move', framesDuring >= 20 && engineTurnDuring === turn, `${framesDuring} frames in a 30-move drag${engineTurnDuring === turn ? '' : `, the engine's view turned during the drag (${turn} to ${engineTurnDuring})`}`)
   await until(async () => (await details()).view.turn !== turn)
   await until(async () => (await sample()).digest !== before.digest)
   step('a middle drag orbits the view', (await details()).view.turn !== turn && (await sample()).digest !== before.digest)

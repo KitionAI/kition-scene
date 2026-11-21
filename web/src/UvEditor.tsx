@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
-import { Checkbox, IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
-import { PinIcon, PinOffIcon, RotateCcwIcon, RotateCwIcon, ScissorsIcon, XIcon } from '@kition/tessera-icons/react'
+import { Checkbox, IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
+import { PinIcon, PinOffIcon, RotateCcwIcon, RotateCwIcon, ScissorsIcon, XIcon } from '@kition/tessera/icons/react'
 import { useImageUrl } from './TextureSlot'
 import type { SceneInfo } from './scene'
 

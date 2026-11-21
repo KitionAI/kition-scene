@@ -1,6 +1,6 @@
 import { PresenceBadges } from './Presence'
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon, BoxIcon, CameraIcon, WaypointsIcon, CheckIcon, EyeIcon, EyeOffIcon, Grid2x2Icon, LightbulbIcon, Move3dIcon, PlusIcon, SplineIcon, TrashIcon, TypeIcon, type IconComponent } from '@kition/tessera-icons/react'
+import { ArrowDownIcon, ArrowUpIcon, BoxIcon, CameraIcon, WaypointsIcon, CheckIcon, EyeIcon, EyeOffIcon, Grid2x2Icon, LightbulbIcon, Move3dIcon, PlusIcon, SplineIcon, TrashIcon, TypeIcon, type IconComponent } from '@kition/tessera/icons/react'
 import {
   Checkbox,
   Choice,
@@ -16,7 +16,7 @@ import {
   Segmented,
   useKitEditor,
   useReadOnly,
-} from '@kition/kit-editor'
+} from '@kition/sdk/editor'
 import { TextureSlot } from './TextureSlot'
 import { WorldImageSlot } from './WorldImage'
 import { RigSections } from './PosePanel'

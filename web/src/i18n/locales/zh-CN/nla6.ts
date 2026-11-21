@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 export const NLA6_ZH: Catalog = {
   nlaAddTransition: '过渡到下一个',

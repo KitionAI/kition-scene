@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ImagePlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { ImagePlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { encodeBase64 } from './TextureSlot'
 import type { SceneInfo } from './scene'
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, type ReactNode } from 'react'
-import { TrashIcon } from '@kition/tessera-icons/react'
-import { Button, Checkbox, Choice, IconButton, PanelSection, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { TrashIcon } from '@kition/tessera/icons/react'
+import { Button, Checkbox, Choice, IconButton, PanelSection, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row, VectorRow, useRun } from './SidePanel'
 import type { ClothInfo, CollisionInfo, PhysicsInfo, RigidBodyInfo, SoftBodyInfo } from './PhysicsInfo'
 import { ConstraintBlock, FieldBlock } from './PhysicsLinks'

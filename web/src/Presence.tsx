@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { PRESENCE_INTERVAL_MS, peerColor, usePresence, useKitEditorState, type HostConnection, type KitPeerPresence, type KitPresence } from '@kition/kit-editor'
+import { PRESENCE_INTERVAL_MS, peerColor, usePresence, useKitEditorState, type HostConnection, type KitPeerPresence, type KitPresence } from '@kition/sdk/editor'
 
 type Editor = ReturnType<typeof useKitEditorState>
 

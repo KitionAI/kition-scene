@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** The Shrinkwrap, Lattice, Decimate, and Displace image fields' strings, and the Lattice panel's. */
 export const MODIFIERS_EN: Catalog = {

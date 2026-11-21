@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { KeyframeIcon, KeyframeNextIcon, KeyframePreviousIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { IconButton, NumberField, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { KeyframeIcon, KeyframeNextIcon, KeyframePreviousIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { IconButton, NumberField, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import type { AnimationInfo } from './animation'
 import { KeyingSetChoice } from './AnimationPanel'
 import type { SceneInfo } from './scene'

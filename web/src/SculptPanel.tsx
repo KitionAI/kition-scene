@@ -1,4 +1,4 @@
-import { Button, Checkbox, Choice, PanelSection, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { Button, Checkbox, Choice, PanelSection, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { useState } from 'react'
 import { NumberInput, Row, useRun } from './SidePanel'
 import type { Modifier, SceneInfo, SceneObject } from './scene'

@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 import { NLA6_ZH, NLA6_PHRASES_ZH } from './i18n/locales/zh-CN/nla6'
 
 /** The strings of the NLA editor and the graph editor's modifier controls. */

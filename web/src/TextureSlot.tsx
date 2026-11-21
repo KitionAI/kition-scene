@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ImagePlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { ImagePlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import type { SceneInfo, SceneMaterial } from './scene'
 
 /** The image types a material slot takes. */

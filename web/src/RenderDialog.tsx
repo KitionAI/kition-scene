@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Checkbox, Dialog, NumberField, Segmented, toast, useKitEditor, type HostConnection } from '@kition/kit-editor'
+import { Button, Checkbox, Dialog, NumberField, Segmented, toast, useKitEditor, type HostConnection } from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { MAX_TRACE_WORKERS, TracePool, autoTraceWorkers, traceWorkersAvailable } from './trace/tracePool'
 

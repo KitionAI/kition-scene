@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { TrashIcon } from '@kition/tessera-icons/react'
-import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { TrashIcon } from '@kition/tessera/icons/react'
+import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row, useRun } from './SidePanel'
 import { FIELD_KINDS, JOINT_KINDS, type ConstraintInfo, type FieldInfo } from './PhysicsInfo'
 import type { SceneInfo, SceneObject } from './scene'

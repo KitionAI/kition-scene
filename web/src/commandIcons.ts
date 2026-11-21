@@ -2,7 +2,7 @@
  * Tessera icons for the Scene engine's commands that kit-editor's rules cannot read: what each
  * Add command makes, the mesh operations, and the views. Registered once, when the editor loads.
  */
-import { registerCommandIcons } from '@kition/kit-editor'
+import { registerCommandIcons } from '@kition/sdk/editor'
 import {
   BoxIcon,
   CameraIcon,
@@ -39,7 +39,7 @@ import {
   TypeIcon,
   VideoIcon,
   WrenchIcon,
-} from '@kition/tessera-icons/react'
+} from '@kition/tessera/icons/react'
 
 registerCommandIcons({
   'add.plane': SquareIcon,

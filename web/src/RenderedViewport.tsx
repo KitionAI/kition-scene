@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useKitEditor } from '@kition/kit-editor'
+import { useKitEditor } from '@kition/sdk/editor'
 
 type Progress = { samples: number; target: number; done: boolean; generation: number }
 

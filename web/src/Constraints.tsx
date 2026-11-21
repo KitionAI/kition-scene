@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon, CheckIcon, PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { moreConstraintFields, SpaceRows } from './ConstraintFields'
 import { NumberInput, Row, VectorRow, useRun } from './SidePanel'
 import type { Constraint, SceneInfo, SceneObject, Vec3 } from './scene'

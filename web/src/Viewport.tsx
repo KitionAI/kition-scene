@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { CameraIcon, FocusIcon, Grid2x2Icon } from '@kition/tessera-icons/react'
-import { ContextMenu, IconButton, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/kit-editor'
+import { CameraIcon, FocusIcon, Grid2x2Icon } from '@kition/tessera/icons/react'
+import { ContextMenu, IconButton, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
 import type { SceneInfo } from './scene'
 import { WeightPaintControls } from './WeightPaint'
 import { SculptControls } from './Sculpt'

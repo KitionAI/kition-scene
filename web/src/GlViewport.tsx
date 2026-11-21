@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { useKitEditor } from '@kition/kit-editor'
+import { useKitEditor } from '@kition/sdk/editor'
 import { GlRenderer } from './gl/renderer'
 import { decodeGeometry, decodeWorld, type GlFrame } from './gl/protocol'
 import type { OrbitView } from './gl/camera'

@@ -1,5 +1,5 @@
-import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/kit-editor'
-import { PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
+import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/sdk/editor'
+import { PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
 import { useState } from 'react'
 import { NumberInput, Row, VectorRow, useRun } from './SidePanel'
 import type { HairDynamicsInfo, ParticleSystemInfo, SceneInfo, SceneObject } from './scene'

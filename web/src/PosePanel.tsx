@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { DiamondIcon, PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Button, Checkbox, Choice, IconButton, PanelSection, Segmented, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { DiamondIcon, PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Button, Checkbox, Choice, IconButton, PanelSection, Segmented, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row, VectorRow, useRun } from './SidePanel'
 import { ConstraintsSection } from './Constraints'
 import type { SceneBone, SceneInfo, SceneObject } from './scene'

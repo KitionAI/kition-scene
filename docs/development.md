@@ -6,7 +6,7 @@
 |---|---|
 | `crates/` | The engine (Rust), in groups: `engine/` (`model`, the document model; `nodes`, `shader`, `compositor`, `particles`, `physics`, `sequencer`), `formats/` (`kscene`, `exchange` for glTF/OBJ/STL, `usd`, `fbx`, `blend`), `render/` (`raster`, the software renderer; `trace`, the path tracer) and `kdm/` (`kdm-model`, the scene as a KDM replica) |
 | `bindings/` | `wasm`: `kition-scene-kit`, the engine behind Kition's `KitDocument` contract, compiled to WebAssembly for the editor; `headless`: `kition-scene`, the headless kit executable for Kition's agent |
-| `web/` | The kit's editor (React, on kition-sdk's `@kition/kit-editor`); `web/dev.html` is a host for development |
+| `web/` | The kit's editor (React, on kition-sdk's `@kition/sdk/editor`); `web/dev.html` is a host for development |
 | `kit.json` | The kit manifest (KHP) |
 | `agent/` | The agent guide (`guide.md`) and checks |
 | `conformance/` | The agent conformance fixtures (`.kscene` scenes) that cases and tests refer to |
@@ -26,14 +26,16 @@ cd web && pnpm install && pnpm engine && pnpm test:flow   # the editor
 of the engine is in [design.md](design.md); the rules for every change are in
 [AGENTS.md](../AGENTS.md) and [quality.md](quality.md).
 
-By default `pnpm install` in `web/` installs the published `@kition/*` packages from npm, at the
-versions the committed `web/pnpm-lock.yaml` pins, so the editor needs no other checkout. To work
-against local checkouts instead, run `KITION_LINK=1 pnpm install` in `web/`: `web/.pnpmfile.cjs`
-then links `@kition/kit-editor`, `@kition/kit-host`, `@kition/kit-ui-protocol` and
-`@kition/kit-dev-host` from the kition-sdk checkout and `@kition/tessera-icons` from the
-kition-tessera checkout next to this repository (or the ones `KITION_SDK` and `KITION_TESSERA`
-name), each one whose package is there. The linked install rewrites `web/pnpm-lock.yaml`; do not
-commit that lockfile.
+By default `pnpm install` in `web/` installs the published `@kition/sdk` and `@kition/tessera`
+packages from npm, at the versions the committed `web/pnpm-lock.yaml` pins, so the editor needs no
+other checkout. The editor imports them by subpath (`@kition/sdk/editor`, `/host`, `/protocol`,
+`/dev-host`; `@kition/tessera/icons`). To work against local checkouts instead, run
+`KITION_LINK=1 pnpm install` in `web/`: `web/.pnpmfile.cjs` then links `@kition/sdk` from the
+kition-sdk checkout's `packages/sdk` and `@kition/tessera` from the kition-tessera checkout's
+`packages/tessera` next to this repository (or the ones `KITION_SDK` and `KITION_TESSERA` name),
+each one whose package is there. Both packages' `exports` point at their built `dist/`, so build
+them in the checkouts first. The linked install rewrites `web/pnpm-lock.yaml`; do not commit that
+lockfile.
 
 `KITION_BLENDER=<path to the Blender executable> cargo test -p kition-scene-exchange` also runs
 the cross-checks against Blender's importers and exporters.

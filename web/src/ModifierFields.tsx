@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { ImagePlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { ImagePlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row, useRun } from './SidePanel'
 import { encodeBase64, useImageUrl } from './TextureSlot'
 import './ModifierFields.css'

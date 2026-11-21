@@ -1,4 +1,4 @@
-/* The Scene editor's own layout; colors and shapes come from @kition/kit-editor's tokens. */
+/* The Scene editor's own layout; colors and shapes come from @kition/sdk/editor's tokens. */
 
 .scene-editor-root {
   display: contents;

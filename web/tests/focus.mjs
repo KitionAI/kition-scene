@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { chromium, webkit } from 'playwright'
 import { createServer } from 'vite'
-import { focusBarReport, lineRowReport } from '@kition/kit-dev-host/line-row'
+import { focusBarReport, lineRowReport } from '@kition/sdk/dev-host/line-row'
 
 const which = process.argv[2] ?? 'chromium'
 const server = await createServer({ configFile: new URL('../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })

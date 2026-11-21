@@ -1,5 +1,5 @@
-import { PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Button, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Button, Choice, IconButton, MenuButton, MenuItem, PanelSection, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import type { DriverInfo, DriverVariable } from './AnimationData'
 import { Row, useRun } from './SidePanel'
 import type { SceneInfo, SceneObject } from './scene'

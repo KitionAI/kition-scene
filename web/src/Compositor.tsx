@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { Checkbox, Choice, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { Checkbox, Choice, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { linearHex, type SceneInfo } from './scene'
 import type { NodeGroupInfo, NodeInfo } from './NodeEditorTypes'
 import { Row } from './SidePanel'

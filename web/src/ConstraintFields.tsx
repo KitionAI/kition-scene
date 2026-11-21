@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Checkbox, Choice, IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row, VectorRow } from './SidePanel'
 import type { Constraint, SceneInfo, Vec3 } from './scene'
 import './ConstraintFields.css'

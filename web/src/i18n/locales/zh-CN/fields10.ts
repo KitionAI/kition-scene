@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 export const FIELDS10_ZH: Catalog = {
   effectorWeights: '力场权重',

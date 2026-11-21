@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ImageIcon } from '@kition/tessera-icons/react'
+import { ImageIcon } from '@kition/tessera/icons/react'
 import {
   Button,
   Checkbox,
@@ -22,7 +22,7 @@ import {
   type KitCanvasHandle,
   type KitCommand,
   type Phrases,
-} from '@kition/kit-editor'
+} from '@kition/sdk/editor'
 import { engineManifest } from './engine'
 import { CATALOGS } from './strings'
 import { DEFAULT_TAB, HOST_FILE_COMMANDS, MENU_ORDER, SCENE_PRIMARY, VIEW_MENUS, describe } from './scene'

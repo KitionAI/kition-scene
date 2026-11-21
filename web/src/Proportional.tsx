@@ -1,4 +1,4 @@
-import { Checkbox, Choice, useKitEditor } from '@kition/kit-editor'
+import { Checkbox, Choice, useKitEditor } from '@kition/sdk/editor'
 import type { SceneInfo } from './scene'
 
 const FALLOFFS = ['smooth', 'sphere', 'root', 'linear', 'sharp', 'constant'] as const

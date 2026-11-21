@@ -1,4 +1,4 @@
-import type { KitEngineInfo } from '@kition/kit-editor'
+import type { KitEngineInfo } from '@kition/sdk/editor'
 import { animationDataOf, nlaOf, type AnimationData, type ObjectNla } from './AnimationData'
 import { physicsOf, type PhysicsInfo } from './PhysicsInfo'
 

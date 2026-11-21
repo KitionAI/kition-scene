@@ -1,6 +1,6 @@
 import { FIELDS10_ZH } from './i18n/locales/zh-CN/fields10'
 import { camera9ZhCN } from './i18n/locales/zh-CN/camera9'
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 import { BOIDS_ZH } from './i18n/locales/zh-CN/boids9'
 import { VIEWPORT7_ZH, VIEWPORT7_PHRASES_ZH } from './i18n/locales/zh-CN/viewport7'
 import { UV7_ZH, UV7_PHRASES_ZH } from './i18n/locales/zh-CN/uv7'

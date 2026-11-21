@@ -1,5 +1,5 @@
-import { PlusIcon, TrashIcon } from '@kition/tessera-icons/react'
-import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { PlusIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { Button, Checkbox, Choice, IconButton, MenuButton, MenuItem, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import type { FModifierInfo } from './AnimationData'
 import { NumberInput, Row } from './SidePanel'
 

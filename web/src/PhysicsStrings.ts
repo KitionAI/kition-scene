@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** The Physics panel's strings (merged into the editor's catalogs). */
 export const PHYSICS_EN: Catalog = {

@@ -1,4 +1,4 @@
-import { Button, Checkbox, Choice, Segmented, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { Button, Checkbox, Choice, Segmented, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, useRun } from './SidePanel'
 import type { SceneInfo } from './scene'
 

@@ -1,5 +1,5 @@
-import { Button, Choice, IconButton, useKitEditor } from '@kition/kit-editor'
-import { TrashIcon } from '@kition/tessera-icons/react'
+import { Button, Choice, IconButton, useKitEditor } from '@kition/sdk/editor'
+import { TrashIcon } from '@kition/tessera/icons/react'
 import { NumberInput, Row } from './SidePanel'
 import type { BoidRule, BoidsInfo, ParticleSystemInfo, SceneInfo, SceneObject } from './scene'
 

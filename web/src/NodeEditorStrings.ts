@@ -1,5 +1,5 @@
 import { CURVES10_NODE_PHRASES } from './i18n/locales/zh-CN/curves10'
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** The node editor's strings, spread into the editor's catalogs (`strings.ts`). */
 export const NODE_STRINGS: Record<'en-US' | 'zh-CN', Catalog> = {

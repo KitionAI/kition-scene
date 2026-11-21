@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Choice, useKitEditor, useReadOnly, type KitEngineInfo } from '@kition/kit-editor'
+import { Choice, useKitEditor, useReadOnly, type KitEngineInfo } from '@kition/sdk/editor'
 import { sceneToTweak, tweakToScene, type FModifierInfo, type NlaTweakInfo } from './AnimationData'
 import { FModifierPanel } from './FModifierPanel'
 import type { SceneInfo } from './scene'

@@ -1,4 +1,4 @@
-import { useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NumberInput, Row } from './SidePanel'
 import type { EffectorWeightsInfo } from './PhysicsInfo'
 

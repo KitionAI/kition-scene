@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** The strings of the drivers, actions, and keying sets panels and the new constraints' fields. */
 export const ANIMATION_EN: Catalog = {

@@ -1,4 +1,4 @@
-import type { KitEngineInfo } from '@kition/kit-editor'
+import type { KitEngineInfo } from '@kition/sdk/editor'
 
 /** The timeline as the engine's `inspect()` reports it. */
 export type AnimationInfo = {

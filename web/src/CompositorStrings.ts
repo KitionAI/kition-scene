@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** Compositing's strings, spread into the editor's catalogs (`strings.ts`). */
 export const COMPOSITOR_STRINGS: Record<'en-US' | 'zh-CN', Catalog> = {

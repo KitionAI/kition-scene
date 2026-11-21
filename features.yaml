@@ -562,7 +562,7 @@ features:
     paths: [bindings/wasm/src/commands_compositor.rs, bindings/wasm/src/files.rs, bindings/wasm/src/lib.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    cases: [regressions/issue-matte-pick-place]
+    cases: [regressions/issue-matte-pick-place, regressions/issue-webkit-link-drag]
     since: "2026-11-17"
   - id: scene.editor.display-modes
     title: The editor in each display mode (Menus, Single line, Classic, Focus); Focus shows the viewport alone

@@ -96,6 +96,7 @@
 .scene-nla-strip-label {
   font-size: 11px;
   fill: var(--kit-text, #26262c);
+  -webkit-user-select: none;
   user-select: none;
 }
 

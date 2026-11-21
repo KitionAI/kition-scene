@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-webkit-link-drag
+feature: scene.compositor.nodes
+intent: >-
+  In the node editor two drags in a row link Render Layers to an Exposure node and the Exposure
+  node to the compositing output, and neither a drag from a socket nor one by a node's title
+  selects text on the page, in Chromium and in WebKit. Before, the editor's CSS turned text
+  selection off with the unprefixed user-select only, which WebKit ignores: the first drag selected
+  the node texts it crossed, the second started inside that selection, and WebKit on Linux dragged
+  the selection instead of a link, so the Exposure node was never linked to the output (kit CI,
+  test:flow on WebKit, run 44879409678).
+layer: gate
+dimension: platform
+source:
+  kind: issue
+  from: Kition kit CI, run 44879409678 (test:flow, WebKit)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/link-drag.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/link-drag.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-21"
+timeout_s: 180

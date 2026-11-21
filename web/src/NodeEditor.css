@@ -30,6 +30,11 @@
   background-color: var(--kit-surface-muted, #f6f6f8);
   background-image: radial-gradient(circle, var(--kit-border, #dcdce2) 1px, transparent 1px);
   touch-action: none;
+  /* A drag from a socket or a title is the editor's, never a text selection: WebKit takes only the
+     prefixed property, and a selection it made on one drag turned the next drag into a drag of
+     that selection, so the link was never dropped. */
+  -webkit-user-select: none;
+  user-select: none;
   outline: none;
   cursor: default;
 }
@@ -75,6 +80,7 @@
   background: var(--kit-surface, #fff);
   box-shadow: 0 1px 3px rgba(20, 20, 40, 0.08);
   font-size: 11px;
+  -webkit-user-select: none;
   user-select: none;
 }
 

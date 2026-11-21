@@ -1052,8 +1052,18 @@ try {
   await page.mouse.down()
   for (let i = 1; i <= 6; i += 1) await page.mouse.move(exposureHeader.x + 20, exposureHeader.y + 8 + i * 25)
   await page.mouse.up()
+  // Frame the view once the engine has the node where it was dropped, and link once the sockets
+  // stay put (two reads 100 ms apart agree): a slower machine answers the move later.
+  const nodeAt = (node) => JSON.stringify(node?.location)
+  await until(async () => nodeAt((await compositor())?.nodes?.find((node) => node.id === exposureNode.id)) !== nodeAt(exposureNode))
   await kit.getByTestId('scene-nodes-frame').click()
-  await page.waitForTimeout(100)
+  const linkSockets = [`scene-socket-${layersNode.id}-out-Image`, `scene-socket-${exposureNode.id}-in-Image`, `scene-socket-${exposureNode.id}-out-Image`, `scene-socket-${compositeNode.id}-in-Image`]
+  const socketsNow = async () => JSON.stringify(await Promise.all(linkSockets.map(socketCentre)))
+  await until(async () => {
+    const before = await socketsNow()
+    await page.waitForTimeout(100)
+    return before === (await socketsNow())
+  })
   const dragLink = async (from, to) => {
     const [ax, ay] = await socketCentre(from)
     const [bx, by] = await socketCentre(to)

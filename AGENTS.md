@@ -58,8 +58,9 @@ cameras, renders) whose engine is Kition's own, in Rust.
   through the host. Never run the engine on the page's thread.
 - Code, comments, docs, tests, fixtures, and commit messages are English. No host paths, user
   names, or secrets in tracked files.
-- No CI workflows in this repository besides the Package workflow (`.github/workflows/package.yml`),
-  which Kition's reusable workflow runs to publish the kit's package.
+- Two workflows, both calling Kition's reusable workflows: `.github/workflows/ci.yml` (the kit's
+  CI run, Kition's `kit-ci.yml`) and `.github/workflows/package.yml` (the kit's package). Do not
+  add other workflows, and do not start the Package workflow: releasing is the owner's step.
 
 ## Never crash
 
@@ -72,4 +73,9 @@ cameras, renders) whose engine is Kition's own, in Rust.
 
 ## Working here
 
-- `cargo xtask ci` before every commit. Parallel agents: separate `CARGO_TARGET_DIR` per agent.
+- On this machine run only the fast checks: `cargo fmt --all -- --check`, `cargo check -p
+  <touched crates> --all-targets`, the wasm `cargo check` and `pnpm typecheck` in `web/`. The full
+  checks (clippy, `cargo test --workspace`, the kit's `cargo xtask ci` and every `test:*` script of
+  `web/`) run in the kit's CI run on GitHub. A task is done when the CI run of HEAD is green and
+  HEAD is on `origin/main` (Kition's `scripts/kit-ci.sh` `push`, `wait`, `land`).
+- Parallel agents: separate `CARGO_TARGET_DIR` per agent.

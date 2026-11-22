@@ -17,7 +17,7 @@
 ## Build and check
 
 ```sh
-cargo xtask ci                                            # the check every change passes
+cargo xtask ci                                            # the full checks; the kit's CI run runs them
 cargo build --release -p kition-scene                     # the headless kit executable
 cd web && pnpm install && pnpm engine && pnpm test:flow   # the editor
 ```
@@ -100,9 +100,9 @@ path tracer's noise stays small). `made-1.png` … `made-4.png` are copies of sh
 
 Kition ships the kit's package, `kition-scene-<version>.tgz` (the `scene-ui/` folder), a release
 asset of this repository tagged `package-v<version>`. It is built on GitHub, never on a developer
-machine: the Package workflow (`.github/workflows/package.yml`, which calls Kition's reusable
-`kit-package.yml`) builds the commit it is started on, with `gh workflow run package.yml -R
-KitionAI/kition-scene`, and publishes the Release with the package's lock entry,
-`kition-scene-<version>.json`. Kition pins it with `node scripts/pin-kits.mjs scene` (see
-`docs/kits.md` there). A version is published once: bump `version` in `kit.json` to publish a
-change.
+machine, and only the owner starts it: the Package workflow (`.github/workflows/package.yml`,
+which calls Kition's reusable `kit-package.yml`) builds the commit it is started on, with `gh
+workflow run package.yml -R KitionAI/kition-scene`, and publishes the Release with the package's
+lock entry, `kition-scene-<version>.json`. Kition pins it with `node scripts/pin-kits.mjs scene`
+(see `docs/kits.md` there). A version is published once: the owner bumps `version` in `kit.json`
+to publish a change.

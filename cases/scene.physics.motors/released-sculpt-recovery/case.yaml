@@ -5,7 +5,7 @@ intent: Recovering a sculpted lower subdivision level in a released scene preser
 layer: gate
 dimension: conversion
 source:
-  kind: golden-sample
+  kind: reference-sample
   from: bindings/wasm/tests/fixtures/create-released-0.15.0.mjs
   license: owned
   note: The input is a scene saved by an earlier published Scene engine, without rigid body motors or multiresolution recovery.

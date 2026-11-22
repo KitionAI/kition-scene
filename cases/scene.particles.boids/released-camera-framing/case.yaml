@@ -5,7 +5,7 @@ intent: A released Newtonian emitter can become a boid flock and receive new cam
 layer: gate
 dimension: conversion
 source:
-  kind: golden-sample
+  kind: reference-sample
   from: bindings/wasm/tests/fixtures/create-released-0.16.0.mjs
   license: owned
   note: The input is a scene saved by an earlier published Scene engine, without boids or camera sensor fit.

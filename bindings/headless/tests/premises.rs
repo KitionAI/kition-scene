@@ -332,7 +332,9 @@ async fn a_batch_runs_only_what_its_premise_contract_declares() {
     let (details, basis) = f.inspect().await;
     let ids = ids_by_name(&details);
     let before = std::fs::read(f.file()).unwrap();
-    let constraints = json!([{ "type": "copyLocation", "target": { "object": ids["C1"] } }]);
+    // A valid constraint (the model requires its name), so the model's scratch check passes and
+    // the refusal is the missing contract's.
+    let constraints = json!([{ "name": "Copy Location", "type": "copyLocation", "target": { "object": ids["C1"] } }]);
     let refused = f.refused("batch", json!({ "ops": [{ "op": "set", "target": ids["C2"], "field": "constraints", "value": constraints }] })).await;
     // Refused before it runs: kition-kits first lets the model check the raw operation on a scratch
     // copy and answers that check's error when there is one, else that no contract is declared.

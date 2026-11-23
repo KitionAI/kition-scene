@@ -157,23 +157,31 @@ keeps the scene and only describes it (`bindings/wasm/src/gl.rs`):
 Engine contract 2 (the document is a KDM replica, section 7), KHP `basic` (agent-ready once it passes the shared agent-ready check, W1-41), object model
 namespace `Scene`. The headless conformance suite passes 13/13 and reports L1–L5 (the object model
 served as `scene_*`); the convergence suite passes level 6 (`bindings/wasm/tests/convergence.rs`:
-13 of 17 scenarios, the four text scenarios skip since a scene has no text), and the native and
+every scenario, the text ones typing in a text object's body), and the native and
 WebAssembly engines reach one state from one change log. `check-manifest` reports L5 and L6 once
 kition-sdk carries the generated object-model typings (`packages/script/kits/scene.ts`).
 
 ## 7. Collaboration
 
 The document is a KDM replica (`kition-sdk` `session`, engine contract 2), schema `kit.scene`
-version 6 in `crates/kdm/kdm-model/model/schema.json`. People and agents edit one scene at once;
-every replica converges to the same state.
+version 1 in `crates/kdm/kdm-model/model/schema.json` (frozen before the first release: an
+existing type never gains a container field). People and agents edit one scene at once; every
+replica converges to the same state.
 
 ### 7.1 Schema
 
 | Type | Fields | Notes |
 | --- | --- | --- |
-| `Scene` (root, id `scene`) | `objects` (list of `Object`), `materials` (list of `Material`), `images` (list of `Image`), `world` (json), `render` (json), `camera` (integer, optional), `timeline` (json) | The lists keep the outliner's and the panels' order. `timeline` is the frame range and rate, never the current frame. |
-| `Object` | `key` (integer), `name`, `kind` (enum), `data` (json), `mesh` (blob, optional), `location`, `rotation`, `scale` (json each), `parent` (integer, optional), `parentInverse` (json, optional), `hidden` (boolean), `material` (integer, optional), `modifiers` (json), `constraints` (json, optional), `animation` (json), `nla` (json, optional), `tweak` (json, optional) | `key` is the engine's object id, which commands, inspect, and references use. Location, rotation, and scale are separate registers: one person moving an object while another turns it keeps both. |
-| `Material` | `key`, `name`, `data` (json), `animation` (json) | `data` is everything but the id and name. |
+| `Scene` (root, id `scene`) | `objects` (list of `Object`), `materials` (list of `Material`), `images` (list of `Image`), `nodeGroups` (list of `NodeGroup`), `world`, `render`, `timeline`, `physics` (json each), `camera` (integer, optional), `actions` (list of `Action`), `keyingSets` (list of `KeyingSet`), `activeKeyingSet` (json, optional), `keys` (map) | The lists keep the outliner's and the panels' order. `timeline` is the frame range and rate, never the current frame. `keys` holds the ids each actor's range has issued. |
+| `Object` | `key` (integer), `name`, `kind` (enum), `data` (json), `mesh` (blob, optional), `location`, `rotation`, `scale` (json each), `parent` (integer, optional), `parentInverse` (json, optional), `hidden` (boolean), `material` (integer, optional), `text` (text), `bones` (list of `Bone`), `modifiers` (list of `Modifier`), `constraints` (list of `Constraint`), `physics` (json, optional), `particles` (list of `ParticleSystem`), `hair` (blob, optional), `animation` (list of `Channel`), `nla` (list of `NlaTrack`), `nlaAction` (json, optional), `tweak` (json, optional) | `key` is the engine's object id, which commands, inspect, and references use. Location, rotation, and scale are separate registers: one person moving an object while another turns it keeps both. `data` is the kind's settings without an armature's bones and a text's body. |
+| `Material` | `key`, `name`, `data` (json), `animation` (list of `Channel`) | `data` is everything but the id and name. |
+| `Channel` | `property`, `index`, `path` (optional), `keys`, `driver`, `modifiers` (json, optional) | One component of one property; its keys are one register. |
+| `Modifier`, `Constraint`, `ParticleSystem`, `NlaStrip` | `name`, `data` (json) | `data` is the item's settings; a meta strip's children are in its `data`. |
+| `NlaTrack` | `name`, `muted`, `solo` (boolean, optional), `strips` (list of `NlaStrip`) | |
+| `Bone` | `name`, `data` (json), `constraints` (list of `Constraint`) | |
+| `Action` | `name`, `channels` (list of `Channel`) | |
+| `KeyingSet` | `name`, `paths` (json) | |
+| `NodeGroup`, `Node`, `Link` | a group's `key`, `name`, `tree`, `inputs`, `outputs`, `nodes` (list of `Node`), `links` (list of `Link`); a node's `key`, `kind`, `location`, `values` (map) | |
 | `Image` | `hash` (the SHA-256 of its bytes), `name`, `format`, `bytes` (blob) | Images are content-addressed: the same picture added twice is one record. |
 
 Choices:
@@ -182,23 +190,29 @@ Choices:
   mesh buffer with a JSON tail). An edit-mode operation replaces the whole blob in one register,
   so two people editing the same mesh resolve to one of their meshes, never a mix that breaks
   faces; two people editing different meshes never meet.
-- **Coupled values are one register.** An object's non-mesh data (a light, a camera, an
-  armature's bones, pose, and bone constraints), its modifier stack, its constraint stack, and a material's settings are one JSON
-  register each: their fields depend on each other (a modifier's operand, a bone's parent).
-- **Animation lives with its target.** An object's keyframe channels (with their F-curve
-  modifiers) are its `animation` register; a material's are the material's. An object's NLA
-  (its tracks and the blend of its own keys) is its `nla` register (schema version 6), and
-  tweak mode (the strip, the action it plays, and the keys put aside) its `tweak` register:
-  tweak mode and its keys always come from the same person, whoever's tracks win. Keying
-  different objects never conflicts.
+- **Stacks are lists of records.** An object's modifiers, constraints, particle systems, NLA
+  tracks (and each track's strips) and an armature's bones (and each bone's constraints) are
+  records of their own in an ordered list (`held.rs`): two people adding to one stack, or
+  editing two items of it, both keep their edits. An item's settings are one `data` register:
+  they depend on each other (a modifier's operand, a bone's parent).
+- **Animation lives with its target.** An object's keyframe channels are `Channel` records in its
+  `animation` list, a material's in the material's, an action's in the action's; each channel's
+  keys (with its driver and F-curve modifiers) are one register. Two people keying different
+  properties of one object both keep their keys; two keying one property at once end with one
+  channel holding both people's keys. An object's NLA tracks are its `nla` list and the blend of
+  its own keys its `nlaAction`; tweak mode (the strip, the action it plays, and the keys put
+  aside) is its `tweak` register: tweak mode and its keys always come from the same person.
+- **A 3D text's characters are text.** A text object's body is the `text` field of its record:
+  two people typing in it at once both keep their typing.
 - **The current frame is session state.** Each person scrubs on their own; it is saved with the
   editor state, not in the replica. Animated properties hold values evaluated at the local frame,
   so the recorder writes the replica's stored values for them, never the evaluated ones; an edit
   of an animated property without a key stays local until the frame changes, as in the reference
   application.
-- **Ids never collide.** Engine ids are minted from a range per actor (`ids::range`), so two
-  people adding objects at once never mint the same key. The starter scene's ids are below every
-  actor's range.
+- **Ids never collide.** Engine ids are minted from a range per actor (`ids::range`): 245,696
+  ranges of 16,384 ids, so two sessions share one only by a chance of one in 245,696. The
+  starter scene's ids are below every range, and the repair's (for a key a merge found twice)
+  above.
 
 ### 7.2 Commands as transactions
 
@@ -214,7 +228,10 @@ imported the same way. A command that fails writes nothing.
 
 After a merge (`SceneModel::validate`), deterministic for every replica:
 - list entries of deleted records go, records no list names go, and a record listed twice
-  keeps its first place;
+  keeps its first place (held records too, with what they hold);
+- an item of a stack named like an earlier one (two people added one name at once) gets a name
+  of its own (`Mirror.001`); two channels of one component (two people keyed it at once) become
+  the first, with both people's keys (the first's on a frame both keyed);
 - a parent, material, or scene camera that no longer exists is cleared (the camera falls back
   to the first camera in the list); a parent cycle made by two people parenting at once is
   broken at the object with the highest key;

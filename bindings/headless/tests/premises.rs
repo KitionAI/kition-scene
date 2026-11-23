@@ -323,22 +323,21 @@ async fn a_batch_cannot_set_an_objects_kind_parent_or_material() {
 /// Raw `scene_batch` operations need a per-type `batchOps` premise contract (kition-sdk
 /// call-context.md, "Isolated Planning And Raw Batches"). Every raw batch is followed by the
 /// scene's repair, which lets go of references to objects, materials, images, node groups and
-/// actions that are gone: a field whose value the repair reads that way (an object's
-/// `constraints`) has no contract and is refused before anything runs; a field it never reads (a
-/// name) is direct; a delete is held as the kit's own delete command holds it (`edit.delete`).
+/// actions that are gone: a field whose value the repair reads that way (an object's `data`) has
+/// no contract and is refused before anything runs; a field it never reads (a name) is direct; a
+/// delete is held as the kit's own delete command holds it (`edit.delete`).
 #[tokio::test(flavor = "multi_thread")]
 async fn a_batch_runs_only_what_its_premise_contract_declares() {
     let f = Fixture::new(CUBES);
     let (details, basis) = f.inspect().await;
     let ids = ids_by_name(&details);
     let before = std::fs::read(f.file()).unwrap();
-    // A valid constraint (the model requires its name), so the model's scratch check passes and
+    // A valid value (a mesh object's data names its kind), so the model's scratch check passes and
     // the refusal is the missing contract's.
-    let constraints = json!([{ "name": "Copy Location", "type": "copyLocation", "target": { "object": ids["C1"] } }]);
-    let refused = f.refused("batch", json!({ "ops": [{ "op": "set", "target": ids["C2"], "field": "constraints", "value": constraints }] })).await;
+    let refused = f.refused("batch", json!({ "ops": [{ "op": "set", "target": ids["C2"], "field": "data", "value": { "type": "mesh" } }] })).await;
     // Refused before it runs: kition-kits first lets the model check the raw operation on a scratch
     // copy and answers that check's error when there is one, else that no contract is declared.
-    println!("premises batchOps: constraints refused: {}", refused["error"]);
+    println!("premises batchOps: data refused: {}", refused["error"]);
     assert!(matches!(refused["error"]["code"].as_str(), Some("conflict" | "invalid-op")), "{refused}");
     assert_eq!(std::fs::read(f.file()).unwrap(), before, "a refused batch writes nothing");
     f.ok("batch", json!({ "basis": basis, "ops": [{ "op": "set", "target": ids["C2"], "field": "name", "value": "Renamed" }] })).await;

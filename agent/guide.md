@@ -217,17 +217,23 @@ others changed since is refused with `error.code: "conflict"` and nothing is run
   `scene_inspect` again), decide whether the write still makes sense, name the objects by the ids
   you see now (and elements by the mesh as it is now), and run again with the new `basis`.
 - Modifiers, constraints, particle systems, bones, shape keys, vertex groups, NLA tracks and
-  actions have no ids of their own: they are named by index or name inside their object.
+  actions have no ids of their own: they are named by index or name inside their object. In
+  `scene_query` an object's modifiers, constraints, particle systems, keyframe channels
+  (`animation`), NLA tracks (`nla`, each with its `strips`) and an armature's `bones`, a
+  material's `animation`, and the scene's `actions`, `keyingSets` and `nodeGroups` are lists of
+  records (`name` and `data`, a channel's `property`, `index`, `path` and `keys`); a text
+  object's characters are its `text`.
 - An object's `kind`, `parent` and `material` are read-only in `scene_batch`: set them with
   `object.parent`, `object.clearParent` and `material.assign`.
 - `scene_batch` runs only the raw operations the schema's `batchOps` declare; any other is
   refused before anything runs. After a batch the scene lets go of references to objects,
   materials, images, node groups and actions that are gone, so a raw write of a value that holds
-  such a reference (an object's `constraints`, `modifiers`, `data`, `particles`, `physics`, `nla`
-  or `tweak`, a material's `data`, the scene's `camera`, `world`, `render` or `actions`, nodes and
-  links) and a raw `create` of an object or material are refused: use the commands. Names,
-  transforms (`location.0` too), `hidden`, `animation`, meshes, the timeline, the physics world,
-  keying sets, the bounded numeric members of an object's or a material's `data`, the world's
+  such a reference (an object's `data`, `physics` or `tweak`, a material's `data`, the scene's
+  `camera`, `world` or `render`, the records of modifiers, constraints, particle systems, NLA
+  tracks, bones and actions, nodes and links), a raw write of a keyframe channel or a keying set,
+  and a raw `create` of an object or material are refused: use the commands. Names,
+  transforms (`location.0` too), `hidden`, meshes, the timeline, the physics world,
+  the bounded numeric members of an object's or a material's `data`, the world's
   `color`, `strength` and `rotation`, the render settings but its `compositor`, a node's
   `location`, and new images are written directly. A raw `delete` of an object, a material
   or a node group holds what `edit.delete`, `material.delete` or `nodes.removeGroup` holds.

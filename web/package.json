@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test:flow": "node tests/flow.mjs chromium && node tests/flow.mjs webkit",
-    "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit && node tests/focus.mjs chromium && node tests/focus.mjs webkit"
+    "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit && node tests/focus.mjs chromium && node tests/focus.mjs webkit",
+    "test:regen": "node tests/regen.mjs"
   },
   "dependencies": {
     "@kition/sdk": "npm:@kitionstage/sdk@0.5.2-stage.16",

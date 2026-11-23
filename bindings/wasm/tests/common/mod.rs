@@ -265,14 +265,15 @@ impl KitAdapter for SceneKit {
                 let Some(body) = sign(doc) else { return Ok(false) };
                 let mut chars: Vec<char> = body.chars().collect();
                 let at = (*at).min(chars.len());
-                chars.splice(at..at, text.chars());
+                for (offset, typed) in text.chars().enumerate() {
+                    chars.insert(at + offset, typed);
+                }
                 exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
             }
             Script::DeleteText { at, len } => {
                 let Some(body) = sign(doc) else { return Ok(false) };
-                let mut chars: Vec<char> = body.chars().collect();
-                let at = (*at).min(chars.len());
-                chars.drain(at..(at + len).min(chars.len()));
+                let chars: Vec<char> =
+                    body.chars().enumerate().filter(|(index, _)| !(*at..*at + *len).contains(index)).map(|(_, kept)| kept).collect();
                 exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
             }
             Script::SplitParagraph { at } => {

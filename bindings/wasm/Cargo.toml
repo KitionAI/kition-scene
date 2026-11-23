@@ -35,6 +35,9 @@ png = { workspace = true }
 zip = { workspace = true }
 
 [dev-dependencies]
+# Counted ids for the tests and the showcase sample builder that build the same document twice
+# (KITION_REPRODUCIBLE_IDS); never in [dependencies]: a shipped engine draws its ids at random.
+kition-kit = { workspace = true, features = ["session", "reproducible-ids"] }
 # The showcase sample builder (examples/showcase.rs) saves its thumbnails.
 image = { version = "0.25", default-features = false, features = ["png"] }
 kition-convergence = { workspace = true }

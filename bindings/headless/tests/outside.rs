@@ -755,7 +755,7 @@ async fn s11_fifty_rounds_of_mixed_editing() {
                         cell.2 += 1;
                     } else {
                         cell.3 += 1;
-                        println!("s11: {write} refused falsely after {theirs:?}: {}", error["conflicts"]);
+                        println!("s11: {write} refused falsely after {theirs:?}: {} (others: {})", error["conflicts"], error["others"]);
                     }
                 }
             }

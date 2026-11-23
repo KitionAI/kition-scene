@@ -325,7 +325,9 @@ pub fn covered(scene: &Scene, params: &Value, objects: &[CoveredAsk]) -> Result<
         if held_record(&asked.id).is_some() {
             continue;
         }
-        let id = id_of(&asked.id).ok_or_else(|| bad(format!("{} is no object id", asked.id)))?;
+        // A record named by its own id (one no object's tool id names: a modifier, a channel):
+        // it has no place of its own either.
+        let Some(id) = id_of(&asked.id) else { continue };
         // Created since the basis: not there then.
         if asked.created {
             before.objects.retain(|object| object.id != id);
@@ -352,6 +354,9 @@ pub fn covered(scene: &Scene, params: &Value, objects: &[CoveredAsk]) -> Result<
                 (_, _, Some((_, list))) if list == "constraints" => None,
                 (true, _, Some((holder, _))) => Some(picked.is_some_and(|picked| derives_from(&before, picked, holder))),
                 (true, Some(id), None) => Some(picked.is_some_and(|picked| derives_from(&before, picked, id))),
+                // A record named by its own id: what it does to its object's place (a
+                // constraint) is told by the object's own fields, which the guard asks about.
+                (true, None, None) => Some(false),
                 _ => None,
             };
             Covered { id: asked.id.clone(), covered, ..Default::default() }

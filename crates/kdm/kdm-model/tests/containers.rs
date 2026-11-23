@@ -89,6 +89,16 @@ fn constraint(name: &str) -> Constraint {
     serde_json::from_value(json!({ "name": name, "type": "copyLocation" })).unwrap()
 }
 
+fn bones_of(scene: &mut Scene, rig: u32) -> &mut Vec<Bone> {
+    let ObjectData::Armature(armature) = &mut scene.object_mut(rig).unwrap().data else { panic!("not an armature") };
+    &mut armature.bones
+}
+
+fn body_of(scene: &mut Scene, id: u32) -> &mut String {
+    let ObjectData::Text(text) = &mut scene.object_mut(id).unwrap().data else { panic!("not a text") };
+    &mut text.body
+}
+
 fn cube(scene: &Scene) -> u32 {
     scene.object_named("Cube").unwrap().id
 }
@@ -257,19 +267,15 @@ fn keying_sets_added_at_once_all_stay() {
 fn bones_and_bone_constraints_added_at_once_all_stay() {
     let mut scene = Scene::starter();
     let rig = scene.add_object("Rig", ObjectData::Armature(Armature::starter()));
-    let bones = |scene: &mut Scene| -> &mut Vec<Bone> {
-        let ObjectData::Armature(armature) = &mut scene.object_mut(rig).unwrap().data else { panic!("not an armature") };
-        &mut armature.bones
-    };
     let merged = concurrently(
         &scene,
         |scene| {
-            let bones = bones(scene);
+            let bones = bones_of(scene, rig);
             bones[0].constraints.push(constraint("Left"));
             bones.push(Bone::new("Arm", Vec3::new(0.0, 0.0, 1.0), Vec3::new(1.0, 0.0, 1.0)));
         },
         |scene| {
-            let bones = bones(scene);
+            let bones = bones_of(scene, rig);
             bones[0].constraints.push(constraint("Right"));
             bones.push(Bone::new("Leg", Vec3::ZERO, Vec3::new(0.0, 0.0, -1.0)));
         },
@@ -287,15 +293,11 @@ fn bones_and_bone_constraints_added_at_once_all_stay() {
 fn typing_in_one_text_at_once_keeps_both() {
     let mut scene = Scene::starter();
     let id = scene.add_object("Sign", ObjectData::Text(Text { body: "Hello world".into(), ..Text::default() }));
-    let body = |scene: &mut Scene| -> &mut String {
-        let ObjectData::Text(text) = &mut scene.object_mut(id).unwrap().data else { panic!("not a text") };
-        &mut text.body
-    };
-    let merged = concurrently(&scene, |scene| body(scene).insert_str(5, ","), |scene| body(scene).push_str("!\n\u{4e2d}\u{6587}"));
+    let merged = concurrently(&scene, |scene| body_of(scene, id).insert_str(5, ","), |scene| body_of(scene, id).push_str("!\n\u{4e2d}\u{6587}"));
     let ObjectData::Text(text) = &merged.object(id).unwrap().data else { panic!("not a text") };
     assert_eq!(text.body, "Hello, world!\n\u{4e2d}\u{6587}");
     // One retypes the first letter while the other deletes the last word.
-    let merged = concurrently(&merged, |scene| body(scene).replace_range(0..1, "J"), |scene| body(scene).replace_range(5..12, ""));
+    let merged = concurrently(&merged, |scene| body_of(scene, id).replace_range(0..1, "J"), |scene| body_of(scene, id).replace_range(5..12, ""));
     let ObjectData::Text(text) = &merged.object(id).unwrap().data else { panic!("not a text") };
     assert_eq!(text.body, "Jello!\n\u{4e2d}\u{6587}");
 }

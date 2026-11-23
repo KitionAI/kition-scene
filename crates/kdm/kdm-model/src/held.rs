@@ -113,7 +113,10 @@ impl Records for Tx<'_> {
 }
 
 /// An item's registers (null members left out) and its held lists, from its JSON.
-fn split<'a>(value: &Value, shape: &'a Shape) -> KdmResult<(Map<String, Value>, Vec<(&'static str, &'a Shape, Vec<Value>)>)> {
+/// An item's registers and its held lists (each its field, its items' shape and its items).
+type Split<'a> = (Map<String, Value>, Vec<(&'static str, &'a Shape, Vec<Value>)>);
+
+fn split<'a>(value: &Value, shape: &'a Shape) -> KdmResult<Split<'a>> {
     let Value::Object(members) = value else { return Err(kdm_err(format!("a {} is not a JSON object", shape.ty))) };
     let mut members = members.clone();
     let mut lists = Vec::with_capacity(shape.lists.len());
@@ -255,7 +258,7 @@ fn create(tx: &mut Tx<'_>, shape: &Shape, value: &Value, mint: Mint, seed: &str)
             let base = format!("held-{:016x}", fnv(seed));
             let mut attempt = 0u32;
             loop {
-                let candidate = if attempt == 0 { ObjectId::from_string(&base) } else { ObjectId::from_string(&format!("{base}-{attempt}")) };
+                let candidate = if attempt == 0 { ObjectId::from_string(&base) } else { ObjectId::from_string(format!("{base}-{attempt}")) };
                 match tx.create_with_id(shape.ty, &candidate, fields.clone()) {
                     Ok(id) => break id,
                     Err(KdmError::InvalidValue { field, .. }) if field == "$id" && attempt < 1024 => attempt += 1,

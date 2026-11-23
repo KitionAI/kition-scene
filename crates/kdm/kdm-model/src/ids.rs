@@ -100,7 +100,7 @@ mod tests {
     /// is as large as the others.
     #[test]
     fn ranges_are_many_and_stay_below_the_repairs_ids() {
-        assert!(SLOTS >= 200_000, "{SLOTS} ranges");
+        const { assert!(SLOTS >= 200_000) };
         let top = range(ActorId::from_u64(u64::from(SLOTS) - 1).unwrap());
         assert_eq!(top, (REKEY_FLOOR - RANGE, REKEY_FLOOR));
         let bottom = range(ActorId::from_u64(u64::from(SLOTS)).unwrap());

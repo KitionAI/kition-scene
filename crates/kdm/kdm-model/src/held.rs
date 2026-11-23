@@ -345,11 +345,12 @@ pub fn write(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, shape: &Shape, item
         keys.push((key, *taken.get(&key_of(item, shape)).unwrap_or(&0)));
     }
     // Then the rest in order.
-    let mut spare = records.iter().filter(|id| !kept.contains(*id));
+    let spare: Vec<ObjectId> = records.iter().filter(|id| !kept.contains(*id)).cloned().collect();
+    let mut spare = spare.into_iter();
     for slot in matched.iter_mut().filter(|slot| slot.is_none()) {
         let Some(id) = spare.next() else { break };
         kept.insert(id.clone());
-        *slot = Some(id.clone());
+        *slot = Some(id);
     }
     let mut wanted = Vec::with_capacity(items.len());
     for ((item, found), (key, count)) in items.iter().zip(matched).zip(keys) {

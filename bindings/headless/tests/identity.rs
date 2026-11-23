@@ -1,7 +1,7 @@
 //! `document.identity` and `document.fork` (Kit Process Protocol section 5.6, KitModel M7a)
-//! through the real `kition-scene` process: a `.kscene` embeds its replica (`replica.kdm`, the
-//! snapshot with its history, `docs/design.md` section 7.5), so a byte copy of a file is the same
-//! document. A host reads the identity a file carries without parsing the scene, and forks a file
+//! through the real `kition-scene` process: a `.kscene` embeds its replica as the document's
+//! content (`content.kdm`, a content snapshot with no history, `docs/design.md` section 7.5), so a
+//! byte copy of a file is the same document. A host reads the identity a file carries without parsing the scene, and forks a file
 //! into a new document: a new docId, the same objects, ids and values, no history, only the blobs
 //! the scene references, and `editor.json` as it was.
 
@@ -18,8 +18,7 @@ use sha2::{Digest, Sha256};
 
 const LIMIT: Duration = Duration::from_secs(30);
 
-/// The name of an object deleted before the fork: in the source's replica (its history), not the
-/// fork's.
+/// The name of an object deleted before the save: in the session's history, in neither file.
 const SECRET: &str = "SECRET-DELETED-BEFORE-THE-FORK";
 
 /// A blob no object references (another program left it in the file).
@@ -52,6 +51,7 @@ fn scene() -> Vec<u8> {
     let mut doc = SceneDocument::open("Plan.kscene", &first).unwrap();
     doc.execute("edit.delete", json!({ "objects": [SECRET] })).unwrap();
     let saved = doc.save(None).unwrap();
+    assert!(holds(&kition_kit::session::__snapshot(&doc).unwrap(), SECRET), "the control: the session's history holds the deleted name");
     let mut parts = kition_scene_kscene::read(&saved).unwrap();
     parts.blobs.push((sha256(STRAY), STRAY.to_vec()));
     kition_scene_kscene::write(&parts).unwrap()
@@ -121,6 +121,12 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     let fork_bytes = std::fs::read(dir.join("Fork.kscene")).unwrap();
     let (source, forked) = (kition_scene_kscene::read(&source_bytes).unwrap(), kition_scene_kscene::read(&fork_bytes).unwrap());
     assert_eq!(forked.editor, source.editor, "editor.json is kept");
+    assert_eq!(forked.meta.doc_id, fork_id, "meta.json's docId is the fork's");
+    assert_eq!(forked.meta.schema_version, source.meta.schema_version);
+    assert!(
+        kition_kit::kdm::Replica::load(kition_scene_kdm::schema(), &forked.content, kition_kit::kdm::ActorId::random()).unwrap().is_sealed(),
+        "the fork's content is sealed"
+    );
     let stray = sha256(STRAY);
     assert!(source.blobs.iter().any(|(hash, _)| *hash == stray));
     let referenced: Vec<_> = source.blobs.iter().filter(|(hash, _)| *hash != stray).cloned().collect();
@@ -136,9 +142,9 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     let reopened = SceneDocument::open("Fork.kscene", &edited).unwrap();
     assert_eq!((reopened.doc_id(), reopened.scene().objects.len()), (fork_id.clone(), count + 1));
 
-    // No history: the deleted object's name is in the source's replica and not in the fork's.
-    assert!(holds(&source.snapshot, SECRET), "the source keeps its history");
-    assert!(!holds(&forked.snapshot, SECRET), "deleted content does not travel");
+    // No history: the deleted object's name is in neither file.
+    assert!(!holds(&source.content, SECRET), "the source's file holds no deleted content");
+    assert!(!holds(&forked.content, SECRET), "deleted content does not travel");
 
     // A fork of a fork is a third document with the same content.
     let again = kit.fork("Fork.kscene", "Again.kscene", LIMIT).await.unwrap().doc_id.expect("the second fork's identity");
@@ -167,7 +173,12 @@ async fn an_unsaved_scene_has_no_identity_and_bytes_that_are_no_scene_are_refuse
     // Bytes that are not a scene, and a scene whose replica is damaged, are refused, never
     // answered with no identity.
     std::fs::write(dir.join("Text.kscene"), b"words a person wrote elsewhere").unwrap();
-    let damaged = kition_scene_kscene::File { snapshot: b"not a replica".to_vec(), blobs: Vec::new(), editor: None };
+    let damaged = kition_scene_kscene::File {
+        meta: kition_scene_kscene::Meta { kdm: 1, schema_version: 1, doc_id: "damaged".into() },
+        content: b"not a replica".to_vec(),
+        blobs: Vec::new(),
+        editor: None,
+    };
     std::fs::write(dir.join("Damaged.kscene"), kition_scene_kscene::write(&damaged).unwrap()).unwrap();
     for name in ["Text", "Damaged"] {
         let (file, copy) = (format!("{name}.kscene"), format!("{name}Copy.kscene"));

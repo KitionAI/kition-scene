@@ -114,8 +114,11 @@ impl KitModel for SceneModel {
         Ok(Replica::load(schema(), bytes, actor)?)
     }
 
+    /// The scene's content (the replica's sealed content snapshot, no history: rule M16b), as a
+    /// `.kscene` file's `content.kdm` holds it; the session seals the replica first
+    /// (`KitDocument::prepare_save`).
     fn export(&self, replica: &Replica, _name: &str, _blobs: &dyn BlobSource) -> kition_kit::session::Result<Vec<u8>> {
-        Ok(replica.snapshot()?)
+        Ok(replica.sealed_content_snapshot()?)
     }
 }
 

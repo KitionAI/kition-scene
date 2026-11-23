@@ -63,7 +63,8 @@ software viewport as reference and fallback (`localStorage['kition.scene.gl'] = 
 software one). Rendered shading progressively traces scene lighting in the worker, reusing the
 prepared scene between samples while keeping picking and overlays at full resolution.
 
-A `.kscene` file is a ZIP containing `mimetype`, `replica.kdm` (the scene and its editing history),
+A `.kscene` file is a ZIP containing `mimetype`, `meta.json` (format, kit, KDM and schema versions,
+document id), `content.kdm` (the scene's content, no history: the history stays with the host),
 content-addressed mesh and image data under `blobs/`, and local view settings in `editor.json`.
 The engine contract is 2: the scene is a KDM replica.
 

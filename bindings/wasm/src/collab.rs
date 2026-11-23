@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use kition_kit::kdm::{ActorId, Origin, Schema, Version};
+use kition_kit::kdm::{ActorId, Origin, Replica, Schema, Version};
 use kition_kit::session::{BlobSource, KitSession, KitSessionDocument};
 use kition_kit::{KitCommand, KitDocument};
 use kition_scene_kdm::blobs::{SharedBlobs, decode_bundle, encode_bundle};
@@ -44,11 +44,15 @@ impl SceneDocument {
         self.replica.replica().doc_id().to_string()
     }
 
-    /// Opens a scene with the replica the host stored for it (`snapshot`) and that replica's
-    /// blobs (a blob bundle). Empty `bytes` open the replica alone. When both are given and are
-    /// the same document, the file's changes are merged into the stored replica, so edits either
-    /// has are kept; a file of another document, or a replica that does not open, leaves the file
-    /// as [`KitDocument::open`] opens it.
+    /// Opens a scene with the replica the host stored for it (`snapshot`, its history) and that
+    /// replica's blobs (a blob bundle). Empty `bytes` open the replica alone. When both are given
+    /// and are the same document, the file (which holds the content and no history) is taken into
+    /// the stored replica (`kition_kit::session::take_file`): nothing when the replica has the
+    /// file's version; the changes the file holds beyond it when the file's history starts at a
+    /// version the replica has; and otherwise (the file was saved elsewhere, from changes the store
+    /// never saw) the file's state, as one `system` transaction keyed by object id. Edits the
+    /// replica has and the file lacks are kept. A file of another document, or a replica that does
+    /// not open, leaves the file as [`KitDocument::open`] opens it.
     pub fn open_with_replica(_name: &str, bytes: &[u8], snapshot: &[u8], blobs: &[u8]) -> Result<Self, String> {
         let store = SharedBlobs::default();
         for (hash, bytes) in decode_bundle(blobs)? {
@@ -59,16 +63,11 @@ impl SceneDocument {
                 .map_err(|error| format!("the stored replica does not open: {error}"))?;
             return Ok(Self::attach(replica, store, None));
         }
-        let file = kition_scene_kscene::read(bytes).map_err(|error| error.to_string())?;
-        for (hash, bytes) in &file.blobs {
-            store.insert(hash, bytes)?;
-        }
-        let opened = KitSession::<SceneModel>::open_snapshot(&file.snapshot, Box::new(store.clone()), ActorId::random())
-            .map_err(|error| format!("invalid-file: {error}"))?;
-        match KitSession::<SceneModel>::open_snapshot(snapshot, Box::new(store.clone()), ActorId::random()) {
-            Ok(mut stored) if stored.replica().doc_id() == opened.replica().doc_id() => {
-                let changes = opened.export_changes(&Version::empty()).map_err(|error| error.to_string())?;
-                stored.import_changes(&changes).map_err(|error| format!("damaged: {error}"))?;
+        let (file, opened) = crate::open_file(bytes, &store)?;
+        match Replica::load(kition_scene_kdm::schema(), snapshot, ActorId::random()) {
+            Ok(mut stored) if stored.doc_id() == opened.replica().doc_id() => {
+                kition_kit::session::take_file(&mut stored, opened.replica()).map_err(|error| format!("damaged: {error}"))?;
+                let stored = KitSession::<SceneModel>::from_replica(stored, Box::new(store.clone())).map_err(|error| format!("damaged: {error}"))?;
                 Ok(Self::attach(stored, store, file.editor))
             }
             _ => Ok(Self::attach(opened, store, file.editor)),
@@ -121,27 +120,29 @@ impl SceneDocument {
     }
 
     /// [`KitDocument::reconcile_reread`]: `fresh` is this clean session's file read again after
-    /// another program saved it. A `.kscene` file is the replica's own history, so the file's
-    /// difference is the changes it holds beyond this replica's version: they are checked on a
-    /// copy, then imported into the live replica as they are (by their writers' origins, outside
-    /// both undo histories, repaired like any import), with the file's blobs. Object ids, both
-    /// undo histories and the editor state stay; the file read becomes what an unchanged save
-    /// writes again. An unchanged file writes nothing. A file that does not extend this replica's
-    /// history (another scene, or one written from other changes) is not reconciled (`false`,
-    /// nothing changed). Refuses, changing nothing, when the file no longer has what the editor
-    /// state names (`deleted selected object 4`), and when the changes do not import.
+    /// another program saved it. A `.kscene` file holds the scene's content and, of its history,
+    /// only the seal (rule M16b): when its history starts at a version this replica has, the
+    /// file's difference is the changes it holds beyond it, checked on a copy and imported as they
+    /// are; otherwise (another writer saved changes this replica never saw) it is the file's state,
+    /// written by object id as one `system` transaction labelled `import`. Either way it stays
+    /// outside both undo histories and is repaired like any import, with the file's blobs. Object
+    /// ids, both undo histories and the editor state stay. An unchanged file writes nothing. A file
+    /// of another scene is not reconciled (`false`, nothing changed). Refuses, changing nothing,
+    /// when the file no longer has what the editor state names (`deleted selected object 4`), and
+    /// when the changes do not import.
     pub(crate) fn reread_file(&mut self, fresh: &Self) -> Result<bool, String> {
-        let ours = self.replica.version();
-        let theirs = fresh.replica.version();
-        if fresh.replica.replica().doc_id() != self.replica.replica().doc_id() || !theirs.includes(&ours) {
+        if fresh.replica.replica().doc_id() != self.replica.replica().doc_id() {
             return Ok(false);
         }
         if let Some(reason) = self.unresolved_in(&fresh.replica.model().stored) {
             return Err(reason);
         }
-        if theirs != ours {
+        let ours = self.replica.version();
+        let theirs_blobs = fresh.blob_pairs(fresh.blobs.hashes().into_iter().collect());
+        let difference = if ours.includes(&fresh.replica.version()) {
+            Difference::None
+        } else if fresh.replica.replica().reaches(&ours) {
             let changes = fresh.replica.export_changes(&ours).map_err(|error| error.to_string())?;
-            let theirs_blobs = fresh.blob_pairs(fresh.blobs.hashes().into_iter().collect());
             // Imported into a copy first (with this session's and the file's blobs), so changes
             // that do not import leave this session as it was.
             let trial = SharedBlobs::default();
@@ -152,19 +153,44 @@ impl SceneDocument {
                 .fork(ActorId::random(), Box::new(trial))
                 .and_then(|mut copy| copy.import_changes(&changes))
                 .map_err(|error| error.to_string())?;
-            let mut added = Vec::new();
-            for (hash, bytes) in theirs_blobs {
-                if self.blobs.insert(&hash, &bytes)? {
-                    added.push(hash);
-                }
+            Difference::Changes(changes)
+        } else {
+            let before = kition_kit::session::state(self.replica.replica()).map_err(|error| error.to_string())?;
+            let after = kition_kit::session::state(fresh.replica.replica()).map_err(|error| error.to_string())?;
+            if before == after { Difference::None } else { Difference::State(before, after) }
+        };
+        let mut added = Vec::new();
+        for (hash, bytes) in theirs_blobs {
+            if self.blobs.insert(&hash, &bytes)? {
+                added.push(hash);
             }
-            KitSessionDocument::import_changes(self, &changes)?;
-            self.blob_log.record(self.replica.version(), added);
         }
-        // An unchanged save writes the file read again.
-        self.opened.clone_from(&fresh.opened);
+        match difference {
+            Difference::None => {}
+            Difference::Changes(changes) => {
+                KitSessionDocument::import_changes(self, &changes)?;
+            }
+            Difference::State(before, after) => {
+                let schema = kition_scene_kdm::schema();
+                self.replica
+                    .execute(&Origin::system("import"), |_, tx| kition_kit::session::write_state(tx, &schema, &before, &after))
+                    .map_err(|error| error.to_string())?;
+                self.replica_changed();
+            }
+        }
+        self.blob_log.record(self.replica.version(), added);
         Ok(true)
     }
+}
+
+/// How a file read again reaches the live replica ([`SceneDocument::reread_file`]).
+enum Difference {
+    /// The replica has every change of the file, or the same state.
+    None,
+    /// The changes the file holds beyond the replica: its history reaches the replica's version.
+    Changes(Vec<u8>),
+    /// The file was saved from changes the replica lacks: the replica's state and the file's.
+    State(kition_kit::session::State, kition_kit::session::State),
 }
 
 /// The object model (`KitObjectModel 1.0`) headless, over the document's change exchange.

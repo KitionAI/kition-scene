@@ -232,9 +232,9 @@ pub struct SceneDocument {
     origin: Origin,
     /// The labels of the steps each scope can undo and redo, newest last.
     history: History,
-    /// The snapshot the document was opened from and the replica's version then: a save with no
-    /// change since writes those bytes again, so an unchanged file never changes.
-    opened: Option<(kition_kit::kdm::Version, Vec<u8>)>,
+    /// The seal the last `save` made on a copy (the fallback in [`content`]), which
+    /// `mark_saved` takes into the session once the host stored the file.
+    saving: RefCell<Option<Vec<u8>>>,
     /// Moves with every change, the view's included (it asks for a new picture).
     revision: u64,
     /// Moves with changes to the scene only (they need saving).
@@ -335,7 +335,7 @@ impl SceneDocument {
             blob_log: collab::BlobLog::default(),
             origin: person(),
             history: History::default(),
-            opened: None,
+            saving: RefCell::new(None),
             revision: 0,
             content: 0,
             saved: 0,
@@ -687,19 +687,12 @@ pub fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Result<Vec<u8>, Strin
 }
 
 impl KitDocument for SceneDocument {
-    /// Opens a `.kscene` file: its replica as a new actor of the same document.
+    /// Opens a `.kscene` file: its content (the same document, the same object ids; of the
+    /// history only the seal) as a new actor's replica.
     fn open(_name: &str, bytes: &[u8]) -> Result<Self, String> {
-        let file = kition_scene_kscene::read(bytes).map_err(|error| error.to_string())?;
         let blobs = SharedBlobs::default();
-        for (hash, bytes) in &file.blobs {
-            blobs.insert(hash, bytes)?;
-        }
-        let replica = KitSession::open_snapshot(&file.snapshot, Box::new(blobs.clone()), ActorId::random())
-            .map_err(|error| format!("invalid-file: {error}"))?;
-        let version = replica.version();
-        let mut doc = Self::attach(replica, blobs, file.editor);
-        doc.opened = Some((version, file.snapshot));
-        Ok(doc)
+        let (file, replica) = open_file(bytes, &blobs)?;
+        Ok(Self::attach(replica, blobs, file.editor))
     }
 
     /// A new document: the starter scene, written in the replica's creating transaction.
@@ -828,20 +821,48 @@ impl KitDocument for SceneDocument {
         self.replica_changed();
     }
 
-    /// The replica's snapshot, the blobs it references, and the editor state.
+    /// The scene as a `.kscene` file: the document's content (no history, rule M16b), the blobs
+    /// its state references, and the editor state; the same bytes while the document and the
+    /// editor state stay as they are.
+    ///
+    /// The content is sealed (kition-sdk data model 7.3): hosts call [`KitDocument::prepare_save`]
+    /// first, which seals the session, and the file holds the replica's own content snapshot. The
+    /// one fallback, for an editor that does not call `prepareSave` yet: a replica nobody sealed
+    /// saves the content of a sealed copy, and [`KitDocument::mark_saved`] takes that seal into
+    /// the session.
     fn save(&self, _name: Option<&str>) -> Result<Vec<u8>, String> {
-        let snapshot = match &self.opened {
-            Some((version, bytes)) if *version == self.replica.version() => bytes.clone(),
-            _ => self.replica.snapshot().map_err(|error| error.to_string())?,
-        };
-        let blobs = read::blob_hashes(self.replica.replica())
+        let replica = self.replica.replica();
+        let (content, seal) = content(replica)?;
+        let blobs = read::blob_hashes(replica)
             .into_iter()
             .filter_map(|hash| kition_kit::session::BlobSource::get(&self.blobs, &hash).map(|bytes| (hash, bytes.to_vec())))
             .collect();
-        kition_scene_kscene::write(&kition_scene_kscene::File { snapshot, blobs, editor: self.editor_value() }).map_err(|error| error.to_string())
+        let meta = kition_scene_kscene::Meta {
+            kdm: kition_kit::kdm::KDM_VERSION,
+            schema_version: replica.schema().schema_version,
+            doc_id: replica.doc_id().to_string(),
+        };
+        let bytes = kition_scene_kscene::write(&kition_scene_kscene::File { meta, content, blobs, editor: self.editor_value() })
+            .map_err(|error| error.to_string())?;
+        *self.saving.borrow_mut() = seal;
+        Ok(bytes)
     }
 
+    /// Seals the session (rule M16b) so `save` writes its content snapshot, and the seal is in the
+    /// replica the host stores and syncs: a `system` change, no edit, no undo step, no revision.
+    fn prepare_save(&mut self) -> Result<(), String> {
+        self.replica.seal().map_err(|error| error.to_string())?;
+        Ok(())
+    }
+
+    /// Records that the file holds the last save, and takes the seal that save made on a copy into
+    /// the session (no edit: the scene, the revision and the undo histories stay as they are).
     fn mark_saved(&mut self) {
+        // The fallback's seal (see `content`; delete with it once the kit editor calls
+        // `prepareSave`). One that does not import leaves the session as it was.
+        if let Some(seal) = self.saving.get_mut().take() {
+            let _ = self.replica.import_changes(&seal);
+        }
         self.saved = self.content;
     }
 
@@ -953,6 +974,48 @@ pub(crate) fn typed(error: String) -> String {
         _ => return error,
     };
     failure(reason, error)
+}
+
+/// A `.kscene` file opened: its parts and its content as a new actor's replica (checked against
+/// the docId `meta.json` names), its blobs put in `blobs`.
+pub(crate) fn open_file(bytes: &[u8], blobs: &SharedBlobs) -> Result<(kition_scene_kscene::File, KitSession<SceneModel>), String> {
+    let file = kition_scene_kscene::read(bytes).map_err(|error| error.to_string())?;
+    for (hash, bytes) in &file.blobs {
+        blobs.insert(hash, bytes)?;
+    }
+    let replica =
+        KitSession::open_snapshot(&file.content, Box::new(blobs.clone()), ActorId::random()).map_err(|error| format!("invalid-file: {error}"))?;
+    let doc_id = replica.replica().doc_id().to_string();
+    if file.meta.doc_id != doc_id {
+        return Err(format!("invalid-file: damaged: meta.json names document {}, the content {doc_id}", file.meta.doc_id));
+    }
+    Ok((file, replica))
+}
+
+/// The actor that seals a copy of a replica at `version` (the fallback in [`content`]): one per
+/// version, so saving one version twice writes the same seal, and two versions never share a seal's
+/// change id.
+fn seal_actor(version: &kition_kit::kdm::Version) -> ActorId {
+    let value = version.encode().iter().fold(0xcbf2_9ce4_8422_2325u64, |hash, byte| (hash ^ u64::from(*byte)).wrapping_mul(0x0100_0000_01b3)) >> 1;
+    ActorId::from_u64(value).unwrap_or_else(|_| ActorId::random())
+}
+
+/// What `replica` saves as `content.kdm`, and the seal made for it on a copy, if any. The direct
+/// path: the host sealed the replica (`KitDocument::prepare_save`), and its own content snapshot
+/// is written.
+fn content(replica: &Replica) -> Result<(Vec<u8>, Option<Vec<u8>>), String> {
+    if replica.is_sealed() {
+        return Ok((replica.sealed_content_snapshot().map_err(|error| error.to_string())?, None));
+    }
+    // FALLBACK, delete once a kit-editor release that calls prepareSave is in web/pnpm-lock.yaml:
+    // until then the editor saves a replica nobody sealed, and `save` sees it read-only. The
+    // content of a copy sealed under an actor derived from the version (the same version gives the
+    // same bytes); `mark_saved` imports the seal.
+    let version = replica.version();
+    let mut sealed = replica.fork(seal_actor(&version)).map_err(|error| error.to_string())?;
+    sealed.seal().map_err(|error| error.to_string())?;
+    let seal = sealed.export_changes(&version).map_err(|error| error.to_string())?;
+    Ok((sealed.sealed_content_snapshot().map_err(|error| error.to_string())?, Some(seal)))
 }
 
 impl KitSessionDocument for SceneDocument {

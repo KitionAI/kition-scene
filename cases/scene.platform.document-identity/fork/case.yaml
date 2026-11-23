@@ -3,10 +3,11 @@ id: scene.platform.document-identity/fork
 feature: scene.platform.document-identity
 intent: >-
   Through the real kition-scene process: document.identity answers the docId a .kscene carries
-  (its replica.kdm's), and a byte copy answers the same one; document.fork writes a new document
-  to a new file: a new docId, the same objects, ids and values (model.batch), a replica that
-  travels as a draft, editor.json as it was, the blobs the scene references and none it does not;
-  the name of an object deleted before the fork is in the source's replica and not the fork's;
+  (its content.kdm's), and a byte copy answers the same one; document.fork writes a new document
+  to a new file: a new docId (in meta.json too), the same objects, ids and values (model.batch),
+  sealed content, a replica that travels as a draft, editor.json as it was, the blobs the scene
+  references and none it does not; the name of an object deleted before the save is in the
+  session's history and in neither file;
   the fork edits, saves and reopens under its own id; a fork of the fork is a third document; a
   fork never replaces an existing file.
 layer: gate

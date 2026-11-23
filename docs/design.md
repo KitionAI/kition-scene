@@ -42,11 +42,12 @@ Blender executable.
 
 ## 3. File
 
-`.kscene` is a ZIP: `mimetype` (stored first), `replica.kdm` (the scene's replica snapshot and
-editing history), content-addressed mesh and image data under `blobs/<sha256>`, and
-`editor.json` (format, version, view, selection, and current frame). Writing the same parts
-gives the same bytes. Reading validates the archive, replica, referenced blobs, and scene
-and refuses damaged files. See section 7.5 for the replica's file boundary.
+`.kscene` is a ZIP: `mimetype` (stored first), `meta.json` (what identifies the content: format,
+format version 1, kit, KDM and schema versions, document id), `content.kdm` (the scene's content:
+the replica's sealed content snapshot, no history), content-addressed mesh and image data under
+`blobs/<sha256>` (those the state references), and `editor.json` (view, selection, and current
+frame). Writing the same parts gives the same bytes. Reading validates the archive, the content
+against `meta.json`'s document id, referenced blobs, and scene and refuses damaged files. See section 7.5 for the replica's file boundary.
 
 ## 4. Engine and editor
 
@@ -274,17 +275,38 @@ never saved, undone, or part of the replica.
 
 ### 7.5 File
 
-A `.kscene` file (version 4) is a ZIP of `mimetype`, `replica.kdm` (the replica's snapshot, with
-its history), `blobs/<sha256>` (every mesh and image the state references), and `editor.json`
-(view, selection, the current frame). Opening it opens the replica as a new actor; the document
-keeps its KDM identity across saves.
+A `.kscene` file (format version 1) holds the scene's content, not its history (kition-sdk data
+model 7.3, rule M16b). It is a ZIP of `mimetype`, `meta.json` (`format`, `formatVersion`, `kit`,
+`kdm`, `schemaVersion`, `docId`, and nothing a save changes), `content.kdm` (the replica's sealed
+content snapshot: the state with its document id and object ids, and of the history only one
+`system` change, the `content-seal`; no deleted or overwritten content, no person's or agent's
+origin), `blobs/<sha256>` (every mesh and image the state references), and `editor.json` (view,
+selection, the current frame; written only when the editor has a state). The history lives in the
+host's history store (`snapshot()` of the live replica), never in the file. A file without
+`content.kdm`, or whose content names another document than `meta.json`, is damaged; files of the
+earlier layout (`replica.kdm` with its history) are not read.
+
+Saving: every host calls `prepare_save` before `save`, which seals the live replica
+(`KitSession::seal`, no edit and no undo step), and `save` writes `sealed_content_snapshot`; an
+unchanged scene saves to the same bytes. One temporary fallback, for the kit editor until its
+`@kition/*` release calls `prepareSave` (delete it once that release is in `web/pnpm-lock.yaml`):
+a save of a replica nobody sealed writes the content of a copy sealed under an actor derived from
+the version, and `mark_saved` imports that seal into the session.
+
+Opening: a file opened alone is the same document with the same object ids and takes edits. A file
+opened on the replica the host stored for it goes through `kition_kit::session::take_file`:
+nothing when the store has the file's version, the file's changes when its history reaches the
+store's version, and otherwise its state written by object id as one `system` `import`
+transaction. A file another program saved while the scene is open is taken in the same way
+(`reconcile_reread`).
 
 Identity and forks (Kit Process Protocol 5.6, KitModel M7a; `kition_scene::SceneFiles`, served as
-`document.identity` and `document.fork`): the file embeds its replica, so a byte copy is the same
-document. Its identity is the docId of `replica.kdm`; an empty file has none, and other bytes or a
-damaged replica are refused. A fork writes the SDK's copy under a new docId (no history: the old
-snapshot was the only place it lived) as `replica.kdm`, keeps only the blobs its state references,
-and keeps `editor.json`, whose view and selection name objects by ids the copy keeps.
+`document.identity` and `document.fork`): the file embeds its content replica, so a byte copy is
+the same document. Its identity is the docId of `content.kdm`; an empty file has none, and other
+bytes or damaged content are refused. A fork writes the SDK's copy under a new docId as
+`content.kdm` (a copy's birth is its seal), sets `meta.json`'s docId to it, keeps only the blobs
+its state references, and keeps `editor.json`, whose view and selection name objects by ids the
+copy keeps.
 
 ### Rigid body motors
 

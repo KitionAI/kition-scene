@@ -3,6 +3,11 @@
 Changes to Kition Scene, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## Unreleased
+
+- A `.kscene` file holds the scene's content, not its history (kition-sdk rule M16b): `content.kdm`, a sealed content snapshot (the state, the same document id and object ids, of the history only a `system` seal), the meshes and images the scene uses, `meta.json` (format version 1, kit, KDM and schema versions, document id) and the editor state. No deleted objects or text, no overwritten values, no names of the people or agents who edited; the history stays in the host's history store. Files of the earlier layout (`replica.kdm` with its history) are not read.
+- A scene opens on the host's stored replica with its file taken in: as it is when the store has the file's version, with the file's changes when the store missed only them, and otherwise with the file's state written by object id as one import step. A file another program saved is taken in the same way.
+
 ## 0.1.4
 
 - The same kit as 0.1.3, built on kition-sdk 6672663 (the replica's undo passes over an undo group whose changes came to nothing): the 0.1.3 package was built on kition-sdk 6b4d471.

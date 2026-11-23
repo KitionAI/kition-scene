@@ -49,7 +49,12 @@ cameras, renders) whose engine is Kition's own, in Rust.
 - **The viewport is the document.** The document's width and height are the editor's viewport
   size (`view.resize`); `render` draws the viewport in software, the same picture the agent's
   screenshot gets. View, shading, and selection are session state saved with the file
-  (`editor` in `scene.json`); they never make the document dirty.
+  (`editor.json` in the `.kscene`); they never make the document dirty.
+- **The file holds the content, not the history.** A `.kscene` is a ZIP of the replica's sealed
+  content snapshot, the blobs the state references, `meta.json` (format, kit, KDM and schema
+  versions, docId) and the editor state (`docs/design.md` section 7.5, kition-sdk rule M16b).
+  Never write `snapshot()`, a change log or anything a save changes (times, counters) into the
+  file; the history is the host's.
 - **One command, one undo step.** Every scene change is a command that runs on the document and
   becomes one undo step; a failing command changes nothing. Drags in the viewport tools are one
   step each.

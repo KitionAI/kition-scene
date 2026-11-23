@@ -1,6 +1,6 @@
 format: 1
 kit: scene
-updated: "2026-11-20"
+updated: "2026-11-23"
 gate_budget_s: 600
 protected:
   - bindings/wasm/tests/fixtures/released-0.17.0.kscene
@@ -447,6 +447,14 @@ features:
     paths: [bindings/headless/src/lib.rs, bindings/headless/src/main.rs, bindings/headless/tests/identity.rs, kit.json]
     cases: [scene.platform.document-identity/fork, scene.platform.document-identity/no-replica]
     since: "2026-11-20"
+  - id: scene.file.content-only
+    title: "A .kscene holds the scene's content, not its history: a sealed content snapshot and the blobs the state references, no deleted content, no overwritten values, no origins (kition-sdk rule M16b); it opens as the same document alone or on the host's stored replica"
+    dimension: [platform, data-safety]
+    priority: P0
+    status: has
+    paths: [crates/formats/kscene/src/lib.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/headless/src/lib.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/content_file.rs]
+    cases: [scene.file.content-only/no-history, scene.file.content-only/reopen-and-converge]
+    since: "2026-11-23"
   - id: scene.view.viewport
     title: "Viewport shading, views and overlays"
     dimension: [function]

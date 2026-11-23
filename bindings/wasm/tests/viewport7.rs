@@ -113,7 +113,7 @@ fn peer_edits_invalidate_samples_in_both_orders_with_fixed_actors() {
         for (hash, bytes) in file.blobs {
             blobs.insert(&hash, &bytes).unwrap();
         }
-        let replica = Replica::load(kition_scene_kdm::schema(), &file.snapshot, ActorId::from_u64(actor).unwrap()).unwrap();
+        let replica = Replica::load(kition_scene_kdm::schema(), &file.content, ActorId::from_u64(actor).unwrap()).unwrap();
         let mut doc = SceneDocument::open("Peer.kscene", bytes).unwrap();
         *KitSessionDocument::session_mut(&mut doc) = KitSession::<SceneModel>::from_replica(replica, Box::new(blobs)).unwrap();
         run(&mut doc, "view.resize", json!({"width":32,"height":24}));

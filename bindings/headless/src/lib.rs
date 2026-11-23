@@ -6,10 +6,11 @@ use std::sync::Arc;
 use kition_kit::kdm::{ActorId, Replica, Schema};
 use kition_kit_server::{ErrorReason, RpcError};
 
-/// Where a `.kscene` file keeps the scene's replica (`docs/design.md` section 7.5): `replica.kdm`,
-/// the replica's snapshot with its history. A fork's file holds the SDK's copy there instead, the
-/// blobs that copy's state references and nothing else, and `editor.json` as it was (the view,
-/// the selection and the current frame name objects by ids the copy keeps).
+/// Where a `.kscene` file keeps the scene's replica (`docs/design.md` section 7.5): `content.kdm`,
+/// the document's content snapshot (its state; of its history only the seal). A fork's file holds
+/// the copy's content there, `meta.json`'s docId the copy's, the blobs that copy's state references
+/// and nothing else, and `editor.json` as it was (the view, the selection and the current frame
+/// name objects by ids the copy keeps).
 pub struct SceneFiles;
 
 fn unsupported(error: impl std::fmt::Display) -> RpcError {
@@ -21,24 +22,27 @@ impl kition_headless::EmbeddedReplica for SceneFiles {
         kition_scene_kdm::schema()
     }
 
-    /// `replica.kdm`, or `None` for an empty file (one made for the kit before it saved a scene
+    /// `content.kdm`, or `None` for an empty file (one made for the kit before it saved a scene
     /// there). Bytes that are not a `.kscene` file are `unsupported_format`.
     fn replica(&self, file: &[u8]) -> Result<Option<Vec<u8>>, RpcError> {
         if file.is_empty() {
             return Ok(None);
         }
-        Ok(Some(kition_scene_kscene::read(file).map_err(unsupported)?.snapshot))
+        Ok(Some(kition_scene_kscene::read(file).map_err(unsupported)?.content))
     }
 
-    /// `file` with `snapshot` as `replica.kdm` (so none of the source's history stays: the old
-    /// snapshot was the only place it lived) and only the blobs the snapshot's state references,
-    /// as a save writes them; `editor.json` is kept.
+    /// `file` holding `snapshot`'s content as `content.kdm` (a copy's birth is its seal, so a copy
+    /// adds no change, and none of the source's history stays), `meta.json`'s docId the
+    /// snapshot's, and only the blobs the snapshot's state references, as a save writes them;
+    /// `editor.json` is kept.
     fn replace(&self, file: &[u8], snapshot: &[u8]) -> Result<Vec<u8>, RpcError> {
         let mut parts = kition_scene_kscene::read(file).map_err(unsupported)?;
-        let replica = Replica::load(kition_scene_kdm::schema(), snapshot, ActorId::random()).map_err(unsupported)?;
+        let mut replica = Replica::load(kition_scene_kdm::schema(), snapshot, ActorId::random()).map_err(unsupported)?;
         let referenced = kition_scene_kdm::read::blob_hashes(&replica);
         parts.blobs.retain(|(hash, _)| referenced.contains(hash));
-        parts.snapshot = snapshot.to_vec();
+        parts.meta.doc_id = replica.doc_id().to_string();
+        parts.meta.schema_version = replica.schema().schema_version;
+        parts.content = replica.content_snapshot().map_err(unsupported)?;
         kition_scene_kscene::write(&parts).map_err(unsupported)
     }
 }

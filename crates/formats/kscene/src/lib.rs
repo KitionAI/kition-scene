@@ -1,8 +1,10 @@
-//! The `.kscene` file (`docs/design.md` section 7.4): a ZIP holding `mimetype` (stored first, so
-//! the file identifies itself), `editor.json` (the format, its version, and the editor's state:
-//! view, selection, current frame), `replica.kdm` (the scene's KDM replica snapshot, with its
-//! history), and `blobs/<sha256>` (every mesh and image the replica references). Writing is
-//! deterministic for the same parts.
+//! The `.kscene` file (`docs/design.md` section 7.5): a ZIP holding `mimetype` (stored first, so
+//! the file identifies itself), `meta.json` (what identifies the content: the format, its version,
+//! the kit, the KDM version, the schema version and the document id), `content.kdm` (the scene's
+//! content: the replica's sealed content snapshot, its state and of its history only the seal;
+//! kition-sdk data model 7.3, rule M16b), `blobs/<sha256>` (the meshes and images the state
+//! references) and, when the editor has any, `editor.json` (the editor's state: view, selection,
+//! current frame). Writing is deterministic for the same parts.
 #![forbid(unsafe_code)]
 
 use std::io::{Cursor, Read, Write};
@@ -11,18 +13,35 @@ use zip::write::SimpleFileOptions;
 
 /// The file's media type, also its `mimetype` entry.
 pub const MIME: &str = "application/vnd.kition.scene+zip";
-/// The version this crate writes and reads (`version` in `editor.json`).
-pub const VERSION: u32 = 4;
+/// The format this crate writes and reads (`format` in `meta.json`).
+pub const FORMAT: &str = "kition-scene";
+/// The kit whose documents the file holds (`kit` in `meta.json`).
+pub const KIT: &str = "kit.scene";
+/// The format version this crate writes and reads (`formatVersion` in `meta.json`).
+pub const VERSION: u32 = 1;
 /// The largest file part read (512 MiB).
 const MAX_ENTRY: u64 = 512 * 1024 * 1024;
 /// The most blobs a file may hold.
 const MAX_BLOBS: usize = 100_000;
 
+/// What identifies a file's content (`meta.json`, besides `format`, `formatVersion` and `kit`).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Meta {
+    /// The KDM version the content is written in.
+    pub kdm: u32,
+    /// The scene schema's version.
+    pub schema_version: u32,
+    /// The document id of the content.
+    pub doc_id: String,
+}
+
 /// A `.kscene` file's parts.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct File {
-    /// The replica snapshot.
-    pub snapshot: Vec<u8>,
+    /// What identifies the content.
+    pub meta: Meta,
+    /// The content: the replica's sealed content snapshot.
+    pub content: Vec<u8>,
     /// Blobs by their SHA-256 (lowercase hex), sorted by hash.
     pub blobs: Vec<(String, Vec<u8>)>,
     /// The editor's state.
@@ -47,8 +66,16 @@ fn invalid(message: impl Into<String>) -> Error {
 
 /// Writes a file.
 pub fn write(file: &File) -> Result<Vec<u8>, Error> {
-    let editor = serde_json::to_vec_pretty(&serde_json::json!({ "format": "kition-scene", "version": VERSION, "editor": file.editor }))
-        .map_err(|error| invalid(error.to_string()))?;
+    let meta = serde_json::to_vec_pretty(&serde_json::json!({
+        "format": FORMAT,
+        "formatVersion": VERSION,
+        "kit": KIT,
+        "kdm": file.meta.kdm,
+        "schemaVersion": file.meta.schema_version,
+        "docId": file.meta.doc_id,
+    }))
+    .map_err(|error| invalid(error.to_string()))?;
+    let editor = file.editor.as_ref().map(serde_json::to_vec_pretty).transpose().map_err(|error| invalid(error.to_string()))?;
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let fixed = zip::DateTime::default();
     let stored = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored).last_modified_time(fixed);
@@ -58,8 +85,11 @@ pub fn write(file: &File) -> Result<Vec<u8>, Error> {
         zip.write_all(bytes).map_err(|error| invalid(error.to_string()))
     };
     put("mimetype", stored, MIME.as_bytes())?;
-    put("editor.json", deflated, &editor)?;
-    put("replica.kdm", deflated, &file.snapshot)?;
+    put("meta.json", deflated, &meta)?;
+    if let Some(editor) = &editor {
+        put("editor.json", deflated, editor)?;
+    }
+    put("content.kdm", deflated, &file.content)?;
     let mut blobs: Vec<&(String, Vec<u8>)> = file.blobs.iter().collect();
     blobs.sort_by(|a, b| a.0.cmp(&b.0));
     blobs.dedup_by(|a, b| a.0 == b.0);
@@ -78,23 +108,43 @@ pub fn sniff(bytes: &[u8]) -> bool {
 }
 
 /// Reads a file's parts. Blob names must be lowercase SHA-256 hex; the store that takes the
-/// bytes checks they hash to their name.
+/// bytes checks they hash to their name. A file without `meta.json` or `content.kdm` is damaged.
 pub fn read(bytes: &[u8]) -> Result<File, Error> {
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|_| invalid("not a .kscene file (not a ZIP)"))?;
     if entry(&mut archive, "mimetype")? != MIME.as_bytes() {
         return Err(invalid("not a .kscene file (wrong mimetype)"));
     }
-    let envelope: serde_json::Value =
-        serde_json::from_slice(&entry(&mut archive, "editor.json")?).map_err(|error| invalid(format!("editor.json: {error}")))?;
-    if envelope.get("format").and_then(serde_json::Value::as_str) != Some("kition-scene") {
-        return Err(invalid("editor.json is not a Kition Scene file's"));
+    let meta: serde_json::Value =
+        serde_json::from_slice(&entry(&mut archive, "meta.json")?).map_err(|error| invalid(format!("meta.json: {error}")))?;
+    if meta.get("format").and_then(serde_json::Value::as_str) != Some(FORMAT) {
+        return Err(invalid("meta.json is not a Kition Scene file's"));
     }
-    let version = envelope.get("version").and_then(serde_json::Value::as_u64).unwrap_or(0);
+    let version = meta.get("formatVersion").and_then(serde_json::Value::as_u64).unwrap_or(0);
     if version != u64::from(VERSION) {
         return Err(invalid(format!("the file is version {version}; this kit reads version {VERSION}")));
     }
-    let editor = envelope.get("editor").filter(|value| !value.is_null()).cloned();
-    let snapshot = entry(&mut archive, "replica.kdm")?;
+    if meta.get("kit").and_then(serde_json::Value::as_str) != Some(KIT) {
+        return Err(invalid("meta.json names another kit"));
+    }
+    let number = |key: &str| meta.get(key).and_then(serde_json::Value::as_u64).and_then(|value| u32::try_from(value).ok());
+    let meta = Meta {
+        kdm: number("kdm").ok_or_else(|| invalid("meta.json has no kdm version"))?,
+        schema_version: number("schemaVersion").ok_or_else(|| invalid("meta.json has no schema version"))?,
+        doc_id: meta
+            .get("docId")
+            .and_then(serde_json::Value::as_str)
+            .filter(|id| !id.is_empty())
+            .ok_or_else(|| invalid("meta.json names no document"))?
+            .to_owned(),
+    };
+    let editor = if archive.index_for_name("editor.json").is_some() {
+        let value: serde_json::Value =
+            serde_json::from_slice(&entry(&mut archive, "editor.json")?).map_err(|error| invalid(format!("editor.json: {error}")))?;
+        Some(value).filter(|value| !value.is_null())
+    } else {
+        None
+    };
+    let content = entry(&mut archive, "content.kdm")?;
     let names: Vec<String> = archive.file_names().filter(|name| name.starts_with("blobs/")).map(str::to_owned).collect();
     if names.len() > MAX_BLOBS {
         return Err(invalid("the file holds too many blobs"));
@@ -109,7 +159,7 @@ pub fn read(bytes: &[u8]) -> Result<File, Error> {
         blobs.push((hash, bytes));
     }
     blobs.sort_by(|a, b| a.0.cmp(&b.0));
-    Ok(File { snapshot, blobs, editor })
+    Ok(File { meta, content, blobs, editor })
 }
 
 fn entry(archive: &mut zip::ZipArchive<Cursor<&[u8]>>, name: &str) -> Result<Vec<u8>, Error> {
@@ -128,7 +178,8 @@ mod tests {
 
     fn sample() -> File {
         File {
-            snapshot: b"snapshot bytes".to_vec(),
+            meta: Meta { kdm: 1, schema_version: 1, doc_id: "doc".into() },
+            content: b"content bytes".to_vec(),
             blobs: vec![("a".repeat(64), b"mesh".to_vec()), ("b".repeat(64), b"image".to_vec())],
             editor: Some(serde_json::json!({ "frame": 12 })),
         }
@@ -136,11 +187,26 @@ mod tests {
 
     #[test]
     fn a_file_round_trips_byte_for_byte() {
+        for file in [sample(), File { editor: None, ..sample() }] {
+            let bytes = write(&file).unwrap();
+            assert!(sniff(&bytes));
+            let back = read(&bytes).unwrap();
+            assert_eq!(back, file);
+            assert_eq!(write(&back).unwrap(), bytes);
+        }
+    }
+
+    #[test]
+    fn meta_json_holds_only_what_identifies_the_content() {
         let bytes = write(&sample()).unwrap();
-        assert!(sniff(&bytes));
-        let back = read(&bytes).unwrap();
-        assert_eq!(back, sample());
-        assert_eq!(write(&back).unwrap(), bytes);
+        let mut archive = zip::ZipArchive::new(Cursor::new(bytes.as_slice())).unwrap();
+        let meta: serde_json::Value = serde_json::from_slice(&entry(&mut archive, "meta.json").unwrap()).unwrap();
+        let keys: Vec<&str> = meta.as_object().unwrap().keys().map(String::as_str).collect();
+        assert_eq!(keys.len(), 6, "{meta}");
+        for key in ["format", "formatVersion", "kit", "kdm", "schemaVersion", "docId"] {
+            assert!(keys.contains(&key), "{key} in {meta}");
+        }
+        assert_eq!(meta["formatVersion"], 1);
     }
 
     #[test]
@@ -153,5 +219,21 @@ mod tests {
         let mut wrong = sample();
         wrong.blobs.push(("not-a-hash".into(), Vec::new()));
         assert!(read(&write(&wrong).unwrap()).is_err());
+        let mut nameless = sample();
+        nameless.meta.doc_id.clear();
+        assert!(read(&write(&nameless).unwrap()).is_err(), "a file that names no document");
+    }
+
+    #[test]
+    fn a_file_without_its_content_is_damaged() {
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        let stored = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("mimetype", stored).unwrap();
+        zip.write_all(MIME.as_bytes()).unwrap();
+        zip.start_file("meta.json", stored).unwrap();
+        zip.write_all(br#"{"format":"kition-scene","formatVersion":1,"kit":"kit.scene","kdm":1,"schemaVersion":1,"docId":"doc"}"#).unwrap();
+        let bytes = zip.finish().unwrap().into_inner();
+        let error = read(&bytes).unwrap_err();
+        assert!(error.0.contains("content.kdm"), "{error}");
     }
 }

@@ -204,18 +204,17 @@ try {
   const after = await status()
   assert.ok(!after.includes('unsaved'), `the scheme leaves the document clean: ${after}`)
 
-  // A file saved in the dark scheme holds the editor state one saved in the light does. (The replica
-  // differs between two saves anyway: each open is a new actor.)
+  // A file saved in the dark scheme holds the editor state (`editor.json`) one saved in the light
+  // does.
   const dark = await savedWith('dark', sample)
   const light = await savedWith('light', sample)
   const [editorInDark, editorInLight] = [zipEntry(dark, 'editor.json'), zipEntry(light, 'editor.json')]
   assert.ok(!/scheme|dark|light/i.test(editorInDark), `no scheme is saved: ${editorInDark}`)
   // The copy, selected, has a new id in each (as a new object's id is): the rest is the same.
   const state = (text) => {
-    const { editor, ...file } = JSON.parse(text)
-    const { active, selected, ...rest } = editor
+    const { active, selected, ...rest } = JSON.parse(text)
     assert.deepEqual(selected, [active], 'the copy alone is selected')
-    return { ...file, editor: rest }
+    return rest
   }
   assert.deepEqual(state(editorInDark), state(editorInLight), 'the editor state saved does not depend on the scheme')
 

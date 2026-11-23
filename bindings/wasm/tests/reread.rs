@@ -31,8 +31,9 @@ fn name(doc: &SceneDocument, id: u32) -> String {
     doc.scene().object(id).unwrap().name.clone()
 }
 
-/// The scene saved and marked saved, as a host stores it; answers the bytes.
+/// The scene saved and marked saved, as a host stores it (sealed first); answers the bytes.
 fn store(doc: &mut SceneDocument) -> Vec<u8> {
+    doc.prepare_save().unwrap();
     let bytes = doc.save(Some(FILE)).unwrap();
     doc.mark_saved();
     bytes

@@ -1,0 +1,21 @@
+format: 1
+id: scene.file.content-only/reopen-and-converge
+feature: scene.file.content-only
+intent: >-
+  A content-only .kscene opened without a store keeps its docId and object ids and takes edits; a
+  replica from the file and one with the whole history converge after edits made after the save;
+  Undo after a save takes back the last edit; a file opens on a stored replica that has its
+  version as that replica, and on one that does not as the file's state written by object id.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/content_file.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: content_file }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-23"

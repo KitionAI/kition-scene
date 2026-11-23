@@ -11,6 +11,7 @@
 
 pub mod blobs;
 pub mod hair_blob;
+pub mod held;
 pub mod ids;
 pub mod mesh_blob;
 pub mod nodes;

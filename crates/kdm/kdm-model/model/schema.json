@@ -1,7 +1,7 @@
 {
   "kdm": 1,
   "kit": "kit.scene",
-  "schemaVersion": 6,
+  "schemaVersion": 1,
   "root": "Scene",
   "types": {
     "Scene": {
@@ -16,7 +16,6 @@
         "set.physics.timeScale": { "direct": true },
         "set.physics.frameStart": { "direct": true },
         "set.physics.frameEnd": { "direct": true },
-        "set.keyingSets": { "direct": true },
         "set.world.color": { "direct": true },
         "set.world.strength": { "direct": true },
         "set.world.rotation": { "direct": true },
@@ -32,6 +31,7 @@
         "objects": { "kind": "list", "of": "Object" },
         "materials": { "kind": "list", "of": "Material" },
         "images": { "kind": "list", "of": "Image" },
+        "nodeGroups": { "kind": "list", "of": "NodeGroup" },
         "world": { "kind": "json", "members": {
           "strength": { "minimum": 0 },
           "volume": { "minimum": 1, "maximum": 4294967295, "multipleOf": 1 }
@@ -54,8 +54,9 @@
           "frameStart": { "minimum": -2147483648, "maximum": 2147483647, "multipleOf": 1 },
           "frameEnd": { "minimum": -2147483648, "maximum": 2147483647, "multipleOf": 1 }
         } },
-        "actions": { "kind": "json", "optional": true },
-        "keyingSets": { "kind": "json", "optional": true },
+        "actions": { "kind": "list", "of": "Action" },
+        "keyingSets": { "kind": "list", "of": "KeyingSet" },
+        "activeKeyingSet": { "kind": "json", "optional": true },
         "keys": { "kind": "map" }
       }
     },
@@ -78,7 +79,6 @@
         "set.hidden": { "direct": true },
         "set.mesh": { "direct": true },
         "set.hair": { "direct": true },
-        "set.animation": { "direct": true },
         "set.data.power": { "direct": true },
         "set.data.radius": { "direct": true },
         "set.data.spotSize": { "direct": true },
@@ -114,7 +114,7 @@
       "fields": {
         "key": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
         "name": { "kind": "string" },
-        "kind": { "kind": "enum", "values": ["mesh", "light", "camera", "empty", "armature", "curve", "text", "lattice"], "readOnly": true },
+        "kind": { "kind": "enum", "values": ["mesh", "light", "camera", "empty", "armature", "curve", "text", "lattice", "surface"], "readOnly": true },
         "data": { "kind": "json", "members": {
           "power": { "minimum": 0 },
           "radius": { "minimum": 0 },
@@ -149,13 +149,16 @@
         "parentInverse": { "kind": "json", "optional": true, "position": true },
         "hidden": { "kind": "boolean", "label": "hidden" },
         "material": { "kind": "integer", "optional": true, "readOnly": true, "minimum": 1, "maximum": 4294967295, "multipleOf": 1 },
-        "modifiers": { "kind": "json" },
-        "constraints": { "kind": "json", "optional": true },
+        "text": { "kind": "text" },
+        "bones": { "kind": "list", "of": "Bone" },
+        "modifiers": { "kind": "list", "of": "Modifier" },
+        "constraints": { "kind": "list", "of": "Constraint" },
         "physics": { "kind": "json", "optional": true },
-        "particles": { "kind": "json", "optional": true },
+        "particles": { "kind": "list", "of": "ParticleSystem" },
         "hair": { "kind": "blob", "optional": true },
-        "animation": { "kind": "json" },
-        "nla": { "kind": "json", "optional": true },
+        "animation": { "kind": "list", "of": "Channel" },
+        "nla": { "kind": "list", "of": "NlaTrack" },
+        "nlaAction": { "kind": "json", "optional": true },
         "tweak": { "kind": "json", "optional": true, "members": {
           "track": { "minimum": 0, "maximum": 255, "multipleOf": 1 },
           "strip": { "minimum": 0, "maximum": 1023, "multipleOf": 1 }
@@ -165,7 +168,6 @@
     "Material": {
       "batchOps": {
         "set.name": { "direct": true },
-        "set.animation": { "direct": true },
         "set.data.metallic": { "direct": true },
         "set.data.roughness": { "direct": true },
         "set.data.transmission": { "direct": true },
@@ -190,7 +192,68 @@
           "emissionStrength": { "minimum": 0 },
           "shader": { "minimum": 1, "maximum": 4294967295, "multipleOf": 1 }
         } },
-        "animation": { "kind": "json" }
+        "animation": { "kind": "list", "of": "Channel" }
+      }
+    },
+    "Channel": {
+      "fields": {
+        "property": { "kind": "string" },
+        "index": { "kind": "integer", "minimum": 0, "maximum": 255, "multipleOf": 1 },
+        "path": { "kind": "string", "optional": true },
+        "keys": { "kind": "json", "optional": true },
+        "driver": { "kind": "json", "optional": true },
+        "modifiers": { "kind": "json", "optional": true }
+      }
+    },
+    "Modifier": {
+      "fields": {
+        "name": { "kind": "string" },
+        "data": { "kind": "json" }
+      }
+    },
+    "Constraint": {
+      "fields": {
+        "name": { "kind": "string" },
+        "data": { "kind": "json" }
+      }
+    },
+    "ParticleSystem": {
+      "fields": {
+        "name": { "kind": "string" },
+        "data": { "kind": "json" }
+      }
+    },
+    "NlaTrack": {
+      "fields": {
+        "name": { "kind": "string" },
+        "muted": { "kind": "boolean", "optional": true, "label": "muted" },
+        "solo": { "kind": "boolean", "optional": true, "label": "solo" },
+        "strips": { "kind": "list", "of": "NlaStrip" }
+      }
+    },
+    "NlaStrip": {
+      "fields": {
+        "name": { "kind": "string" },
+        "data": { "kind": "json" }
+      }
+    },
+    "Action": {
+      "fields": {
+        "name": { "kind": "string" },
+        "channels": { "kind": "list", "of": "Channel" }
+      }
+    },
+    "KeyingSet": {
+      "fields": {
+        "name": { "kind": "string" },
+        "paths": { "kind": "json", "optional": true }
+      }
+    },
+    "Bone": {
+      "fields": {
+        "name": { "kind": "string" },
+        "data": { "kind": "json" },
+        "constraints": { "kind": "list", "of": "Constraint" }
       }
     },
     "NodeGroup": {

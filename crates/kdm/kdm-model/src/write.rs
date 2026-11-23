@@ -8,10 +8,12 @@ use kition_kit::kdm::{ObjectId, Tx};
 use kition_kit::session::{BlobRef, sha256_hex};
 use kition_scene_model::animation::{self, Channel, Timeline};
 use kition_scene_model::glam::Mat4;
+use kition_scene_model::nla::ActionBlend;
 use kition_scene_model::{Id, Image, Material, Object, ObjectData, Scene};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
+use crate::held::{self, Mint, Shape};
 use crate::{KdmResult, hair_blob, kdm_err, mesh_blob, root_id};
 
 /// A blob a write references, for the caller to put in the store with the transaction.
@@ -87,13 +89,59 @@ fn count_fields_built() {
     FIELDS_BUILT.with(|built| built.set(built.get() + 1));
 }
 
-/// An object's registers, but its mesh and hair: name, kind, data, transform, links, modifiers,
-/// constraints and particle systems (absent when there are none), keys (`channels`, its own).
-fn object_fields(object: &Object, channels: &[&Channel]) -> KdmResult<BTreeMap<&'static str, Value>> {
+/// The lists an object holds records in, with their items' shapes.
+pub const OBJECT_LISTS: [(&str, &Shape); 6] = [
+    ("modifiers", &held::MODIFIER),
+    ("constraints", &held::CONSTRAINT),
+    ("particles", &held::PARTICLE_SYSTEM),
+    ("animation", &held::CHANNEL),
+    ("nla", &held::NLA_TRACK),
+    ("bones", &held::BONE),
+];
+
+/// The lists a material holds records in.
+pub const MATERIAL_LISTS: [(&str, &Shape); 1] = [("animation", &held::CHANNEL)];
+
+/// The lists the scene holds records in (besides objects, materials, images and node groups).
+pub const SCENE_LISTS: [(&str, &Shape); 2] = [("actions", &held::ACTION), ("keyingSets", &held::KEYING_SET)];
+
+/// Each item of `values` as JSON.
+fn items<T: Serialize>(values: &[T]) -> KdmResult<Vec<Value>> {
+    values.iter().map(to_json).collect()
+}
+
+/// Channels as their records hold them: the target is the record holding them.
+fn channel_items(channels: &[&Channel]) -> KdmResult<Vec<Value>> {
+    channels
+        .iter()
+        .map(|channel| {
+            let mut value = to_json(channel)?;
+            if let Some(members) = value.as_object_mut() {
+                members.remove("target");
+            }
+            Ok(value)
+        })
+        .collect()
+}
+
+/// An object's registers, but its mesh, hair and text: name, kind, data (without an armature's
+/// bones and a text's body, which are records and text of their own), transform, links, physics,
+/// the blend of its own keys under the NLA, tweak mode.
+fn object_fields(object: &Object) -> KdmResult<BTreeMap<&'static str, Value>> {
     count_fields_built();
     let data = match &object.data {
         ObjectData::Mesh(_) => json!({ "type": "mesh" }),
-        other => to_json(other)?,
+        other => {
+            let mut data = to_json(other)?;
+            if let Some(members) = data.as_object_mut() {
+                match other {
+                    ObjectData::Armature(_) => members.remove("bones"),
+                    ObjectData::Text(_) => members.remove("body"),
+                    _ => None,
+                };
+            }
+            data
+        }
     };
     let mut fields = BTreeMap::new();
     fields.insert("key", Value::from(object.id));
@@ -107,8 +155,6 @@ fn object_fields(object: &Object, channels: &[&Channel]) -> KdmResult<BTreeMap<&
     fields.insert("parentInverse", if object.parent_inverse == Mat4::IDENTITY { Value::Null } else { to_json(&object.parent_inverse)? });
     fields.insert("hidden", Value::Bool(object.hidden));
     fields.insert("material", object.material.map_or(Value::Null, Value::from));
-    fields.insert("modifiers", to_json(&object.modifiers)?);
-    fields.insert("constraints", if object.constraints.is_empty() { Value::Null } else { to_json(&object.constraints)? });
     fields.insert(
         "physics",
         match &object.physics {
@@ -116,17 +162,68 @@ fn object_fields(object: &Object, channels: &[&Channel]) -> KdmResult<BTreeMap<&
             _ => Value::Null,
         },
     );
-    fields.insert("particles", if object.particles.is_empty() { Value::Null } else { to_json(&object.particles)? });
-    fields.insert("animation", to_json(&channels)?);
+    fields.insert("nlaAction", if object.nla.action == ActionBlend::default() { Value::Null } else { to_json(&object.nla.action)? });
     // Tweak mode (with the keys it put aside) is its own register: a peer's edit of the tracks
     // must never take it away from the keys it goes with.
-    let tracks = object.nla.without_tweak();
-    fields.insert("nla", if tracks.is_empty() { Value::Null } else { to_json(&tracks)? });
     fields.insert("tweak", object.nla.tweak.as_ref().map_or(Ok(Value::Null), to_json)?);
     Ok(fields)
 }
 
-fn material_fields(material: &Material, channels: &[&Channel]) -> KdmResult<BTreeMap<&'static str, Value>> {
+/// An object's held lists, in [`OBJECT_LISTS`] order: its modifiers, constraints, particle
+/// systems, keyframe channels (`channels`, its own), NLA tracks, and an armature's bones.
+fn object_lists(object: &Object, channels: &[&Channel]) -> KdmResult<[Vec<Value>; 6]> {
+    let bones = match &object.data {
+        ObjectData::Armature(armature) => items(&armature.bones)?,
+        _ => Vec::new(),
+    };
+    Ok([
+        items(&object.modifiers)?,
+        items(&object.constraints)?,
+        items(&object.particles)?,
+        channel_items(channels)?,
+        items(&object.nla.tracks)?,
+        bones,
+    ])
+}
+
+/// A text object's body; empty for other objects.
+fn body(object: &Object) -> &str {
+    match &object.data {
+        ObjectData::Text(text) => &text.body,
+        _ => "",
+    }
+}
+
+/// Makes the `text` field of `id`, which holds `old`, hold `new`: what lies between their common
+/// start and end is deleted and typed, so a peer's typing elsewhere in it stays.
+fn write_text(tx: &mut Tx<'_>, id: &ObjectId, old: &str, new: &str) -> KdmResult<()> {
+    let old: Vec<char> = old.chars().collect();
+    let new: Vec<char> = new.chars().collect();
+    let length = tx.text_len(id, "text")?;
+    if length != old.len() {
+        if length > 0 {
+            tx.text_delete(id, "text", 0, length)?;
+        }
+        if !new.is_empty() {
+            tx.text_insert(id, "text", 0, &new.iter().collect::<String>())?;
+        }
+        return Ok(());
+    }
+    let start = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
+    let room = old.len().min(new.len()) - start;
+    let end = old.iter().rev().zip(new.iter().rev()).take(room).take_while(|(a, b)| a == b).count();
+    let removed = old.len() - start - end;
+    if removed > 0 {
+        tx.text_delete(id, "text", start, removed)?;
+    }
+    let typed: String = new.get(start..new.len() - end).unwrap_or_default().iter().collect();
+    if !typed.is_empty() {
+        tx.text_insert(id, "text", start, &typed)?;
+    }
+    Ok(())
+}
+
+fn material_fields(material: &Material) -> KdmResult<BTreeMap<&'static str, Value>> {
     count_fields_built();
     let mut data = to_json(material)?;
     if let Some(map) = data.as_object_mut() {
@@ -137,7 +234,6 @@ fn material_fields(material: &Material, channels: &[&Channel]) -> KdmResult<BTre
     fields.insert("key", Value::from(material.id));
     fields.insert("name", Value::String(material.name.clone()));
     fields.insert("data", data);
-    fields.insert("animation", to_json(&channels)?);
     Ok(fields)
 }
 
@@ -168,8 +264,9 @@ fn hair_value(object: &Object, written: &mut Written) -> KdmResult<Value> {
     blob(hair_blob::encode(&groomed).map_err(kdm_err)?, hair_blob::MIME, written)
 }
 
-fn object_record(object: &Object, channels: &[&Channel], written: &mut Written) -> KdmResult<Map<String, Value>> {
-    let mut fields = to_map(object_fields(object, channels)?);
+/// Creates an object's record with what it holds, at the end of the scene's `objects`.
+fn add_object(tx: &mut Tx<'_>, object: &Object, channels: &[&Channel], written: &mut Written) -> KdmResult<ObjectId> {
+    let mut fields = to_map(object_fields(object)?);
     if let ObjectData::Mesh(mesh) = &object.data {
         fields.insert("mesh".into(), blob(mesh_blob::encode(mesh), mesh_blob::MIME, written)?);
     }
@@ -177,37 +274,58 @@ fn object_record(object: &Object, channels: &[&Channel], written: &mut Written) 
     if !hair.is_null() {
         fields.insert("hair".into(), hair);
     }
-    Ok(fields)
+    let id = tx.create("Object", fields)?;
+    for ((field, shape), values) in OBJECT_LISTS.iter().zip(object_lists(object, channels)?) {
+        held::write(tx, &id, field, shape, &values, Mint::Random)?;
+    }
+    write_text(tx, &id, "", body(object))?;
+    let length = tx.list_items(&root_id(), "objects")?.len();
+    tx.list_insert(&root_id(), "objects", length, &id)?;
+    Ok(id)
+}
+
+/// Creates a material's record with its channels, at the end of the scene's `materials`.
+fn add_material(tx: &mut Tx<'_>, material: &Material, channels: &[&Channel]) -> KdmResult<ObjectId> {
+    let id = tx.create("Material", to_map(material_fields(material)?))?;
+    held::write(tx, &id, "animation", &held::CHANNEL, &channel_items(channels)?, Mint::Random)?;
+    let length = tx.list_items(&root_id(), "materials")?.len();
+    tx.list_insert(&root_id(), "materials", length, &id)?;
+    Ok(id)
+}
+
+/// The scene's registers: world, render settings, timeline (without the frame), camera, physics
+/// world, and the active keying set.
+fn root_fields(scene: &Scene) -> KdmResult<[(&'static str, Value); 6]> {
+    Ok([
+        ("world", to_json(&scene.world)?),
+        ("render", to_json(&scene.render)?),
+        ("timeline", timeline_json(&scene.animation.timeline)?),
+        ("camera", scene.camera.map_or(Value::Null, Value::from)),
+        ("physics", if scene.physics.is_default() { Value::Null } else { to_json(&scene.physics)? }),
+        ("activeKeyingSet", scene.animation.keying_sets.active.as_ref().map_or(Ok(Value::Null), to_json)?),
+    ])
+}
+
+/// The scene's held lists, in [`SCENE_LISTS`] order.
+fn root_lists(scene: &Scene) -> KdmResult<[Vec<Value>; 2]> {
+    Ok([items(&scene.animation.actions)?, items(&scene.animation.keying_sets.sets)?])
 }
 
 /// Writes `scene` as a new replica's content (the creating transaction).
 pub fn write_scene(tx: &mut Tx<'_>, scene: &Scene) -> KdmResult<Written> {
     let mut written = Written::default();
-    let mut root = Map::new();
-    root.insert("world".into(), to_json(&scene.world)?);
-    root.insert("render".into(), to_json(&scene.render)?);
-    root.insert("timeline".into(), timeline_json(&scene.animation.timeline)?);
-    if let Some(camera) = scene.camera {
-        root.insert("camera".into(), Value::from(camera));
-    }
-    if !scene.physics.is_default() {
-        root.insert("physics".into(), to_json(&scene.physics)?);
-    }
-    if !scene.animation.actions.is_empty() {
-        root.insert("actions".into(), to_json(&scene.animation.actions)?);
-    }
-    if !scene.animation.keying_sets.is_empty() {
-        root.insert("keyingSets".into(), to_json(&scene.animation.keying_sets)?);
-    }
+    let root: Map<String, Value> =
+        root_fields(scene)?.into_iter().filter(|(_, value)| !value.is_null()).map(|(name, value)| (name.to_owned(), value)).collect();
     let root_id = tx.create_with_id("Scene", &root_id(), root)?;
-    let channels = channels_by_target(scene);
-    for (index, object) in scene.objects.iter().enumerate() {
-        let id = tx.create("Object", object_record(object, channels_of(&channels, object.id), &mut written)?)?;
-        tx.list_insert(&root_id, "objects", index, &id)?;
+    for ((field, shape), values) in SCENE_LISTS.iter().zip(root_lists(scene)?) {
+        held::write(tx, &root_id, field, shape, &values, Mint::Random)?;
     }
-    for (index, material) in scene.materials.iter().enumerate() {
-        let id = tx.create("Material", to_map(material_fields(material, channels_of(&channels, material.id))?))?;
-        tx.list_insert(&root_id, "materials", index, &id)?;
+    let channels = channels_by_target(scene);
+    for object in &scene.objects {
+        add_object(tx, object, channels_of(&channels, object.id), &mut written)?;
+    }
+    for material in &scene.materials {
+        add_material(tx, material, channels_of(&channels, material.id))?;
     }
     for (index, image) in scene.images.iter().enumerate() {
         let id = tx.create("Image", image_fields(image, &mut written)?)?;
@@ -233,30 +351,6 @@ fn records(tx: &Tx<'_>, field: &str, key: &str) -> KdmResult<(Vec<ObjectId>, BTr
     Ok((ids, by_key))
 }
 
-/// Puts list `field` in the order of `wanted` (record ids), moving as few entries as it takes.
-fn order(tx: &mut Tx<'_>, field: &str, wanted: &[ObjectId]) -> KdmResult<()> {
-    let root = root_id();
-    let mut current = tx.list_items(&root, field)?;
-    for (index, id) in wanted.iter().enumerate() {
-        if current.get(index) == Some(id) {
-            continue;
-        }
-        let Some(from) = current.iter().position(|other| other == id) else { continue };
-        tx.list_move(&root, field, from, index)?;
-        let moved = current.remove(from);
-        current.insert(index.min(current.len()), moved);
-    }
-    Ok(())
-}
-
-fn remove_from_list(tx: &mut Tx<'_>, field: &str, id: &ObjectId) -> KdmResult<()> {
-    let root = root_id();
-    while let Some(index) = tx.list_items(&root, field)?.iter().position(|other| other == id) {
-        tx.list_remove(&root, field, index)?;
-    }
-    Ok(())
-}
-
 fn set_changed(tx: &mut Tx<'_>, id: &ObjectId, before: &BTreeMap<&'static str, Value>, after: &BTreeMap<&'static str, Value>) -> KdmResult<()> {
     for (name, value) in after {
         if before.get(name) != Some(value) {
@@ -266,31 +360,45 @@ fn set_changed(tx: &mut Tx<'_>, id: &ObjectId, before: &BTreeMap<&'static str, V
     Ok(())
 }
 
+/// Writes the held lists of `id` (`fields`) that differ between `before` and `after`.
+fn write_lists<const N: usize>(
+    tx: &mut Tx<'_>,
+    id: &ObjectId,
+    fields: &[(&str, &Shape); N],
+    before: [Vec<Value>; N],
+    after: [Vec<Value>; N],
+) -> KdmResult<()> {
+    for (((field, shape), old), new) in fields.iter().zip(before).zip(after) {
+        if old != new {
+            held::write(tx, id, field, shape, &new, Mint::Random)?;
+        }
+    }
+    Ok(())
+}
+
+/// Deletes a record of the scene's list `field` with what it holds (`fields`).
+fn delete_record(tx: &mut Tx<'_>, field: &str, id: &ObjectId, fields: &[(&str, &Shape)]) -> KdmResult<()> {
+    held::delete_all(tx, id, fields)?;
+    held::remove_entry(tx, &root_id(), field, id)?;
+    tx.delete(id)
+}
+
 /// Writes what changed between `before` (the scene the replica holds) and `after` (both in
 /// stored form, [`stored_form`]): new, changed, deleted, and reordered objects, materials, and
-/// images, and the root's settings. `issued` is the actor's `keys` entry and the next id its
-/// range mints, written when it moved.
+/// images, what they hold, and the root's settings and lists. `issued` is the actor's `keys` entry
+/// and the next id its range mints, written when it moved.
 pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Option<(&str, Id)>) -> KdmResult<Written> {
     let mut written = Written::default();
     let root = root_id();
 
-    // The root's settings.
-    let settings = |scene: &Scene| -> KdmResult<[(&'static str, Value); 7]> {
-        let animation = &scene.animation;
-        Ok([
-            ("world", to_json(&scene.world)?),
-            ("render", to_json(&scene.render)?),
-            ("timeline", timeline_json(&animation.timeline)?),
-            ("camera", scene.camera.map_or(Value::Null, Value::from)),
-            ("physics", if scene.physics.is_default() { Value::Null } else { to_json(&scene.physics)? }),
-            ("actions", if animation.actions.is_empty() { Value::Null } else { to_json(&animation.actions)? }),
-            ("keyingSets", if animation.keying_sets.is_empty() { Value::Null } else { to_json(&animation.keying_sets)? }),
-        ])
-    };
-    for ((name, old), (_, new)) in settings(before)?.into_iter().zip(settings(after)?) {
+    // The root's settings and lists.
+    for ((name, old), (_, new)) in root_fields(before)?.into_iter().zip(root_fields(after)?) {
         if old != new {
             tx.set(&root, name, new)?;
         }
+    }
+    if before.animation.actions != after.animation.actions || before.animation.keying_sets.sets != after.animation.keying_sets.sets {
+        write_lists(tx, &root, &SCENE_LISTS, root_lists(before)?, root_lists(after)?)?;
     }
     if let Some((key, next)) = issued {
         let current = tx.map_get(&root, "keys", key)?.as_u64();
@@ -309,8 +417,7 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
     let new_keys: BTreeSet<Id> = after.objects.iter().map(|object| object.id).collect();
     for object in old_objects.values().filter(|object| !new_keys.contains(&object.id)) {
         if let Some(id) = by_key.get(&object.id.to_string()) {
-            remove_from_list(tx, "objects", id)?;
-            tx.delete(id)?;
+            delete_record(tx, "objects", id, &OBJECT_LISTS)?;
         }
     }
     let mut wanted = Vec::with_capacity(after.objects.len());
@@ -319,7 +426,11 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
             (Some(old), Some(id)) if *old == object && channels_of(&old_channels, object.id) == channels_of(&new_channels, object.id) => id.clone(),
             (Some(old), Some(id)) => {
                 let (old_keys, new_keys) = (channels_of(&old_channels, object.id), channels_of(&new_channels, object.id));
-                set_changed(tx, id, &object_fields(old, old_keys)?, &object_fields(object, new_keys)?)?;
+                set_changed(tx, id, &object_fields(old)?, &object_fields(object)?)?;
+                write_lists(tx, id, &OBJECT_LISTS, object_lists(old, old_keys)?, object_lists(object, new_keys)?)?;
+                if body(old) != body(object) {
+                    write_text(tx, id, body(old), body(object))?;
+                }
                 if let (ObjectData::Mesh(old_mesh), ObjectData::Mesh(new_mesh)) = (&old.data, &object.data) {
                     if old_mesh != new_mesh {
                         let reference = blob(mesh_blob::encode(new_mesh), mesh_blob::MIME, &mut written)?;
@@ -337,16 +448,11 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
                 }
                 id.clone()
             }
-            _ => {
-                let id = tx.create("Object", object_record(object, channels_of(&new_channels, object.id), &mut written)?)?;
-                let length = tx.list_items(&root, "objects")?.len();
-                tx.list_insert(&root, "objects", length, &id)?;
-                id
-            }
+            _ => add_object(tx, object, channels_of(&new_channels, object.id), &mut written)?,
         };
         wanted.push(id);
     }
-    order(tx, "objects", &wanted)?;
+    held::order(tx, &root, "objects", &wanted)?;
 
     // Materials.
     let (_, by_key) = records(tx, "materials", "key")?;
@@ -354,8 +460,7 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
     let new_keys: BTreeSet<Id> = after.materials.iter().map(|material| material.id).collect();
     for material in old_materials.values().filter(|material| !new_keys.contains(&material.id)) {
         if let Some(id) = by_key.get(&material.id.to_string()) {
-            remove_from_list(tx, "materials", id)?;
-            tx.delete(id)?;
+            delete_record(tx, "materials", id, &MATERIAL_LISTS)?;
         }
     }
     let mut wanted = Vec::with_capacity(after.materials.len());
@@ -366,19 +471,15 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
             }
             (Some(old), Some(id)) => {
                 let (old_keys, new_keys) = (channels_of(&old_channels, material.id), channels_of(&new_channels, material.id));
-                set_changed(tx, id, &material_fields(old, old_keys)?, &material_fields(material, new_keys)?)?;
+                set_changed(tx, id, &material_fields(old)?, &material_fields(material)?)?;
+                write_lists(tx, id, &MATERIAL_LISTS, [channel_items(old_keys)?], [channel_items(new_keys)?])?;
                 id.clone()
             }
-            _ => {
-                let id = tx.create("Material", to_map(material_fields(material, channels_of(&new_channels, material.id))?))?;
-                let length = tx.list_items(&root, "materials")?.len();
-                tx.list_insert(&root, "materials", length, &id)?;
-                id
-            }
+            _ => add_material(tx, material, channels_of(&new_channels, material.id))?,
         };
         wanted.push(id);
     }
-    order(tx, "materials", &wanted)?;
+    held::order(tx, &root, "materials", &wanted)?;
 
     // Images: by hash, never edited in place.
     let (_, by_hash) = records(tx, "images", "hash")?;
@@ -387,8 +488,7 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
         if !new_hashes.contains(image.hash.as_str())
             && let Some(id) = by_hash.get(&image.hash)
         {
-            remove_from_list(tx, "images", id)?;
-            tx.delete(id)?;
+            delete_record(tx, "images", id, &[])?;
         }
     }
     let mut wanted = Vec::with_capacity(after.images.len());
@@ -409,7 +509,7 @@ pub fn write_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene, issued: Opt
         };
         wanted.push(id);
     }
-    order(tx, "images", &wanted)?;
+    held::order(tx, &root, "images", &wanted)?;
     crate::nodes::write_group_changes(tx, before, after)?;
     Ok(written)
 }

@@ -50,7 +50,7 @@ fn each_recovery_operator_undoes_redoes_and_survives_save() {
         let reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
         assert_eq!(mesh(&reopened), &after);
         assert_eq!(cube(&reopened)["modifiers"], cube(&doc)["modifiers"]);
-        assert_eq!(kition_scene_kdm::schema().schema_version, 6);
+        assert_eq!(kition_scene_kdm::schema().schema_version, 1);
     }
 }
 

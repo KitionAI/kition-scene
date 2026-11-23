@@ -88,7 +88,7 @@ fn with_particles() -> Scene {
 fn settings_and_groomed_hair_round_trip() {
     let scene = with_particles();
     let (replica, blobs) = create(&scene);
-    assert!(kition_scene_kdm::SCHEMA.contains("\"schemaVersion\": 6"));
+    assert!(kition_scene_kdm::SCHEMA.contains("\"schemaVersion\": 1"));
     let back = read(&replica, &blobs);
     for name in ["Cube", "Sphere"] {
         assert_eq!(back.object_named(name).unwrap().particles, scene.object_named(name).unwrap().particles, "{name}");

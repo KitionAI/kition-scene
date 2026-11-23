@@ -19,7 +19,7 @@ fn info(doc: &SceneDocument, name: &str) -> Value {
 #[test]
 fn released_cameras_keep_their_auto_frames_and_new_settings_round_trip() {
     let mut doc = SceneDocument::open("Released.kscene", include_bytes!("fixtures/released-0.16.0.kscene")).unwrap();
-    assert_eq!(kition_scene_kdm::schema().schema_version, 6);
+    assert_eq!(kition_scene_kdm::schema().schema_version, 1);
     assert_eq!((doc.scene().render.width, doc.scene().render.height), (200, 320));
     let before = camera(&doc, "Camera");
     let ortho = camera(&doc, "Ortho");

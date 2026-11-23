@@ -84,7 +84,7 @@ fn layered() -> Scene {
 
 #[test]
 fn tracks_and_modifiers_round_trip() {
-    assert!(kition_scene_kdm::SCHEMA.contains("\"schemaVersion\": 6"));
+    assert!(kition_scene_kdm::SCHEMA.contains("\"schemaVersion\": 1"));
     let scene = layered();
     let (replica, blobs) = create(&scene);
     let back = read(&replica, &blobs);

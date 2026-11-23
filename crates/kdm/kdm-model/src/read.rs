@@ -13,9 +13,9 @@ use kition_scene_model::{Id, Image, ImageFormat, Material, Mesh, Modifier, Objec
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::hair_blob;
 use crate::mesh_blob::MeshCache;
 use crate::root_id;
+use crate::{hair_blob, held};
 
 fn field(replica: &Replica, id: &ObjectId, name: &str) -> Value {
     replica.get(id, name).unwrap_or(Value::Null)
@@ -27,6 +27,22 @@ fn parse<T: DeserializeOwned>(value: Value, what: &str) -> Result<T, String> {
 
 fn parse_or<T: DeserializeOwned + Default>(value: Value, what: &str) -> Result<T, String> {
     if value.is_null() { Ok(T::default()) } else { parse(value, what) }
+}
+
+/// The items of `owner`'s held list `field`, as JSON.
+fn list(replica: &Replica, owner: &ObjectId, field: &str, shape: &held::Shape, name: &str) -> Result<Vec<Value>, String> {
+    held::read(replica, owner, field, shape).map_err(|error| format!("damaged: {name}'s {field}: {error}"))
+}
+
+/// The keyframe channels `owner` (whose engine id is `target`) holds.
+fn channels_of(replica: &Replica, owner: &ObjectId, target: Id, name: &str) -> Result<Vec<Channel>, String> {
+    let mut items = list(replica, owner, "animation", &held::CHANNEL, name)?;
+    for item in &mut items {
+        if let Some(members) = item.as_object_mut() {
+            members.insert("target".into(), Value::from(target));
+        }
+    }
+    parse(Value::Array(items), &format!("{name}'s animation"))
 }
 
 fn key(value: &Value) -> Option<Id> {
@@ -107,7 +123,21 @@ pub fn read_scene(replica: &Replica, blobs: &dyn BlobSource, meshes: &mut MeshCa
                 };
                 ObjectData::Mesh(mesh)
             }
-            _ => parse::<ObjectData>(field(replica, &id, "data"), &format!("{name}'s data"))?,
+            kind => {
+                let mut data = field(replica, &id, "data");
+                if let Some(members) = data.as_object_mut() {
+                    match kind {
+                        Some("armature") => {
+                            members.insert("bones".into(), Value::Array(list(replica, &id, "bones", &held::BONE, &name)?));
+                        }
+                        Some("text") => {
+                            members.insert("body".into(), Value::String(replica.text(&id, "text").unwrap_or_default()));
+                        }
+                        _ => {}
+                    }
+                }
+                parse::<ObjectData>(data, &format!("{name}'s data"))?
+            }
         };
         let mut object = Object::new(object_key, name.clone(), data);
         object.location = parse_or::<Vec3>(field(replica, &id, "location"), "a location")?;
@@ -123,23 +153,36 @@ pub fn read_scene(replica: &Replica, blobs: &dyn BlobSource, meshes: &mut MeshCa
         };
         object.hidden = field(replica, &id, "hidden").as_bool().unwrap_or(false);
         object.material = key(&field(replica, &id, "material"));
-        object.modifiers = parse_or::<Vec<Modifier>>(field(replica, &id, "modifiers"), &format!("{name}'s modifiers"))?;
-        object.constraints = parse_or::<Vec<kition_scene_model::Constraint>>(field(replica, &id, "constraints"), &format!("{name}'s constraints"))?;
+        object.modifiers =
+            parse::<Vec<Modifier>>(Value::Array(list(replica, &id, "modifiers", &held::MODIFIER, &name)?), &format!("{name}'s modifiers"))?;
+        object.constraints = parse::<Vec<kition_scene_model::Constraint>>(
+            Value::Array(list(replica, &id, "constraints", &held::CONSTRAINT, &name)?),
+            &format!("{name}'s constraints"),
+        )?;
         object.physics = match field(replica, &id, "physics") {
             Value::Null => None,
             value => Some(parse::<kition_scene_model::physics::ObjectPhysics>(value, &format!("{name}'s physics"))?),
         };
         if matches!(object.data, ObjectData::Mesh(_)) {
-            object.particles = parse_or::<Vec<ParticleSystem>>(field(replica, &id, "particles"), &format!("{name}'s particle systems"))?;
+            object.particles = parse::<Vec<ParticleSystem>>(
+                Value::Array(list(replica, &id, "particles", &held::PARTICLE_SYSTEM, &name)?),
+                &format!("{name}'s particle systems"),
+            )?;
             // Groomed hair whose blob has not arrived yet shows as generated until it does.
             if let Some(bytes) = blob_ref(&field(replica, &id, "hair")).and_then(|blob| blobs.get(&blob.hash)) {
                 hair_blob::apply(&mut object, &bytes).map_err(|error| format!("damaged: {name}'s hair: {error}"))?;
             }
         }
-        channels.extend(parse_or::<Vec<Channel>>(field(replica, &id, "animation"), &format!("{name}'s animation"))?);
-        let nla = field(replica, &id, "nla");
+        channels.extend(channels_of(replica, &id, object_key, &name)?);
+        let mut nla = serde_json::Map::new();
+        nla.insert("tracks".into(), Value::Array(list(replica, &id, "nla", &held::NLA_TRACK, &name)?));
+        let action = field(replica, &id, "nlaAction");
+        if !action.is_null() {
+            nla.insert("action".into(), action);
+        }
+        let nla = Value::Object(nla);
         kition_scene_model::nla::Nla::check_json_structure(&nla).map_err(|reason| format!("damaged: {name}'s NLA: {reason}"))?;
-        object.nla = parse_or::<kition_scene_model::nla::Nla>(nla, &format!("{name}'s NLA"))?;
+        object.nla = parse::<kition_scene_model::nla::Nla>(nla, &format!("{name}'s NLA"))?;
         object.nla.tweak = match field(replica, &id, "tweak") {
             Value::Null => None,
             value => Some(parse::<kition_scene_model::nla::Tweak>(value, &format!("{name}'s tweak mode"))?),
@@ -159,7 +202,7 @@ pub fn read_scene(replica: &Replica, blobs: &dyn BlobSource, meshes: &mut MeshCa
             _ => Material::new(material_key, name.clone()),
         };
         material.id = material_key;
-        channels.extend(parse_or::<Vec<Channel>>(field(replica, &id, "animation"), &format!("{name}'s animation"))?);
+        channels.extend(channels_of(replica, &id, material_key, &name)?);
         scene.materials.push(material);
     }
 
@@ -191,8 +234,17 @@ pub fn read_scene(replica: &Replica, blobs: &dyn BlobSource, meshes: &mut MeshCa
     }
     scene.node_groups = crate::nodes::read_groups(replica)?;
 
-    let actions = parse_or::<Vec<kition_scene_model::animation::Action>>(field(replica, &root, "actions"), "the actions")?;
-    let keying_sets = parse_or::<kition_scene_model::animation::KeyingSets>(field(replica, &root, "keyingSets"), "the keying sets")?;
+    let actions = parse::<Vec<kition_scene_model::animation::Action>>(
+        Value::Array(list(replica, &root, "actions", &held::ACTION, "the scene")?),
+        "the actions",
+    )?;
+    let keying_sets = kition_scene_model::animation::KeyingSets {
+        sets: parse(Value::Array(list(replica, &root, "keyingSets", &held::KEYING_SET, "the scene")?), "the keying sets")?,
+        active: match field(replica, &root, "activeKeyingSet") {
+            Value::Null => None,
+            value => Some(parse(value, "the active keying set")?),
+        },
+    };
     scene.animation = Animation { timeline, channels, actions, keying_sets };
     let highest = scene
         .objects

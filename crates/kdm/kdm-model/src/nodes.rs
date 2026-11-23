@@ -1,15 +1,14 @@
-//! Node groups in the replica (schema 3; schema 5 adds a group's `tree`, absent for geometry
-//! groups, so compositing groups are node groups too; schema 6 adds a group's `outputs`, which
-//! Group nodes using it give): each group is a record of its own (no list on the root names them,
-//! so documents made before schema 3 take them; they read in key order), with its nodes and links
-//! as records of their own, so two people editing different nodes (or different values of one
-//! node: `values` is a map) both keep their edits. Links are identified by their ends; the
-//! repair drops links whose nodes or sockets are gone, a second link into an input that takes
-//! one, and a link that closes a cycle, and lets go of groups, objects, and materials that
-//! modifiers and nodes name but no record holds. Group nodes let go of a group that is gone, not
-//! a geometry group, or that would use itself (two people each putting one group into the
-//! other: the later Group node, in key order, lets go); zone inputs let go of an output that is
-//! gone or another input already pairs with.
+//! Node groups in the replica: the scene's `nodeGroups` list holds each group as a record of its
+//! own (a compositing or shader group names its `tree`; a geometry group none; `inputs` and
+//! `outputs` are its interface, which Group nodes using it give), with its nodes and links as
+//! records of their own, so two people editing different nodes (or different values of one node:
+//! `values` is a map) both keep their edits. Links are identified by their ends; the repair drops
+//! links whose nodes or sockets are gone, a second link into an input that takes one, and a link
+//! that closes a cycle, and lets go of groups, objects, and materials that modifiers and nodes
+//! name but no record holds. Group nodes let go of a group that is gone, not a geometry group, or
+//! that would use itself (two people each putting one group into the other: the later Group node,
+//! in key order, lets go); zone inputs let go of an output that is gone or another input already
+//! pairs with.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -18,7 +17,7 @@ use kition_scene_model::node_tree::{self, GroupSocket, Link, Node, NodeGroup, Tr
 use kition_scene_model::{Id, Scene};
 use serde_json::{Map, Value};
 
-use crate::{KdmResult, kdm_err, root_id};
+use crate::{KdmResult, held, kdm_err, root_id};
 
 fn key(value: &Value) -> Option<Id> {
     value.as_u64().and_then(|key| u32::try_from(key).ok())
@@ -28,11 +27,8 @@ fn key(value: &Value) -> Option<Id> {
 /// that do not fit their nodes, are left out.
 pub fn read_groups(replica: &Replica) -> Result<Vec<NodeGroup>, String> {
     let field = |id: &ObjectId, name: &str| replica.get(id, name).unwrap_or(Value::Null);
-    let mut records: Vec<(Id, ObjectId)> =
-        replica.objects_of_type("NodeGroup").into_iter().filter_map(|id| key(&field(&id, "key")).map(|key| (key, id))).collect();
-    records.sort();
     let mut groups: Vec<NodeGroup> = Vec::new();
-    for (_, id) in records {
+    for id in replica.list(&root_id(), "nodeGroups").map_err(|error| error.to_string())? {
         let Some(group_key) = key(&field(&id, "key")) else { continue };
         if groups.iter().any(|group| group.id == group_key) {
             continue;
@@ -179,6 +175,8 @@ fn add_group(tx: &mut Tx<'_>, group: &NodeGroup) -> KdmResult<()> {
         }
     }
     let id = tx.create("NodeGroup", fields)?;
+    let length = tx.list_items(&root_id(), "nodeGroups")?.len();
+    tx.list_insert(&root_id(), "nodeGroups", length, &id)?;
     for node in &group.nodes {
         add_node(tx, &id, node)?;
     }
@@ -194,6 +192,7 @@ fn delete_group(tx: &mut Tx<'_>, id: &ObjectId) -> KdmResult<()> {
             tx.delete(&item)?;
         }
     }
+    remove_at(tx, &root_id(), "nodeGroups", id)?;
     tx.delete(id)
 }
 
@@ -275,15 +274,15 @@ pub fn write_group_changes(tx: &mut Tx<'_>, before: &Scene, after: &Scene) -> Kd
             _ => add_group(tx, group)?,
         }
     }
-    Ok(())
+    let records = group_records(tx);
+    let wanted: Vec<ObjectId> = after.node_groups.iter().filter_map(|group| records.get(&group.id).cloned()).collect();
+    order(tx, &root_id(), "nodeGroups", &wanted)
 }
 
-/// The group records by key (the first record of a repeated key, in id order, wins).
+/// The group records by key (the first record of a repeated key, in list order, wins).
 fn group_records(tx: &Tx<'_>) -> BTreeMap<Id, ObjectId> {
-    let mut ids = tx.objects_of_type("NodeGroup");
-    ids.sort();
     let mut out = BTreeMap::new();
-    for id in ids {
+    for id in tx.list_items(&root_id(), "nodeGroups").unwrap_or_default() {
         if let Some(key) = record_key(tx, &id) {
             out.entry(key).or_insert(id);
         }
@@ -509,21 +508,16 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
     }
     // Modifiers naming a group that is gone (or a compositing group) let go of it.
     for id in tx.list_items(&root, "objects")? {
-        let mut modifiers = tx.get(&id, "modifiers")?;
-        let mut changed = false;
-        for modifier in modifiers.as_array_mut().into_iter().flatten() {
+        for (record, mut modifier) in held::entries(tx, &id, "modifiers", &held::MODIFIER)? {
             if modifier.get("type").and_then(Value::as_str) == Some("geometryNodes")
                 && let Some(group) = modifier.get("group").and_then(Value::as_u64)
                 && !geometry_keys.contains(&group)
                 && let Some(map) = modifier.as_object_mut()
             {
                 map.remove("group");
-                changed = true;
+                held::update(tx, &record, &held::MODIFIER, &modifier, held::Mint::Derived)?;
+                wrote = true;
             }
-        }
-        if changed {
-            tx.set(&id, "modifiers", modifiers)?;
-            wrote = true;
         }
     }
     // Renders let go of a compositing group that is gone.

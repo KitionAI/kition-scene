@@ -107,7 +107,17 @@ fn raw_nested_limits_are_checked_before_read_and_repair() {
         let nla = json!({"tracks":[{"name":"Track","strips":[strip]}]});
         assert!(Nla::check_json_structure(&nla).is_err());
         let id = replica.list(&root_id(), "objects").unwrap()[0].clone();
-        replica.transact(&Origin::person("p"), |tx| tx.set(&id, "nla", nla)).unwrap();
+        // The track and its strip as their records hold them: the strip's children are its data.
+        let mut data = strip.clone();
+        data.as_object_mut().unwrap().remove("name");
+        replica
+            .transact(&Origin::person("p"), |tx| {
+                let track = tx.create("NlaTrack", json!({ "name": "Track" }).as_object().unwrap().clone())?;
+                let held = tx.create("NlaStrip", json!({ "name": "Meta", "data": data }).as_object().unwrap().clone())?;
+                tx.list_insert(&track, "strips", 0, &held)?;
+                tx.list_insert(&id, "nla", 0, &track)
+            })
+            .unwrap();
         assert!(read_scene(&replica, &MemoryBlobs::default(), &mut MeshCache::default()).is_err());
         assert!(replica.transact(&Origin::system("repair"), kition_scene_kdm::repair::repair).is_err());
     }

@@ -56,7 +56,7 @@ fn the_schema_declares_tool_ids() {
     assert_eq!(parsed["types"]["Image"]["toolId"], json!({ "field": "hash" }));
     assert_eq!(parsed["types"]["Image"]["fields"]["hash"]["readOnly"], true);
     assert!(parsed["types"]["Link"].get("toolId").is_none(), "links are told under their node group");
-    assert_eq!(schema().schema_version, 6, "tool ids change nothing stored");
+    assert_eq!(schema().schema_version, 1, "tool ids change nothing stored");
 }
 
 /// The fields of `object` but `key`: a copy a batch could create.

@@ -13,16 +13,25 @@ use crate::root_id;
 /// Ids below this are the creating replica's (a new file's starter scene); ranges start above.
 pub const FIRST_RANGE: Id = 1 << 20;
 
-/// The range slot of `actor`: 1 to 4095.
+/// Ids from here up are the repair's: a key a merge found twice moves there. No range reaches it.
+pub const REKEY_FLOOR: Id = 0xF000_0000;
+
+/// The ids one range holds. A session that mints more goes on above the scene's highest id, and
+/// the repair moves a key that then meets another's.
+pub const RANGE: Id = 1 << 14;
+
+/// How many ranges there are: two sessions share one with a chance of 1 in 245,696.
+pub const SLOTS: u32 = (REKEY_FLOOR - FIRST_RANGE) / RANGE;
+
+/// The range slot of `actor`: 0 to [`SLOTS`] - 1.
 pub fn slot(actor: ActorId) -> u32 {
-    u32::try_from(actor.get() % 4095).unwrap_or(0) + 1
+    u32::try_from(actor.get() % u64::from(SLOTS)).unwrap_or(0)
 }
 
 /// The ids `actor` mints: `[start, end)`.
 pub fn range(actor: ActorId) -> (Id, Id) {
-    let start = u64::from(slot(actor)) << 20;
-    let end = (start + (1 << 20)).min(u64::from(u32::MAX));
-    (u32::try_from(start).unwrap_or(u32::MAX), u32::try_from(end).unwrap_or(u32::MAX))
+    let start = FIRST_RANGE.saturating_add(slot(actor).saturating_mul(RANGE));
+    (start, start.saturating_add(RANGE).min(REKEY_FLOOR))
 }
 
 /// The `keys` map's entry for `actor`'s range.
@@ -84,5 +93,21 @@ mod tests {
         assert!(a.1 <= b.0 || b.1 <= a.0);
         let last = range(ActorId::from_u64(4094).unwrap());
         assert!(last.0 < last.1);
+    }
+
+    /// Two sessions (random actors) share a range only by a chance of one in hundreds of
+    /// thousands (it was one in 4,095), every range lies between the starter's ids and the repair's, and the last one
+    /// is as large as the others.
+    #[test]
+    fn ranges_are_many_and_stay_below_the_repairs_ids() {
+        assert!(SLOTS >= 200_000, "{SLOTS} ranges");
+        let top = range(ActorId::from_u64(u64::from(SLOTS) - 1).unwrap());
+        assert_eq!(top, (REKEY_FLOOR - RANGE, REKEY_FLOOR));
+        let bottom = range(ActorId::from_u64(u64::from(SLOTS)).unwrap());
+        assert_eq!(bottom, (FIRST_RANGE, FIRST_RANGE + RANGE));
+        // Actor ids spread as random ones are.
+        let slots: std::collections::BTreeSet<u32> =
+            (1..=64u64).map(|index| slot(ActorId::from_u64(index.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1).unwrap())).collect();
+        assert_eq!(slots.len(), 64, "64 sessions take 64 ranges");
     }
 }

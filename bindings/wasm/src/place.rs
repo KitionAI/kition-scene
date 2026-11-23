@@ -380,11 +380,9 @@ pub(crate) fn put_back_place(object: &mut Object, was: &Map<String, Value>) -> R
         object.hidden = hidden.as_bool().unwrap_or(false);
     }
     if let Some(constraints) = was.get("constraints") {
-        object.constraints = if constraints.is_null() {
-            Vec::new()
-        } else {
-            serde_json::from_value(constraints.clone()).map_err(|error| bad(format!("constraints: {error}")))?
-        };
+        let items = kition_scene_kdm::held::engine_items(constraints, &kition_scene_kdm::held::CONSTRAINT)
+            .ok_or_else(|| bad("constraints: not a list of constraints".to_owned()))?;
+        object.constraints = serde_json::from_value(Value::Array(items)).map_err(|error| bad(format!("constraints: {error}")))?;
     }
     Ok(())
 }

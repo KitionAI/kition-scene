@@ -72,6 +72,14 @@ fn base64(bytes: &[u8]) -> String {
     out
 }
 
+/// The body of the text object `Sign`, if the scene has it.
+fn sign(doc: &SceneDocument) -> Option<String> {
+    let inspected = doc.inspect().ok()?;
+    let objects = inspected["objects"].as_array()?;
+    let sign = objects.iter().find(|object| object["name"] == "Sign")?;
+    sign["text"]["body"].as_str().map(str::to_owned)
+}
+
 /// The scene a document shows, without session state (selection, view, mode, tool).
 fn content(doc: &SceneDocument) -> Value {
     let inspected = doc.inspect().unwrap_or(Value::Null);
@@ -96,8 +104,14 @@ impl KitAdapter for SceneKit {
         exec(&mut doc, "add.cylinder", json!({ "name": "Post", "location": [-3, 0, 1], "vertices": 8 }))?;
         exec(&mut doc, "object.parent", json!({ "objects": ["Post"], "parent": "Cube" }))?;
         exec(&mut doc, "modifier.add", json!({ "object": "Ball", "type": "subdivision" }))?;
+        exec(&mut doc, "add.text", json!({ "name": "Sign", "body": "Sign", "location": [0, -4, 0] }))?;
         exec(&mut doc, "select.none", json!({}))?;
         Ok(doc)
+    }
+
+    /// The body of the text object `Sign` (a `text` field of its record).
+    fn text(&self, doc: &mut SceneDocument) -> Result<Option<String>> {
+        Ok(sign(doc))
     }
 
     fn join(&self, snapshot: &[u8], blobs: &Blobs) -> Result<SceneDocument> {
@@ -246,6 +260,36 @@ impl KitAdapter for SceneKit {
                 let (child, parent) = if *which == 0 { (a, b) } else { (b, a) };
                 exec(doc, "select.objects", json!({ "objects": [child, parent] }))?;
                 exec(doc, "object.parent", json!({ "objects": [child], "parent": parent }))?;
+            }
+            Script::InsertText { at, text } => {
+                let Some(body) = sign(doc) else { return Ok(false) };
+                let mut chars: Vec<char> = body.chars().collect();
+                let at = (*at).min(chars.len());
+                chars.splice(at..at, text.chars());
+                exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
+            }
+            Script::DeleteText { at, len } => {
+                let Some(body) = sign(doc) else { return Ok(false) };
+                let mut chars: Vec<char> = body.chars().collect();
+                let at = (*at).min(chars.len());
+                chars.drain(at..(at + len).min(chars.len()));
+                exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
+            }
+            Script::SplitParagraph { at } => {
+                let Some(body) = sign(doc) else { return Ok(false) };
+                let mut chars: Vec<char> = body.chars().collect();
+                let at = (*at).min(chars.len());
+                chars.insert(at, '\n');
+                exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
+            }
+            Script::MergeParagraph { at } => {
+                let Some(body) = sign(doc) else { return Ok(false) };
+                let mut chars: Vec<char> = body.chars().collect();
+                if chars.get(*at) != Some(&'\n') {
+                    return Ok(false);
+                }
+                chars.remove(*at);
+                exec(doc, "text.set", json!({ "object": "Sign", "body": chars.into_iter().collect::<String>() }))?;
             }
             Script::InsertBlob { seed } => {
                 exec(

@@ -557,11 +557,9 @@ fn matte_covered(doc: &SceneDocument, params: &Value, objects: &[kition_kit::Cov
             object.data = serde_json::from_value(data.clone()).map_err(|error| bad(format!("data: {error}")))?;
         }
         if let Some(modifiers) = was.get("modifiers") {
-            object.modifiers = if modifiers.is_null() {
-                Vec::new()
-            } else {
-                serde_json::from_value(modifiers.clone()).map_err(|error| bad(format!("modifiers: {error}")))?
-            };
+            let items = kition_scene_kdm::held::engine_items(modifiers, &kition_scene_kdm::held::MODIFIER)
+                .ok_or_else(|| bad("modifiers: not a list of modifiers".to_owned()))?;
+            object.modifiers = serde_json::from_value(Value::Array(items)).map_err(|error| bad(format!("modifiers: {error}")))?;
         }
     }
     let hit = if unknown.is_empty() { matte_hit(doc, &before, params)? } else { None };

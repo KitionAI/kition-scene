@@ -1,0 +1,17 @@
+format: 1
+id: regressions/issue-object-kind-surface
+feature: scene.object.basics
+intent: A NURBS surface object is written to the replica with the kind the engine gives it (`surface`), which the schema's `Object.kind` enum declares, and reads back unchanged.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: the schema freeze audit found `surface` missing from the Object.kind enum while the engine writes it
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kdm, test: surface }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-22"
+timeout_s: 60

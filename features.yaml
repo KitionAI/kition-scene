@@ -303,7 +303,7 @@ features:
     commands: [add.cube, add.cylinder, add.uvSphere, object.transform, edit.delete]
     paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/scene.rs, bindings/wasm/tests/round_trip.rs]
     target: Blender 5.2.3 LTS
-    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-outliner-delete-save]
+    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-outliner-delete-save, regressions/issue-object-kind-surface]
     since: "2026-11-17"
   - id: scene.material.basics
     title: Make, rename, colour and assign materials (roughness, transmission, IOR)

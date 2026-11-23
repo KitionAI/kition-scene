@@ -484,7 +484,22 @@ struct Rests<'a> {
 }
 
 impl<'a> Rests<'a> {
-    fn add(&mut self, on: On, need: Need) {
+    fn add(&mut self, on: On, mut need: Need) {
+        // An armature's bones and a text's characters are records and text of their own, beside
+        // the object's `data`: what rests on the data rests on them too.
+        if let (On::Id(id), Some(fields)) = (on, need.fields.as_mut())
+            && fields.contains("data")
+        {
+            match self.scene.object(id).map(|object| &object.data) {
+                Ok(ObjectData::Armature(_)) => {
+                    fields.insert("bones".to_owned());
+                }
+                Ok(ObjectData::Text(_)) => {
+                    fields.insert("text".to_owned());
+                }
+                _ => {}
+            }
+        }
         match self.found.get_mut(&on) {
             Some(known) => known.merge(&need),
             None => {

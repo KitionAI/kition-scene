@@ -537,6 +537,12 @@ fn matte_covered(doc: &SceneDocument, params: &Value, objects: &[kition_kit::Cov
     let id_of = |value: &Value| value.as_u64().or_else(|| value.as_str().and_then(|text| text.parse().ok())).and_then(|id| u32::try_from(id).ok());
     let mut unknown: Vec<Id> = Vec::new();
     for asked in objects {
+        // A record an object holds (a modifier, a constraint) that others moved or changed: the
+        // object cannot be put back as it was.
+        if let Some((holder, _)) = crate::place::held_record(&asked.id) {
+            unknown.push(holder);
+            continue;
+        }
         let id = id_of(&asked.id).ok_or_else(|| bad(format!("{} is no object id", asked.id)))?;
         if asked.created {
             before.objects.retain(|object| object.id != id);
@@ -553,13 +559,20 @@ fn matte_covered(doc: &SceneDocument, params: &Value, objects: &[kition_kit::Cov
             continue;
         };
         crate::place::put_back_place(object, was)?;
-        if let Some(data) = was.get("data").filter(|_| !matches!(object.data, kition_scene_model::ObjectData::Mesh(_))) {
-            object.data = serde_json::from_value(data.clone()).map_err(|error| bad(format!("data: {error}")))?;
+        if let Some(Value::Object(data)) = was.get("data").filter(|_| !matches!(object.data, kition_scene_model::ObjectData::Mesh(_))) {
+            // An armature's bones and a text's body are not in `data`: they stay as they are.
+            let mut whole = serde_json::to_value(&object.data).map_err(|error| bad(format!("data: {error}")))?;
+            if let Some(members) = whole.as_object_mut() {
+                members.extend(data.iter().map(|(name, value)| (name.clone(), value.clone())));
+            }
+            object.data = serde_json::from_value(whole).map_err(|error| bad(format!("data: {error}")))?;
         }
         if let Some(modifiers) = was.get("modifiers") {
-            let items = kition_scene_kdm::held::engine_items(modifiers, &kition_scene_kdm::held::MODIFIER)
-                .ok_or_else(|| bad("modifiers: not a list of modifiers".to_owned()))?;
-            object.modifiers = serde_json::from_value(Value::Array(items)).map_err(|error| bad(format!("modifiers: {error}")))?;
+            match kition_scene_kdm::held::engine_items(modifiers, &kition_scene_kdm::held::MODIFIER) {
+                Some(items) => object.modifiers = serde_json::from_value(Value::Array(items)).map_err(|error| bad(format!("modifiers: {error}")))?,
+                // The stack as it was is not told item by item: the object cannot be put back.
+                None => unknown.push(id),
+            }
         }
     }
     let hit = if unknown.is_empty() { matte_hit(doc, &before, params)? } else { None };

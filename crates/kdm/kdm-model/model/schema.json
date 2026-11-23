@@ -198,7 +198,7 @@
     "Channel": {
       "fields": {
         "property": { "kind": "string" },
-        "index": { "kind": "integer", "minimum": 0, "maximum": 255, "multipleOf": 1 },
+        "index": { "kind": "number", "minimum": 0, "maximum": 255, "multipleOf": 1 },
         "path": { "kind": "string", "optional": true },
         "keys": { "kind": "json", "optional": true },
         "driver": { "kind": "json", "optional": true },

@@ -320,6 +320,11 @@ pub fn covered(scene: &Scene, params: &Value, objects: &[CoveredAsk]) -> Result<
     let mut told = Told::new();
     let id_of = |value: &Value| value.as_u64().or_else(|| value.as_str().and_then(|text| text.parse().ok())).and_then(|id| u32::try_from(id).ok());
     for asked in objects {
+        // A record an object holds (a modifier, a constraint: `<object>.<list>.<index>`) that
+        // others moved or changed: its object's own values say where the object was.
+        if held_record(&asked.id).is_some() {
+            continue;
+        }
         let id = id_of(&asked.id).ok_or_else(|| bad(format!("{} is no object id", asked.id)))?;
         // Created since the basis: not there then.
         if asked.created {
@@ -342,14 +347,25 @@ pub fn covered(scene: &Scene, params: &Value, objects: &[CoveredAsk]) -> Result<
     let covered = objects
         .iter()
         .map(|asked| {
-            let covered = match (asked.unknown.is_empty(), id_of(&asked.id)) {
-                (true, Some(id)) => Some(picked.is_some_and(|picked| derives_from(&before, picked, id))),
+            let covered = match (asked.unknown.is_empty(), id_of(&asked.id), held_record(&asked.id)) {
+                // A constraint moved or changed: the place as it was is not known.
+                (_, _, Some((_, list))) if list == "constraints" => None,
+                (true, _, Some((holder, _))) => Some(picked.is_some_and(|picked| derives_from(&before, picked, holder))),
+                (true, Some(id), None) => Some(picked.is_some_and(|picked| derives_from(&before, picked, id))),
                 _ => None,
             };
             Covered { id: asked.id.clone(), covered, ..Default::default() }
         })
         .collect();
     Ok(Some(CoveredAt { under: picked.map(|id| vec![json!(id)]).unwrap_or_default(), covered }))
+}
+
+/// The object holding a record a change set names by its path (`<object>.<list>.<index>`: a
+/// modifier, a constraint, a channel), and the list.
+pub(crate) fn held_record(value: &Value) -> Option<(Id, String)> {
+    let (holder, path) = value.as_str()?.split_once('.')?;
+    let list = path.split('.').next()?.to_owned();
+    Some((holder.parse().ok()?, list))
 }
 
 /// Puts `was`'s values of what places an object back into it: location, rotation, scale, parent,

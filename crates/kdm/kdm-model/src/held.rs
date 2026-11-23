@@ -319,7 +319,8 @@ pub fn update(tx: &mut Tx<'_>, id: &ObjectId, shape: &Shape, value: &Value, mint
 }
 
 /// Makes `owner`'s list `field` hold `items`, in order: items match records by key (the n-th
-/// item of a key the n-th record of it), matched records change only what differs, new items
+/// item of a key the n-th record of it), then the items left match the records left in order (an
+/// item renamed in place stays its record); matched records change only what differs, new items
 /// get records, and records no item matches go.
 pub fn write(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, shape: &Shape, items: &[Value], mint: Mint) -> KdmResult<()> {
     let records: Vec<ObjectId> = tx.list_items(owner, field)?.into_iter().filter(|id| tx.exists(id)).collect();
@@ -327,28 +328,43 @@ pub fn write(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, shape: &Shape, item
     for id in &records {
         by_key.entry(record_key(tx, id, shape)).or_default().push(id.clone());
     }
+    // By key first.
     let mut taken: BTreeMap<String, usize> = BTreeMap::new();
-    let mut wanted = Vec::with_capacity(items.len());
+    let mut matched: Vec<Option<ObjectId>> = Vec::with_capacity(items.len());
     let mut kept = BTreeSet::new();
+    let mut keys = Vec::with_capacity(items.len());
     for item in items {
         let key = key_of(item, shape);
         let count = taken.entry(key.clone()).or_insert(0);
         let found = by_key.get(&key).and_then(|ids| ids.get(*count)).cloned();
         *count += 1;
+        if let Some(id) = &found {
+            kept.insert(id.clone());
+        }
+        matched.push(found);
+        keys.push((key, *taken.get(&key_of(item, shape)).unwrap_or(&0)));
+    }
+    // Then the rest in order.
+    let mut spare = records.iter().filter(|id| !kept.contains(*id));
+    for slot in matched.iter_mut().filter(|slot| slot.is_none()) {
+        let Some(id) = spare.next() else { break };
+        kept.insert(id.clone());
+        *slot = Some(id.clone());
+    }
+    let mut wanted = Vec::with_capacity(items.len());
+    for ((item, found), (key, count)) in items.iter().zip(matched).zip(keys) {
         let id = match found {
             Some(id) => {
                 update(tx, &id, shape, item, mint)?;
                 id
             }
             None => {
-                let seed = format!("{owner}/{field}/{key}/{}", *taken.get(&key).unwrap_or(&0));
-                let id = create(tx, shape, item, mint, &seed)?;
+                let id = create(tx, shape, item, mint, &format!("{owner}/{field}/{key}/{count}"))?;
                 let length = tx.list_items(owner, field)?.len();
                 tx.list_insert(owner, field, length, &id)?;
                 id
             }
         };
-        kept.insert(id.clone());
         wanted.push(id);
     }
     for id in records.iter().filter(|id| !kept.contains(*id)) {

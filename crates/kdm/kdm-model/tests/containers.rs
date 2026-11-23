@@ -293,7 +293,7 @@ fn bones_and_bone_constraints_added_at_once_all_stay() {
 fn typing_in_one_text_at_once_keeps_both() {
     let mut scene = Scene::starter();
     let id = scene.add_object("Sign", ObjectData::Text(Text { body: "Hello world".into(), ..Text::default() }));
-    let merged = concurrently(&scene, |scene| body_of(scene, id).insert_str(5, ","), |scene| body_of(scene, id).push_str("!\n\u{4e2d}\u{6587}"));
+    let merged = concurrently(&scene, |scene| body_of(scene, id).insert(5, ','), |scene| body_of(scene, id).push_str("!\n\u{4e2d}\u{6587}"));
     let ObjectData::Text(text) = &merged.object(id).unwrap().data else { panic!("not a text") };
     assert_eq!(text.body, "Hello, world!\n\u{4e2d}\u{6587}");
     // One retypes the first letter while the other deletes the last word.

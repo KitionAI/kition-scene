@@ -418,6 +418,9 @@ pub fn derived(scene: &Scene, ids: &[Value], names: &[String]) -> Result<Vec<Der
         scene.objects.iter().collect()
     } else {
         ids.iter()
+            // A record an object holds (a modifier, a channel), named by its record id or its
+            // path in the object: it has no derived values of its own.
+            .filter(|id| !id.as_str().is_some_and(|text| text.parse::<u64>().is_err() && (text.contains('-') || text.contains('.'))))
             .map(|id| params::resolve(scene, id).and_then(|id| scene.object(id).map_err(|error| error.to_string())))
             .collect::<Result<Vec<_>, _>>()?
     };

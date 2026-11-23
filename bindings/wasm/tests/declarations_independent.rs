@@ -564,6 +564,23 @@ fn held(doc: &SceneDocument, command: &KitCommand, params: &Value, names: &BTree
     (editor.join(","), holds)
 }
 
+/// A reading's fields of `object` in the replica's shape (schema version 1): an armature's bones
+/// and a text's body are records and text beside its `data`, so reading the data reads them too.
+fn with_held_fields(doc: &SceneDocument, roles: &[(&str, u64)], object: &str, fields: &str) -> String {
+    if !fields.split(',').any(|field| field == "data") {
+        return fields.to_owned();
+    }
+    let Some(id) = roles.iter().find(|(role, _)| *role == object).and_then(|(_, id)| u32::try_from(*id).ok()) else { return fields.to_owned() };
+    let more = match doc.scene().object(id).map(|object| &object.data) {
+        Ok(kition_scene_model::ObjectData::Armature(_)) => "bones",
+        Ok(kition_scene_model::ObjectData::Text(_)) => "text",
+        _ => return fields.to_owned(),
+    };
+    let mut all: BTreeSet<&str> = fields.split(',').collect();
+    all.insert(more);
+    all.into_iter().collect::<Vec<_>>().join(",")
+}
+
 /// Whether `held` (fields, positions) holds at least what `needed` does, as the guard reads a
 /// premise: `*` every field (derived values too), `-` none.
 fn covers(held: &(String, String), needed: &(String, String)) -> bool {
@@ -624,8 +641,11 @@ fn every_write_rests_on_what_its_handler_reads() {
             let (editor, holds) = held(&doc, command, &params, &names);
             let entry = editors.entry(row.command).or_insert_with(|| (BTreeSet::new(), editor));
             entry.0.extend(row.editor.split(',').filter(|state| !state.is_empty()));
-            let expected: BTreeMap<String, (String, String)> =
-                row.holds.iter().map(|(object, fields, at)| ((*object).to_owned(), ((*fields).to_owned(), (*at).to_owned()))).collect();
+            let expected: BTreeMap<String, (String, String)> = row
+                .holds
+                .iter()
+                .map(|(object, fields, at)| ((*object).to_owned(), (with_held_fields(&doc, &roles, object, fields), (*at).to_owned())))
+                .collect();
             if holds != expected {
                 differing.insert(row.command);
                 let (fewer, wider) = ways(&holds, &expected);

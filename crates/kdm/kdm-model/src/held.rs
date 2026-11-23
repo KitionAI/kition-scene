@@ -319,9 +319,9 @@ pub fn update(tx: &mut Tx<'_>, id: &ObjectId, shape: &Shape, value: &Value, mint
 }
 
 /// Makes `owner`'s list `field` hold `items`, in order: items match records by key (the n-th
-/// item of a key the n-th record of it), then the items left match the records left in order (an
-/// item renamed in place stays its record); matched records change only what differs, new items
-/// get records, and records no item matches go.
+/// item of a key the n-th record of it), then, in a list of the same length, the items left match
+/// the records left in order (an item renamed in place stays its record); matched records change
+/// only what differs, new items get records, and records no item matches go.
 pub fn write(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, shape: &Shape, items: &[Value], mint: Mint) -> KdmResult<()> {
     let records: Vec<ObjectId> = tx.list_items(owner, field)?.into_iter().filter(|id| tx.exists(id)).collect();
     let mut by_key: BTreeMap<String, Vec<ObjectId>> = BTreeMap::new();
@@ -344,8 +344,11 @@ pub fn write(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, shape: &Shape, item
         matched.push(found);
         keys.push((key, *taken.get(&key_of(item, shape)).unwrap_or(&0)));
     }
-    // Then the rest in order.
-    let spare: Vec<ObjectId> = records.iter().filter(|id| !kept.contains(*id)).cloned().collect();
+    // Then, when the list keeps its length (an item renamed or retyped in place), the rest in
+    // order; a list that grew or shrank was restructured (strips gathered into a meta strip), and
+    // its new items get records of their own, so a peer's deletion of an old one never takes them.
+    let spare: Vec<ObjectId> =
+        if records.len() == items.len() { records.iter().filter(|id| !kept.contains(*id)).cloned().collect() } else { Vec::new() };
     let mut spare = spare.into_iter();
     for slot in matched.iter_mut().filter(|slot| slot.is_none()) {
         let Some(id) = spare.next() else { break };

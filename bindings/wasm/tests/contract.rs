@@ -22,15 +22,13 @@ fn agent(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 
 #[test]
 fn keeps_the_kit_sdk_contract() {
-    // `check_contract` saves right after the edit without `prepare_save`, which every host calls
-    // before `save` (kition-kit `KitDocument::prepare_save`) and without which this kit refuses
-    // the save: the edit ends with it, as a host's save starts. It compares the reopened file's
-    // pixels with the edited document's: the new sphere, selected, is outlined, and a selection is
-    // the person's view state, not the file's, so the edit leaves nothing selected.
+    // `check_contract` compares the reopened file's pixels with the edited document's: the new
+    // sphere, selected, is outlined, and a selection is the person's view state, not the file's, so
+    // the edit leaves nothing selected.
     kition_kit::testing::check_contract::<SceneDocument>(&starter(), "fixture.kscene", |doc| {
         doc.execute("add.uvSphere", json!({ "location": [3, 0, 1] }))?;
         doc.execute("select.none", json!({}))?;
-        doc.prepare_save()
+        Ok(())
     })
     .unwrap();
 }

@@ -21,8 +21,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
     doc.execute(command, params).unwrap_or_else(|error| panic!("{command}: {error}"))
 }
 
-fn reopen(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("A.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopen(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("A.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 fn id(doc: &SceneDocument, name: &str) -> Id {
@@ -72,7 +72,7 @@ fn soft_body_settings_are_undoable_checked_and_saved() {
     run(&mut doc, "physics.collision.add", json!({ "objects": "Floor", "damping": 0.5 }));
     assert!(doc.execute("physics.softBody.add", json!({ "objects": "Floor", "pull": 2 })).is_err());
     assert!(physics_of(&doc, "Floor").get("softBody").is_none(), "a failed add adds nothing");
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert_eq!(physics_of(&back, "Jelly"), before);
     assert_eq!(physics_of(&back, "Floor")["collision"]["damping"].as_f64(), Some(0.5));
     run(&mut doc, "physics.softBody.remove", json!({ "objects": "Jelly" }));
@@ -128,7 +128,7 @@ fn hair_dynamics_bake_alone_and_droop() {
     // Stats see the baked strands; the length stays.
     let stats = run(&mut doc, "particles.stats", json!({ "object": "Head" }));
     assert!((stats["meanWorldLength"].as_f64().unwrap() - 1.0).abs() < 5e-3, "{stats}");
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert_eq!(back.inspect().unwrap()["particles"][0]["dynamics"]["stiffness"].as_f64(), Some(0.5));
     // Emitters have no strands to simulate.
     run(&mut doc, "particles.add", json!({ "object": "Head", "name": "Sparks" }));
@@ -145,7 +145,7 @@ fn a_released_0_12_0_file_takes_soft_bodies_and_hair_dynamics() {
     run(&mut doc, "particles.set", json!({ "object": "Head", "dynamics": { "stiffness": 2, "pinStiffness": 0.5 } }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 12 }));
     assert_eq!(run(&mut doc, "physics.bake", json!({}))["state"], "baked");
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     let soft = physics_of(&back, "Sheet")["softBody"].clone();
     assert_eq!((soft["goalGroup"].as_str(), soft["goalDefault"].as_f64(), soft["bending"].as_f64()), (Some("Pin"), Some(1.0), Some(0.5)));
     assert_eq!(physics_of(&back, "Floor")["collision"]["damping"].as_f64().map(|value| (value * 10.0).round()), Some(3.0));

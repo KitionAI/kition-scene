@@ -1428,10 +1428,34 @@ try {
     await until(async () => (await details()).mode.mode === 'object')
   }
 
+  // The person's view state (Kit UI protocol 7n): a selection, a frame and the grid off, kept by
+  // the host after the save, never in the file, and back after a reload.
+  const chosen = (await details()).objects[0]
+  await frame.evaluate((id) => window.kitScene.run([
+    { command: 'select.objects', params: { objects: [id] } },
+    { command: 'frame.set', params: { frame: 12 } },
+    { command: 'view.grid', params: { on: false } },
+  ]), chosen.id)
+  const shown = async () => {
+    const now = await details()
+    return { selected: now.selection.objects, frame: now.animation?.frame, grid: now.view.grid }
+  }
+  const wanted = JSON.stringify({ selected: [chosen.id], frame: 12, grid: false })
+  await until(async () => JSON.stringify(await shown()) === wanted)
   await kit.getByTestId('scene-save').click()
   await until(async () => (await page.evaluate(() => window.devHost.files.get('Sample.kscene').version)) > 1)
-  const head = await page.evaluate(() => Array.from(new Uint8Array(window.devHost.files.get('Sample.kscene').bytes).slice(0, 2)))
-  step('saves a .kscene through the host', head[0] === 0x50 && head[1] === 0x4b)
+  const saved = Buffer.from(await page.evaluate(() => Array.from(new Uint8Array(window.devHost.files.get('Sample.kscene').bytes))))
+  step('saves a .kscene through the host', saved[0] === 0x50 && saved[1] === 0x4b)
+  step('the saved file holds no editor state', !saved.includes('editor.json') && saved.includes('content.kdm'))
+  const keptView = () => page.evaluate(() => window.devHost.history.viewState('Sample.kscene'))
+  const kept = await until(async () => {
+    const view = (await keptView()).state
+    return view?.v === 1 && view.frame === 12 && view.grid === false && JSON.stringify(view.selected) === JSON.stringify([chosen.id])
+  })
+  step('the host keeps the view state after the save', kept, JSON.stringify((await keptView()).state))
+  await page.evaluate(() => window.devHost.reload())
+  const back = await until(async () => JSON.stringify(await shown()) === wanted, 200)
+  step('a reload puts the selection, the frame and the grid back', back, `${JSON.stringify(await shown().catch((error) => String(error)))} wanted ${wanted}`)
 } catch (error) {
   failures += 1
   console.log(`FAIL ${error instanceof Error ? error.stack : String(error)}`)

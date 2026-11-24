@@ -1,14 +1,14 @@
 format: 1
 id: scene.physics.effector-weights/released-spline-editing
 feature: scene.physics.effector-weights
-intent: A file saved by Scene 0.17.0 keeps its existing curve and deformable bodies while new spline conversion and independent effector weights survive separate undo steps, save, reopen, and rebaking.
+intent: A scene opened from a .kscene with a curve and deformable bodies (cloth, soft body) keeps them while spline conversion and independent effector weights added to it survive separate undo steps, save, reopen, and rebaking.
 layer: gate
 dimension: conversion
 source:
   kind: synthetic
   from: bindings/wasm/tests/fixtures/create-released-0.17.0.mjs
   license: Apache-2.0
-  note: A scene saved by an earlier published Scene engine, without source changes.
+  note: The input is a current .kscene (content snapshot) of the scene create-released-0.17.0.mjs builds, rewritten by the current engine with its content kept; despite its name it is not a file saved by an earlier release (nothing was released, and no older file is read).
 input: ["repo:bindings/wasm/tests/fixtures/released-0.17.0.kscene"]
 steps:
   - cargo-test: {package: kition-scene-kit, test: round10_released}

@@ -233,7 +233,9 @@
     "prefix": "scene",
     "tools": "document",
     "exclude": [
-      "view.scheme"
+      "view.scheme",
+      "view.state",
+      "view.restore"
     ],
     "drafts": false,
     "objectModel": true,

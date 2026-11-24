@@ -13,8 +13,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
     doc.execute(command, params).unwrap_or_else(|error| panic!("{command}: {error}"))
 }
 
-fn reopen(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopen(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 /// The starter scene without its cube, and the reference's default plane.
@@ -58,7 +58,7 @@ fn an_emitter_matches_the_reference_counts_at_any_frame_and_after_a_save() {
     assert_eq!((at_10["alive"].as_u64(), at_50["alive"].as_u64()), (Some(46), Some(247)));
     assert!((at_50["meanPosition"][2].as_f64().unwrap() + 5.3187).abs() < 0.01, "{at_50}");
     // Particles are derived: none in the file, the same after opening it.
-    let mut again = reopen(&doc);
+    let mut again = reopen(&mut doc);
     run(&mut again, "select.objects", json!({ "objects": "Plane" }));
     assert_eq!(run(&mut again, "particles.stats", json!({ "frame": 50 })), at_50);
     // Any frame at once, and a different seed differs.
@@ -117,7 +117,7 @@ fn hair_is_groomed_in_one_undo_step_and_the_file_keeps_it() {
     let cut = run(&mut doc, "particles.stats", json!({}));
     assert!(cut["meanLength"].as_f64().unwrap() < 0.95, "{cut}");
     // The file keeps the groom; undo takes back one stroke.
-    let reopened = run(&mut reopen(&doc), "particles.stats", json!({ "object": "Sphere" }));
+    let reopened = run(&mut reopen(&mut doc), "particles.stats", json!({ "object": "Sphere" }));
     assert_eq!(reopened, cut);
     run(&mut doc, "edit.undo", json!({}));
     assert_eq!(run(&mut doc, "particles.stats", json!({})), after_comb);

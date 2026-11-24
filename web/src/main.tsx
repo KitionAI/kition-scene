@@ -15,7 +15,7 @@ const alone = window.setTimeout(() => {
   root.render(<div className="kui-alone">{t('noHost')}</div>)
 }, 3000)
 
-void connectHost({ id: 'kit.scene', version: '0.1.4', capabilities: ['ai', 'replica', 'presence'], brand: manifest.ui.brand, display: manifest.ui.display as 'menus' }).then((host) => {
+void connectHost({ id: 'kit.scene', version: '0.1.4', capabilities: ['ai', 'replica', 'checkpoints', 'view-state', 'presence'], brand: manifest.ui.brand, display: manifest.ui.display as 'menus' }).then((host) => {
   window.clearTimeout(alone)
   // The kit's own Chinese names for the engine's English labels.
   const phrase = withPhrases((english) => english, PHRASES, host.init.locale)

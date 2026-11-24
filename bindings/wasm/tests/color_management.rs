@@ -8,8 +8,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
-    let mut doc = SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap();
+    let mut made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
+    let mut doc = SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap();
     run(&mut doc, "render.set", json!({ "width": 64, "height": 36 }));
     doc
 }
@@ -78,7 +78,7 @@ fn colour_management_is_a_render_setting() {
         assert!(doc.execute("render.set", refused.clone()).is_err(), "{refused}");
     }
     assert_eq!(doc.inspect().unwrap()["render"]["view"], "agx", "a refused change changes nothing");
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     let render = reopened.inspect().unwrap()["render"].clone();
     assert_eq!((render["view"].as_str(), render["look"].as_str(), render["exposure"].as_f64()), (Some("agx"), Some("punchy"), Some(1.5)));
     run(&mut doc, "edit.undo", json!({}));

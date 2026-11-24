@@ -120,7 +120,7 @@ fn build(request: &Value) -> Result<Value, String> {
     let mut saved = Value::Null;
     if let Some(path) = request["save"].as_str() {
         let name = Path::new(path).file_name().and_then(|name| name.to_str());
-        let bytes = doc.save(name)?;
+        let bytes = doc.save_file(name)?;
         write(path, &bytes)?;
         // The saved file must open again: a sample nobody can reopen is no sample.
         Doc::open(path, &bytes).map_err(|error| format!("reopening {path}: {error}"))?;

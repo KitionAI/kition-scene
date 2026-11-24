@@ -330,7 +330,7 @@ impl KitAdapter for SceneKit {
     }
 
     fn export_file(&self, doc: &mut SceneDocument) -> Result<Option<Vec<u8>>> {
-        doc.save(None).map(Some)
+        doc.save_file(None).map(Some)
     }
 
     /// A nudge of one object and the repaint of the viewport.

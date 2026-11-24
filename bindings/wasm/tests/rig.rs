@@ -69,9 +69,9 @@ fn an_armature_is_built_bound_and_posed() {
     assert_eq!(doc.inspect().unwrap()["mode"]["mode"], "object");
 
     // The file keeps the bones, pose keys, groups, and modifier.
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let mut back = SceneDocument::open("Rig.kscene", &bytes).unwrap();
-    assert_eq!(back.save(None).unwrap(), bytes);
+    assert_eq!(back.save_file(None).unwrap(), bytes);
     run(&mut back, "frame.set", json!({ "frame": 21 }));
     assert!(object(&back.inspect().unwrap(), "Column")["dimensions"][1].as_f64().unwrap() > 0.8);
 }

@@ -41,7 +41,7 @@ pub fn scene_doc(cubes: usize) -> SceneDocument {
 }
 
 pub fn scene(cubes: usize) -> Vec<u8> {
-    scene_doc(cubes).save(None).unwrap()
+    scene_doc(cubes).save_file(None).unwrap()
 }
 
 /// Sets the file's modification time an hour before its own, so that only its content tells the
@@ -59,7 +59,7 @@ pub fn colleague(file: &Path, steps: &[(&str, Value)]) -> Vec<Value> {
         .iter()
         .map(|(command, params)| doc.execute(command, params.clone()).unwrap_or_else(|error| panic!("colleague's {command}: {error}")))
         .collect();
-    std::fs::write(file, doc.save(Some(FILE)).unwrap()).unwrap();
+    std::fs::write(file, doc.save_file(Some(FILE)).unwrap()).unwrap();
     backdate(file, at);
     answers
 }

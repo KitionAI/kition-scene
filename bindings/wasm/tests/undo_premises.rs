@@ -30,7 +30,7 @@ fn an_undo_holds_the_objects_of_the_steps_it_takes_back() {
     let mut doc = SceneDocument::create("Undo.kscene", 320, 180).unwrap();
     let agent = Origin::agent("agent:test");
     doc.execute_as("add.cube", json!({ "name": "A", "location": [3, 0, 0] }), &agent).unwrap();
-    let mut fresh = SceneDocument::open("Undo.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut fresh = SceneDocument::open("Undo.kscene", &doc.save_file(None).unwrap()).unwrap();
     // A document read again has no step to take back: the undo holds nothing.
     assert_eq!(held(&fresh, "edit.undo", json!({})), vec![], "a reopened document's undo");
     let (a, cube) = (named(&fresh, "A"), named(&fresh, "Cube"));

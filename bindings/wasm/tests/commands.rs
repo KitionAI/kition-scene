@@ -29,6 +29,7 @@ fn sample_params(id: &str) -> Value {
         "frame.set" => json!({ "frame": 10 }),
         "file.export" => json!({ "format": "obj" }),
         "presence.peers" => json!({ "peers": [] }),
+        "view.restore" => json!({ "state": { "v": 1 } }),
         "mesh.select" => json!({ "all": true }),
         "mesh.selectMode" => json!({ "mode": "vertex" }),
         _ => json!({}),

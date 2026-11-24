@@ -1,4 +1,6 @@
-//! New spline evaluation and independent effector weights share a scene saved by Scene 0.17.0.
+//! New spline evaluation and independent effector weights share one scene:
+//! `fixtures/released-0.17.0.kscene`, the scene `create-released-0.17.0.mjs` builds as a current
+//! `.kscene` (nothing was released; the name is the fixture's history).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use glam::Vec3;
@@ -40,6 +42,8 @@ fn bake(doc: &mut SceneDocument) {
 #[test]
 fn a_released_curve_and_deformable_bodies_keep_independent_settings_and_history() {
     let mut doc = SceneDocument::open("Released.kscene", include_bytes!("fixtures/released-0.17.0.kscene")).unwrap();
+    // The scene was built at frame 7 (`create-released-0.17.0.mjs`); a file holds no current frame.
+    run(&mut doc, "frame.set", json!({"frame": 7}));
     let curve_before = positions(&doc, "Cube");
     let cloth_rest = positions(&doc, "Cloth");
     let soft_rest = positions(&doc, "Soft");
@@ -112,7 +116,7 @@ fn a_released_curve_and_deformable_bodies_keep_independent_settings_and_history(
     assert_eq!(settings(&doc, "Cloth", "cloth"), cloth_weighted);
     run(&mut doc, "edit.redo", json!({}));
 
-    let mut reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut reopened = SceneDocument::open("Saved.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(settings(&reopened, "Cloth", "cloth"), cloth_weighted);
     assert_eq!(settings(&reopened, "Soft", "softBody"), soft_weighted);
     assert_eq!(reopened.inspect().unwrap()["physics"]["state"], "none", "bakes are derived, never saved");

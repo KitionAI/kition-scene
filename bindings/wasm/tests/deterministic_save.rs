@@ -20,7 +20,7 @@ fn build() -> Vec<u8> {
     let mut doc = SceneDocument::create("still.kscene", 320, 180).unwrap();
     doc.execute("add.uvSphere", json!({ "name": "Ball", "location": [2, 0, 1] })).unwrap();
     doc.execute("material.new", json!({ "name": "Clay", "baseColor": "#c08060" })).unwrap();
-    doc.save(Some("still.kscene")).unwrap()
+    doc.save_file(Some("still.kscene")).unwrap()
 }
 
 /// The child's half: builds the drawing into the file `OUT` names (nothing without it).

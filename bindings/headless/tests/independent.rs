@@ -20,7 +20,7 @@ fn scene_with(setup: &[(&str, Value)]) -> Vec<u8> {
     for (command, params) in setup {
         doc.execute(command, params.clone()).unwrap_or_else(|error| panic!("{command}: {error}"));
     }
-    doc.save(None).unwrap()
+    doc.save_file(None).unwrap()
 }
 
 fn step(command: &str, params: Value) -> Value {
@@ -34,7 +34,9 @@ async fn after(bytes: &[u8], theirs: &[(&str, Value)], write: Value, id: &str) -
     let (details, basis) = f.inspect().await;
     let id = ids_by_name(&details)[id];
     f.colleague(theirs);
-    let answer = f.call("run", json!({ "basis": basis, "steps": [write] })).await;
+    // `write` is one step, or the steps of the run.
+    let steps = if write.is_array() { write } else { json!([write]) };
+    let answer = f.call("run", json!({ "basis": basis, "steps": steps })).await;
     let object = object_on_disk(&f.file(), id).unwrap_or(Value::Null);
     f.shutdown().await;
     (answer, object)
@@ -59,9 +61,11 @@ fn refused_for(answer: &Result<Value, Value>, id: u64, reason: &str) {
 /// write held nothing, so the agent's rename of the active object overwrote the colleague's.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_active_object_a_command_acts_on_is_held() {
-    let bytes = scene_with(&[("select.objects", json!({ "objects": ["C0"] }))]);
+    let bytes = scene_with(&[]);
     let (c0, c1) = (id_of(&bytes, "C0"), id_of(&bytes, "C1"));
-    let rename = step("object.rename", json!({ "name": "Mine" }));
+    // A file holds no selection (the person's view state is not in the `.kscene`): the run
+    // selects C0 itself, and the rename acts on the active object.
+    let rename = json!([step("select.objects", json!({ "objects": [c0] })), step("object.rename", json!({ "name": "Mine" }))]);
     let (answer, object) = after(&bytes, &[("object.rename", json!({ "object": c0, "name": "Theirs" }))], rename.clone(), "C0").await;
     refused_for(&answer, c0, "changed");
     assert_eq!(object["name"], "Theirs", "the colleague's name kept");
@@ -134,7 +138,12 @@ async fn the_parent_a_knife_projects_through_is_held() {
         ("edit.delete", json!({ "objects": ["Cube"] })),
     ]);
     let (rig, held, c1) = (id_of(&bytes, "Rig"), id_of(&bytes, "Held"), id_of(&bytes, "C1"));
-    let knife = step("mesh.knife", json!({ "elements": { "object": held }, "points": [[150, 60], [170, 120]] }));
+    // The screen points are in the 320 × 180 view the scene was made in; a file holds no view
+    // (the person's view state), so the run sizes its own.
+    let knife = json!([
+        step("view.resize", json!({ "width": 320, "height": 180 })),
+        step("mesh.knife", json!({ "elements": { "object": held }, "points": [[150, 60], [170, 120]] })),
+    ]);
     let (answer, _) = after(&bytes, &[("object.transform", json!({ "objects": [rig], "location": [0.2, 0, 0] }))], knife.clone(), "Held").await;
     refused_for(&answer, rig, "relocated");
     let (answer, _) = after(&bytes, &[("object.transform", json!({ "objects": [c1], "location": [0, 9, 0] }))], knife, "Held").await;
@@ -228,6 +237,9 @@ async fn a_driven_value_rests_on_the_drivers_sources() {
 async fn session_holds_its_object(setup: &[(&str, Value)], object: &str, run: Vec<Value>, theirs: (&str, Value)) {
     let bytes = scene_with(setup);
     let (held, c1) = (id_of(&bytes, object), id_of(&bytes, "C1"));
+    // A file holds no selection (it is the person's view state, never in the `.kscene`): the run
+    // selects the session's object itself, by id, before it enters the session.
+    let run: Vec<Value> = std::iter::once(step("select.objects", json!({ "objects": [held] }))).chain(run).collect();
     let run = |basis: &str| json!({ "basis": basis, "steps": run.clone() });
     let f = Fixture::from_bytes(&bytes, CallOptions::default());
     let (_, basis) = f.inspect().await;
@@ -421,7 +433,7 @@ async fn a_matte_pick_holds_what_is_under_the_point() {
     let made = doc.execute("compositor.new", json!({})).unwrap();
     let group = made["group"].clone();
     let crypto = doc.execute("nodes.addNode", json!({ "group": group, "kind": "cryptomatte" })).unwrap()["node"].clone();
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let (cube, c1) = (id_of(&bytes, "Cube"), id_of(&bytes, "C1"));
     let pick = step("compositor.pickMatte", json!({ "group": group, "node": crypto, "x": 0.5, "y": 0.5 }));
     let (answer, _) = after(&bytes, &[("object.translate", json!({ "objects": [cube], "offset": [0, 0, 50] }))], pick.clone(), "Cube").await;

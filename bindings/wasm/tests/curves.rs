@@ -47,9 +47,9 @@ fn curves_are_added_set_and_kept_by_the_file() {
     );
     assert_eq!(evaluated(&doc, "NurbsPath"), (3, 0));
 
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let mut back = SceneDocument::open("Curves.kscene", &bytes).unwrap();
-    assert_eq!(back.save(None).unwrap(), bytes);
+    assert_eq!(back.save_file(None).unwrap(), bytes);
     assert_eq!(evaluated(&back, "NurbsPath"), (3, 0));
     assert_eq!(object(&back, "BezierCircle")["curve"], object(&doc, "BezierCircle")["curve"]);
     // Exports bake them to meshes.
@@ -154,7 +154,7 @@ fn texts_are_typed_into_and_converted() {
     run(&mut doc, "text.insert", json!({ "object": "Text", "text": "!" }));
     assert_eq!(object(&doc, "Text")["text"]["body"], "Txt!\nHi!");
 
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("Text.kscene", &bytes).unwrap();
     assert_eq!(object(&back, "Text")["text"], object(&doc, "Text")["text"]);
 

@@ -8,8 +8,8 @@ use kition_scene_model::hdr;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap()
+    let mut made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
+    SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -36,7 +36,7 @@ fn glass_and_alpha_are_material_settings() {
     assert_eq!((material["transmission"].as_f64(), material["ior"].as_f64()), (Some(1.0), Some(1.33)));
     assert_eq!((material["alphaMode"].as_str(), material["alphaCutoff"].as_f64()), (Some("clip"), Some(0.3)));
     assert!(doc.execute("material.set", json!({ "material": "Material", "alphaMode": "dither" })).is_err());
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.inspect().unwrap()["materials"][0]["ior"].as_f64(), Some(1.33));
 }
 
@@ -70,7 +70,7 @@ fn the_world_image_is_kept_saved_and_cleared() {
     // A render through the world image works, and the file keeps the image.
     run(&mut doc, "render.set", json!({ "width": 32, "height": 18 }));
     run(&mut doc, "render.image", json!({ "samples": 1 }));
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let reopened = SceneDocument::open("t.kscene", &bytes).unwrap();
     assert_eq!(reopened.inspect().unwrap()["world"]["image"], set["image"]);
     run(&mut doc, "world.setImage", json!({ "clear": true }));

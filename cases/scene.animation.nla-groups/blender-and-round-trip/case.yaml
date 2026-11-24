@@ -1,7 +1,7 @@
 format: 1
 id: scene.animation.nla-groups/blender-and-round-trip
 feature: scene.animation.nla-groups
-intent: Transitions interpolate neighboring endpoint evaluations over the lower stack. Meta grouping, stretching and ungrouping preserve child animation, undo and saved files.
+intent: Transitions interpolate neighboring endpoint evaluations over the lower stack. Meta grouping, stretching and ungrouping preserve child animation, undo and saved files, also in a scene opened from a .kscene with NLA tracks (the released-0.13.0.kscene fixture, a current .kscene despite its name).
 layer: gate
 dimension: fidelity
 source:

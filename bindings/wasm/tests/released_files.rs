@@ -26,7 +26,7 @@ fn a_released_file_takes_fields_constraints_and_density_groups() {
     run(&mut doc, "vertexGroup.add", json!({ "object": "Sheet", "name": "Dense" }));
     run(&mut doc, "particles.add", json!({ "object": "Sheet", "densityGroup": "Dense" }));
 
-    let saved = doc.save(None).unwrap();
+    let saved = doc.save_file(None).unwrap();
     doc.mark_saved();
     let back = SceneDocument::open("Room.kscene", &saved).unwrap();
     let inspected = back.inspect().unwrap();
@@ -55,7 +55,7 @@ fn a_released_file_takes_physics_particles_and_node_groups() {
     run(&mut doc, "particles.add", json!({ "object": "Floor", "kind": "hair" }));
     run(&mut doc, "nodes.newGroup", json!({ "object": "Floor", "name": "Lift" }));
 
-    let saved = doc.save(None).unwrap();
+    let saved = doc.save_file(None).unwrap();
     doc.mark_saved();
     let back = SceneDocument::open("Room.kscene", &saved).unwrap();
     let inspected = back.inspect().unwrap();
@@ -82,7 +82,7 @@ fn a_released_file_takes_multiresolution_levels_face_sets_and_hiding() {
     run(&mut doc, "sculpt.faceSetsFromLooseParts", json!({}));
     let before = doc.inspect().unwrap()["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Cube").unwrap().clone();
 
-    let back = SceneDocument::open("Room.kscene", &doc.save(None).unwrap()).unwrap();
+    let back = SceneDocument::open("Room.kscene", &doc.save_file(None).unwrap()).unwrap();
     let inspected = back.inspect().unwrap();
     let cube = inspected["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Cube").unwrap();
     assert_eq!(cube["mesh"]["multiresLevels"], 1, "{cube}");
@@ -112,7 +112,7 @@ fn released_files_take_a_compositing_group_and_keep_it() {
             "nodes.link",
             json!({ "group": made["group"], "from": glare, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }),
         );
-        let saved = doc.save(None).unwrap();
+        let saved = doc.save_file(None).unwrap();
         doc.mark_saved();
         let back = SceneDocument::open("Room.kscene", &saved).unwrap();
         let inspected = back.inspect().unwrap();

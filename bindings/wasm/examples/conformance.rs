@@ -65,7 +65,7 @@ fn scene(steps: &[(&str, Value)]) -> Result<Vec<u8>, String> {
     for (command, params) in steps {
         doc.execute(command, params.clone()).map_err(|error| format!("{command}: {error}"))?;
     }
-    doc.save(None)
+    doc.save_file(None)
 }
 
 fn main() -> Result<(), String> {
@@ -79,7 +79,7 @@ fn main() -> Result<(), String> {
             let mut doc = SceneDocument::create("Scene.kscene", 1280, 720)?;
             let made = doc.execute("nodes.newGroup", json!({ "object": "Cube" }))?;
             doc.execute("nodes.removeNodes", json!({ "nodes": [made.get("output").cloned().unwrap_or_default()] }))?;
-            doc.save(None)?
+            doc.save_file(None)?
         }),
         ("check-emptyMesh.kscene", scene(&[("mesh.setGeometry", json!({ "object": "Cube", "positions": [], "faces": [] }))])?),
         (

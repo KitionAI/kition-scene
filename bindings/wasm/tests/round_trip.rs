@@ -29,13 +29,13 @@ fn object<'a>(described: &'a Value, name: &str) -> &'a Value {
 fn saves_and_reopens(mut doc: SceneDocument) -> SceneDocument {
     let before = described(&doc);
     let picture = doc.render(0.0, 0.0, 0.25, 160, 90).unwrap();
-    let saved = doc.save(None).unwrap();
+    // Reopened as a person does: the file, and the view state the host keeps beside it.
+    let mut reopened = doc.reopen("Table.kscene").unwrap();
     doc.mark_saved();
     assert!(!doc.dirty());
-    let reopened = SceneDocument::open("Table.kscene", &saved).unwrap();
     assert_eq!(described(&reopened), before);
     assert_eq!(reopened.render(0.0, 0.0, 0.25, 160, 90).unwrap(), picture);
-    let again = SceneDocument::open("Table.kscene", &reopened.save(None).unwrap()).unwrap();
+    let again = reopened.reopen("Table.kscene").unwrap();
     assert_eq!(described(&again), before);
     reopened
 }

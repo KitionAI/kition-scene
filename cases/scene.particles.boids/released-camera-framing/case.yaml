@@ -1,14 +1,14 @@
 format: 1
 id: scene.particles.boids/released-camera-framing
 feature: scene.particles.boids
-intent: A released Newtonian emitter can become a boid flock and receive new camera framing independently; seeking, undo, redo, saving and reopening preserve particle motion and both settings.
+intent: A scene opened from a .kscene with a Newtonian particle emitter and a camera (no boids, no camera sensor fit) has its emitter made a boid flock and its camera given new framing, independently; seeking, undo, redo, saving and reopening preserve particle motion and both settings.
 layer: gate
 dimension: conversion
 source:
   kind: reference-sample
   from: bindings/wasm/tests/fixtures/create-released-0.16.0.mjs
   license: owned
-  note: The input is a scene saved by an earlier published Scene engine, without boids or camera sensor fit.
+  note: The input is a current .kscene (content snapshot) of the scene create-released-0.16.0.mjs builds, rewritten by the current engine with its content kept; despite its name it is not a file saved by an earlier release (nothing was released, and no older file is read).
 input:
   - repo:bindings/wasm/tests/fixtures/released-0.16.0.kscene
 steps:

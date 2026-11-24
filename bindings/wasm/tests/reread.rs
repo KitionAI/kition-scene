@@ -34,7 +34,7 @@ fn name(doc: &SceneDocument, id: u32) -> String {
 /// The scene saved and marked saved, as a host stores it (sealed first); answers the bytes.
 fn store(doc: &mut SceneDocument) -> Vec<u8> {
     doc.prepare_save().unwrap();
-    let bytes = doc.save(Some(FILE)).unwrap();
+    let bytes = doc.save_file(Some(FILE)).unwrap();
     doc.mark_saved();
     bytes
 }
@@ -45,7 +45,7 @@ fn outside(bytes: &[u8], steps: &[(&str, Value)]) -> SceneDocument {
     for (command, params) in steps {
         other.execute(command, params.clone()).unwrap();
     }
-    SceneDocument::open(FILE, &other.save(Some(FILE)).unwrap()).unwrap()
+    SceneDocument::open(FILE, &other.save_file(Some(FILE)).unwrap()).unwrap()
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn an_outside_save_keeps_the_agents_undo_and_the_files_edit() {
     assert_eq!(name(&live, theirs), "Theirs edited", "undo keeps the file's edit");
 
     // The next save holds both writers' work.
-    let saved = SceneDocument::open(FILE, &live.save(Some(FILE)).unwrap()).unwrap();
+    let saved = SceneDocument::open(FILE, &live.save_file(Some(FILE)).unwrap()).unwrap();
     assert_eq!((name(&saved, mine), name(&saved, theirs)), ("Mine".into(), "Theirs edited".into()));
 }
 
@@ -87,7 +87,7 @@ fn an_unchanged_reread_writes_nothing_and_keeps_the_history() {
     assert_eq!(KitSessionDocument::session(&live).version(), version, "nothing is written");
     assert_eq!(live.revision(), revision);
     assert!(!live.dirty());
-    assert_eq!(live.save(Some(FILE)).unwrap(), bytes, "an unchanged save writes the file read again");
+    assert_eq!(live.save_file(Some(FILE)).unwrap(), bytes, "an unchanged save writes the file read again");
     live.execute("edit.undo", json!({})).unwrap();
     assert_eq!(name(&live, mine), "Mine");
 }
@@ -98,13 +98,13 @@ fn a_reread_that_deleted_the_selected_object_is_refused_by_name() {
     live.execute("object.rename", json!({ "object": mine, "name": "Mine edited" })).unwrap();
     let bytes = store(&mut live);
     let state = live.editor_state();
-    let before = live.save(Some(FILE)).unwrap();
+    let before = live.save_file(Some(FILE)).unwrap();
 
     let mut fresh = outside(&bytes, &[("edit.delete", json!({ "objects": [theirs] }))]);
     let refused = fresh.restore_editor_state(&state).unwrap_err();
     assert!(refused.contains(&format!("deleted selected object {theirs}")), "{refused}");
     assert_eq!(live.reconcile_reread(&fresh), Err(format!("deleted selected object {theirs}")));
-    assert_eq!(live.save(Some(FILE)).unwrap(), before, "a refused reread changes nothing");
+    assert_eq!(live.save_file(Some(FILE)).unwrap(), before, "a refused reread changes nothing");
     assert_eq!(live.editor_state(), state);
     assert_eq!(name(&live, theirs), "Theirs");
 
@@ -119,9 +119,9 @@ fn a_file_of_another_scene_is_not_reconciled() {
     let (mut live, mine, _) = scene();
     live.execute("object.rename", json!({ "object": mine, "name": "Mine edited" })).unwrap();
     store(&mut live);
-    let other = SceneDocument::create(FILE, 320, 180).unwrap();
-    let other = SceneDocument::open(FILE, &other.save(Some(FILE)).unwrap()).unwrap();
-    let before = live.save(Some(FILE)).unwrap();
+    let mut other = SceneDocument::create(FILE, 320, 180).unwrap();
+    let other = SceneDocument::open(FILE, &other.save_file(Some(FILE)).unwrap()).unwrap();
+    let before = live.save_file(Some(FILE)).unwrap();
     assert_eq!(live.reconcile_reread(&other), Ok(false));
-    assert_eq!(live.save(Some(FILE)).unwrap(), before);
+    assert_eq!(live.save_file(Some(FILE)).unwrap(), before);
 }

@@ -5,7 +5,9 @@ each package is published with a `package-v<version>` tag.
 
 ## Unreleased
 
-- A `.kscene` file holds the scene's content, not its history (kition-sdk rule M16b): `content.kdm`, a sealed content snapshot (the state, the same document id and object ids, of the history only a `system` seal), the meshes and images the scene uses, `meta.json` (format version 1, kit, KDM and schema versions, document id) and the editor state. No deleted objects or text, no overwritten values, no names of the people or agents who edited; the history stays in the host's history store. Files of the earlier layout (`replica.kdm` with its history) are not read.
+- A `.kscene` file holds the scene's content, not its history (kition-sdk rule M16b): `content.kdm`, a sealed content snapshot (the state, the same document id and object ids, of the history only a `system` seal), the meshes and images the scene uses, and `meta.json` (format version 1, kit, KDM and schema versions, document id). No deleted objects or text, no overwritten values, no names of the people or agents who edited; the history stays in the host's history store. Files of the earlier layout (`replica.kdm` with its history) are not read.
+- The view, selection, current frame and UV options are no longer saved in the `.kscene` (no `editor.json`): they are the person's view state, which the editor keeps with a host that serves `view-state` (Kit UI protocol section 7n). Two sessions that open the same file and save it without an edit write the same bytes.
+- A save the host did not prepare (`prepareSave`) after an edit is refused; the temporary fallback that sealed a copy is gone.
 - A scene opens on the host's stored replica with its file taken in: as it is when the store has the file's version, with the file's changes when the store missed only them, and otherwise with the file's state written by object id as one import step. A file another program saved is taken in the same way.
 
 ## 0.1.4

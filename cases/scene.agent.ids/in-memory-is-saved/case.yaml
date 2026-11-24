@@ -2,7 +2,8 @@ format: 1
 id: scene.agent.ids/in-memory-is-saved
 feature: scene.agent.ids
 intent: >-
-  After each of 30 representative commands, and on every released fixture file, the object model
+  After each of 30 representative commands, and on every .kscene test fixture (the released-*.kscene
+  files are current .kscene files despite their names), the object model
   and the engine's scene in memory are those of the saved file opened again; an unkeyed edit of an
   animated transform is the one known, designed difference.
 layer: gate

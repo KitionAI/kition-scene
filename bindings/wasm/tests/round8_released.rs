@@ -1,4 +1,6 @@
-//! The two round-eight operations share a scene saved by the published 0.15.0 engine.
+//! The two round-eight operations share one scene: `fixtures/released-0.15.0.kscene`, the scene
+//! `create-released-0.15.0.mjs` builds as a current `.kscene` (nothing was released; the name is
+//! the fixture's history).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::KitDocument;
@@ -91,7 +93,7 @@ fn recovering_a_released_sculpt_keeps_its_motor_and_rebuilds_derived_physics() {
     run(&mut doc, "physics.bake", json!({}));
     assert!((cube_world_x(&doc) - position).abs() < 1e-6);
 
-    let mut reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut reopened = doc.reopen("Saved.kscene").unwrap();
     assert_eq!(cube_mesh(&reopened), recovered);
     assert_eq!(reopened.scene().object_named("Cube").unwrap().physics, body);
     assert_eq!(reopened.scene().object_named("Motor").unwrap().physics, motor);

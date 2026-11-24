@@ -84,9 +84,13 @@ fn size(answer: &Value) -> (u64, u64) {
     (answer["width"].as_u64().unwrap(), answer["height"].as_u64().unwrap())
 }
 
+/// [`editor_state`]'s answer.
+type Held = (Value, Value, Value, Value, Value, Value, bool, u64, Vec<u8>);
+
 /// What the editor holds besides the scene, and the document's state: the viewport, the current
-/// frame, the mode, the selection, history, dirty state, revision, and the file's bytes.
-fn editor_state(doc: &SceneDocument) -> (Value, Value, Value, Value, Value, bool, u64, Vec<u8>) {
+/// frame, the mode, the selection, history, the person's view state, dirty state, revision, and
+/// the file's bytes.
+fn editor_state(doc: &mut SceneDocument) -> Held {
     let inspected = doc.inspect().unwrap();
     (
         inspected["view"].clone(),
@@ -94,9 +98,10 @@ fn editor_state(doc: &SceneDocument) -> (Value, Value, Value, Value, Value, bool
         inspected["mode"].clone(),
         inspected["selection"].clone(),
         json!([inspected["canUndo"], inspected["canRedo"]]),
+        doc.view_state(),
         doc.dirty(),
         doc.revision(),
-        doc.save(None).unwrap(),
+        doc.save_file(None).unwrap(),
     )
 }
 
@@ -109,9 +114,9 @@ fn rendering_reads_no_viewport_frame_mode_or_selection_and_changes_nothing() {
         json!({ "target": { "views": ["persp", "top"], "time": 0.25, "pass": "id" } }),
         json!({ "target": { "range": [0, 1], "frames": 3, "view": "persp" } }),
     ];
-    let before = editor_state(&doc);
+    let before = editor_state(&mut doc);
     let first: Vec<Value> = calls.iter().map(|call| render(&mut doc, call.clone())).collect();
-    assert_eq!(editor_state(&doc), before, "rendering moved the viewport, the frame, the mode or the selection, or dirtied the document");
+    assert_eq!(editor_state(&mut doc), before, "rendering moved the viewport, the frame, the mode or the selection, or dirtied the document");
 
     // Orbit the viewport, look through the camera, go to another frame, select, and edit the cube.
     run(&mut doc, "view.orbit", json!({ "turn": 70, "tilt": -20 }));
@@ -124,10 +129,10 @@ fn rendering_reads_no_viewport_frame_mode_or_selection_and_changes_nothing() {
     let state = doc.inspect().unwrap();
     assert_eq!(state["mode"]["mode"], json!("edit"), "{}", state["mode"]);
     assert_eq!(state["animation"]["frame"], json!(40));
-    let before = editor_state(&doc);
+    let before = editor_state(&mut doc);
     for (call, first) in calls.iter().zip(&first) {
         let again = render(&mut doc, call.clone());
-        assert_eq!(editor_state(&doc), before, "rendering moved the viewport, the frame, the mode or the selection, or dirtied the document");
+        assert_eq!(editor_state(&mut doc), before, "rendering moved the viewport, the frame, the mode or the selection, or dirtied the document");
         assert_eq!(again["png"], first["png"], "{call}: the same view at the same time is the same picture whatever the editor shows");
         assert_eq!(again["frames"], first["frames"], "{call}");
         assert_eq!(again["legend"], first["legend"], "{call}");

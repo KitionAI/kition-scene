@@ -39,6 +39,7 @@ import { WeightPaintToggle } from './WeightPaint'
 import { SculptToggle } from './Sculpt'
 import { RenderDialog } from './RenderDialog'
 import { UvEditor } from './UvEditor'
+import { useSceneViewState, type SceneViewState } from './viewState'
 
 const EXPORT_FORMATS = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'usda', 'usdc', 'usdz', 'png'] as const
 type ExportFormat = (typeof EXPORT_FORMATS)[number]
@@ -73,7 +74,11 @@ function keyMatches(shortcut: string, event: Pick<KeyboardEvent, 'code' | 'key' 
 export function App({ host, phrase }: { host: HostConnection; phrase: Phrases }) {
   const t = useMemo(() => createKitStrings(CATALOGS, host.init.locale), [host])
   const manifest = useMemo(engineManifest, [])
-  const session = useKitSession(host, manifest, describe)
+  // The person's view state: kept with the host after each save, never in the file.
+  const viewState = useRef<SceneViewState | null>(null)
+  const sessionOptions = useMemo(() => ({ viewState: () => (viewState.current ? { state: viewState.current } : undefined) }), [])
+  const session = useKitSession(host, manifest, describe, sessionOptions)
+  useSceneViewState(host, session, viewState)
   const editor = useKitEditorState(session, host, t, 'scene', phrase)
   const { doc, change, state } = session
   const presence = useScenePresence(host, editor, state)

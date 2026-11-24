@@ -47,7 +47,7 @@ fn each_recovery_operator_undoes_redoes_and_survives_save() {
         assert_eq!(mesh(&doc), &before);
         run(&mut doc, "edit.redo", json!({}));
         assert_eq!(mesh(&doc), &after);
-        let reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+        let reopened = SceneDocument::open("Saved.kscene", &doc.save_file(None).unwrap()).unwrap();
         assert_eq!(mesh(&reopened), &after);
         assert_eq!(cube(&reopened)["modifiers"], cube(&doc)["modifiers"]);
         assert_eq!(kition_scene_kdm::schema().schema_version, 1);
@@ -70,7 +70,7 @@ fn sculpted_levels_survive_recovery_and_subsequent_sculpting() {
     assert!(sculpted["touched"].as_u64().unwrap() > 0);
     let after = mesh(&doc).clone();
     assert_ne!(after.multires[1], vec![kition_scene_model::glam::Vec3::ZERO; after.multires[1].len()]);
-    let reopened = SceneDocument::open("Sculpted.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("Sculpted.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(mesh(&reopened), &after);
 }
 
@@ -85,10 +85,10 @@ fn invalid_recovery_preserves_document_session_history_and_serialized_bytes() {
         ("multires.unsubdivide", json!({"object":"Absent"})),
         ("multires.rebuildSubdivisions", json!([1, 2])),
     ] {
-        let bytes = doc.save(None).unwrap();
+        let bytes = doc.save_file(None).unwrap();
         let inspect = doc.inspect().unwrap();
         assert!(doc.execute(command, params).is_err());
-        assert_eq!(doc.save(None).unwrap(), bytes);
+        assert_eq!(doc.save_file(None).unwrap(), bytes);
         assert_eq!(doc.inspect().unwrap(), inspect);
     }
     for id in ["multires.unsubdivide", "multires.rebuildSubdivisions"] {

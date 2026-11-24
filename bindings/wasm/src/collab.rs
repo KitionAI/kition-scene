@@ -61,16 +61,16 @@ impl SceneDocument {
         if bytes.is_empty() {
             let replica = KitSession::<SceneModel>::open_snapshot(snapshot, Box::new(store.clone()), ActorId::random())
                 .map_err(|error| format!("the stored replica does not open: {error}"))?;
-            return Ok(Self::attach(replica, store, None));
+            return Ok(Self::attach(replica, store, crate::Editor::default()));
         }
-        let (file, opened) = crate::open_file(bytes, &store)?;
+        let (_, opened) = crate::open_file(bytes, &store)?;
         match Replica::load(kition_scene_kdm::schema(), snapshot, ActorId::random()) {
             Ok(mut stored) if stored.doc_id() == opened.replica().doc_id() => {
                 kition_kit::session::take_file(&mut stored, opened.replica()).map_err(|error| format!("damaged: {error}"))?;
                 let stored = KitSession::<SceneModel>::from_replica(stored, Box::new(store.clone())).map_err(|error| format!("damaged: {error}"))?;
-                Ok(Self::attach(stored, store, file.editor))
+                Ok(Self::attach(stored, store, crate::Editor::default()))
             }
-            _ => Ok(Self::attach(opened, store, file.editor)),
+            _ => Ok(Self::attach(opened, store, crate::Editor::default())),
         }
     }
 

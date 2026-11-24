@@ -455,6 +455,15 @@ features:
     paths: [crates/formats/kscene/src/lib.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/headless/src/lib.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/content_file.rs]
     cases: [scene.file.content-only/no-history, scene.file.content-only/reopen-and-converge]
     since: "2026-11-23"
+  - id: scene.view.state
+    title: "The person's view (viewport, shading, grid, overlays, selection, current frame, UV options) is their view state, kept by the host (Kit UI protocol 7n, capability view-state), never in the .kscene: two sessions that open the same file and save without an edit write the same bytes"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    commands: [view.state, view.restore]
+    paths: [crates/formats/kscene/src/lib.rs, bindings/wasm/src/lib.rs, bindings/wasm/tests/content_file.rs, web/src/App.tsx, web/src/main.tsx]
+    cases: [scene.view.state/two-sessions-same-bytes]
+    since: "2026-11-24"
   - id: scene.view.viewport
     title: "Viewport shading, views and overlays"
     dimension: [function]

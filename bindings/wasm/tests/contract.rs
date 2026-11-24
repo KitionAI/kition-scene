@@ -6,8 +6,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> Vec<u8> {
-    let doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
-    doc.save(None).unwrap()
+    let mut doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
+    doc.save_file(None).unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -22,8 +22,15 @@ fn agent(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 
 #[test]
 fn keeps_the_kit_sdk_contract() {
+    // `check_contract` saves right after the edit without `prepare_save`, which every host calls
+    // before `save` (kition-kit `KitDocument::prepare_save`) and without which this kit refuses
+    // the save: the edit ends with it, as a host's save starts. It compares the reopened file's
+    // pixels with the edited document's: the new sphere, selected, is outlined, and a selection is
+    // the person's view state, not the file's, so the edit leaves nothing selected.
     kition_kit::testing::check_contract::<SceneDocument>(&starter(), "fixture.kscene", |doc| {
-        doc.execute("add.uvSphere", json!({ "location": [3, 0, 1] })).map(|_| ())
+        doc.execute("add.uvSphere", json!({ "location": [3, 0, 1] }))?;
+        doc.execute("select.none", json!({}))?;
+        doc.prepare_save()
     })
     .unwrap();
 }
@@ -100,7 +107,7 @@ fn edit_mode_extrudes_insets_and_cuts() {
 #[test]
 fn bad_input_is_refused_and_changes_nothing() {
     let mut doc = SceneDocument::open("t.kscene", &starter()).unwrap();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     for (command, params) in [
         ("add.uvSphere", json!({ "segments": 2 })),
         ("add.cube", json!({ "location": [0, 0] })),
@@ -115,7 +122,7 @@ fn bad_input_is_refused_and_changes_nothing() {
     ] {
         assert!(doc.execute(command, params.clone()).is_err(), "{command} {params} was accepted");
     }
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
     assert!(!doc.dirty());
 }
 
@@ -166,7 +173,7 @@ fn bevel_boolean_and_screw_through_commands() {
 fn path_traced_renders_run_in_steps_and_change_nothing() {
     let mut doc = SceneDocument::open("t.kscene", &starter()).unwrap();
     run(&mut doc, "render.set", json!({ "width": 64, "height": 36 }));
-    let saved = doc.save(None).unwrap();
+    let saved = doc.save_file(None).unwrap();
     let revision = doc.revision();
     let undo = doc.inspect().unwrap()["undo"].clone();
     assert!(doc.execute("render.trace.step", json!({})).is_err(), "no render yet");
@@ -193,12 +200,12 @@ fn path_traced_renders_run_in_steps_and_change_nothing() {
     assert!(doc.execute("render.trace.image", json!({})).is_err());
     assert_eq!(doc.inspect().unwrap()["undo"], undo);
     assert_eq!(doc.revision(), revision);
-    assert_eq!(doc.save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
     assert!(doc.execute("render.trace.start", json!({ "samples": 0 })).is_err());
 
     // Split across workers: each opens the snapshot and traces a shard; the collector merges
     // their sums into the same picture.
-    let snapshot = doc.save(None).unwrap();
+    let snapshot = doc.save_file(None).unwrap();
     run(&mut doc, "render.trace.start", json!({ "samples": 3, "collect": true }));
     for index in 0..3 {
         let mut worker = SceneDocument::open("Scene.kscene", &snapshot).unwrap();
@@ -212,5 +219,5 @@ fn path_traced_renders_run_in_steps_and_change_nothing() {
     assert!(doc.trace_merge(b"KCTS").is_err());
     assert!(doc.trace_shard(&json!({ "index": 3, "count": 3 }).to_string()).is_err());
     assert_eq!(doc.revision(), revision);
-    assert_eq!(doc.save(None).unwrap(), saved);
+    assert_eq!(doc.save_file(None).unwrap(), saved);
 }

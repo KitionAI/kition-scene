@@ -28,16 +28,16 @@ fn constraints_on_objects() {
     let added = run(&mut doc, "constraint.add", json!({ "object": "Camera", "type": "trackTo", "target": "Goal" }));
     assert_eq!(added["name"], "Track To");
     let camera = object(&doc.inspect().unwrap(), "Camera").clone();
-    let reopened = SceneDocument::open("C.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("C.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(object(&reopened.inspect().unwrap(), "Camera")["constraints"], camera["constraints"], "constraints survive saving");
     assert_eq!(camera["constraints"][0]["target"]["name"], "Goal");
     assert_eq!(camera["constraints"][0]["trackAxis"], "-z");
     // A cycle is refused, and leaves the scene as it was.
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     assert!(doc.execute("constraint.add", json!({ "object": "Goal", "type": "dampedTrack", "target": "Camera" })).is_err());
     assert!(doc.execute("constraint.add", json!({ "object": "Goal", "type": "trackTo", "target": "Goal" })).is_err());
     assert!(doc.execute("constraint.add", json!({ "object": "Goal", "type": "ik", "target": "Camera" })).is_err());
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 
     // Child Of keeps the cube where it is, then carries it.
     let start = world(&doc, "Cube");
@@ -56,7 +56,7 @@ fn constraints_on_objects() {
     // Undo brings the constraint back; the file keeps the camera's.
     run(&mut doc, "edit.undo", json!({}));
     assert!(object(&doc.inspect().unwrap(), "Cube")["constraints"].is_array());
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("C.kscene", &bytes).unwrap();
     assert_eq!(object(&back.inspect().unwrap(), "Camera")["constraints"][0]["type"], "trackTo");
 }
@@ -103,7 +103,7 @@ fn weight_paint_paints_strokes_one_step_each() {
     assert_eq!(groups[0]["name"], "Glow");
     assert_eq!(inspected["undo"], "Paint Weights");
     // The weights survive saving and reopening.
-    let reopened = SceneDocument::open("W.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("W.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(object(&reopened.inspect().unwrap(), "Cube")["vertexGroups"], Value::Array(groups.clone()));
     // Agents set weights exactly, and normalise.
     run(&mut doc, "paint.vertices", json!({ "group": "Other", "vertices": [0, 1], "weight": 0.75 }));

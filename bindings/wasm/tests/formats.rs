@@ -6,8 +6,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn doc() -> SceneDocument {
-    let doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap()
+    let mut doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
+    SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 fn names(doc: &SceneDocument) -> Vec<String> {

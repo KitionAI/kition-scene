@@ -18,8 +18,8 @@ fn number(value: &Value) -> f64 {
     value.as_f64().unwrap_or_else(|| panic!("not a number: {value}"))
 }
 
-fn reopen(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("A.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopen(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("A.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn drivers_follow_their_sources_and_survive_saving() {
     // A broken expression is refused; the driver stays as it was.
     assert!(doc.execute("driver.set", json!({ "object": "Cube", "property": "location", "index": 2, "expression": "h *" })).is_err());
     // The driver is saved; the stored location is the undriven one, so it reads the same back.
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert!((z(&back) - 6.5).abs() < 1e-4);
     assert_eq!(back.inspect().unwrap()["animation"]["drivers"], doc.inspect().unwrap()["animation"]["drivers"]);
     // Kinds other than scripted, a distance, and removal.
@@ -101,7 +101,7 @@ fn keying_sets_choose_what_insert_keyframe_keys() {
     assert_ne!(renamed, "location", "a built-in's name is not taken");
     run(&mut doc, "keyingSet.remove", json!({ "name": renamed }));
     run(&mut doc, "keyingSet.setActive", json!({ "name": "Lighting" }));
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert_eq!(back.inspect().unwrap()["animation"]["keyingSets"], doc.inspect().unwrap()["animation"]["keyingSets"]);
     run(&mut doc, "keyingSet.removePath", json!({ "name": "Lighting", "index": 1 }));
     run(&mut doc, "keyingSet.remove", json!({ "name": "Lighting" }));
@@ -148,7 +148,7 @@ fn actions_stash_assign_and_play_through_a_constraint() {
     // Renaming follows into the constraint; removing lets it go.
     run(&mut doc, "action.rename", json!({ "name": "Rise", "to": "Lift" }));
     assert_eq!(object(&doc.inspect().unwrap(), "Puppet")["constraints"][0]["action"], "Lift");
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert_eq!(back.inspect().unwrap()["animation"]["actions"], doc.inspect().unwrap()["animation"]["actions"]);
     assert!((number(&object(&back.inspect().unwrap(), "Puppet")["worldLocation"][2]) - 2.0).abs() < 1e-3);
     run(&mut doc, "action.remove", json!({ "name": "Lift" }));
@@ -220,7 +220,7 @@ fn the_new_constraints_through_commands() {
     assert!(bones["base64"].is_string());
 
     // Everything survives saving.
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     assert_eq!(object(&back.inspect().unwrap(), "Cube")["constraints"], object(&doc.inspect().unwrap(), "Cube")["constraints"]);
     assert_eq!(object(&back.inspect().unwrap(), "Rig")["boneConstraints"], object(&doc.inspect().unwrap(), "Rig")["boneConstraints"]);
 }
@@ -268,7 +268,7 @@ fn a_released_090_file_takes_drivers_actions_and_keying_sets() {
     run(&mut doc, "action.new", json!({ "name": "Bounce", "object": "Ball" }));
     run(&mut doc, "driver.add", json!({ "object": "Cube", "property": "scale", "index": 0, "expression": "2" }));
     run(&mut doc, "constraint.add", json!({ "object": "Rig", "bone": "Bone", "type": "stretchTo", "target": "Ball", "volume": "none" }));
-    let back = reopen(&doc);
+    let back = reopen(&mut doc);
     let inspected = back.inspect().unwrap();
     assert_eq!(inspected["animation"]["keyingSets"]["sets"][0]["name"], "Mine");
     assert_eq!(inspected["animation"]["actions"][0]["name"], "Bounce");

@@ -1,4 +1,6 @@
-//! Camera framing and boid simulation share a scene saved by the released 0.16.0 engine.
+//! Camera framing and boid simulation share one scene: `fixtures/released-0.16.0.kscene`, the scene
+//! `create-released-0.16.0.mjs` builds as a current `.kscene` (nothing was released; the name is
+//! the fixture's history).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::KitDocument;
@@ -27,6 +29,8 @@ fn flight(doc: &SceneDocument, cache: &mut particles::Cache) -> Vec<particles::P
 #[test]
 fn framing_a_released_emitter_preserves_boid_motion_and_independent_undo() {
     let mut doc = SceneDocument::open("Released.kscene", include_bytes!("fixtures/released-0.16.0.kscene")).unwrap();
+    // The scene was built at frame 12 (`create-released-0.16.0.mjs`); a file holds no current frame.
+    run(&mut doc, "frame.set", json!({"frame": 12}));
     let old_camera = camera(&doc);
     let old_system = system(&doc);
     assert_eq!(old_system.name, "Flight");
@@ -83,7 +87,8 @@ fn framing_a_released_emitter_preserves_boid_motion_and_independent_undo() {
     assert_eq!(system(&doc), boids);
     assert_eq!(flight(&doc, &mut cache), flying);
 
-    let reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    // Reopened at the frame it was saved at (the person's view state, kept by the host).
+    let reopened = doc.reopen("Saved.kscene").unwrap();
     assert_eq!(camera(&reopened), fitted);
     assert_eq!(system(&reopened), boids);
     assert_eq!(flight(&reopened, &mut particles::Cache::default()), flying);

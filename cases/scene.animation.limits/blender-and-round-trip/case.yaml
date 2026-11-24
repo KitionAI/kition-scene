@@ -1,7 +1,7 @@
 format: 1
 id: scene.animation.limits/blender-and-round-trip
 feature: scene.animation.limits
-intent: Independent frame and value bounds follow Blender, including influence, ranges and modifier order; settings survive undo, action tweaking and saved files.
+intent: Independent frame and value bounds follow Blender, including influence, ranges and modifier order; settings survive undo, action tweaking and saved files, also in a scene opened from a .kscene with NLA tracks (the released-0.13.0.kscene fixture, a current .kscene despite its name).
 layer: gate
 dimension: fidelity
 source:

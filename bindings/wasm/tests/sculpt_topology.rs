@@ -15,8 +15,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 
 /// The starter scene, its cube selected, in an 800 × 600 view from the top.
 fn scene() -> SceneDocument {
-    let made = SceneDocument::create("Untitled scene.kscene", 800, 600).unwrap();
-    let mut doc = SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap();
+    let mut made = SceneDocument::create("Untitled scene.kscene", 800, 600).unwrap();
+    let mut doc = SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap();
     run(&mut doc, "view.resize", json!({ "width": 800, "height": 600 }));
     doc
 }
@@ -29,8 +29,8 @@ fn sculpt_state(doc: &SceneDocument) -> Value {
     doc.inspect().unwrap()["mode"]["sculpt"].clone()
 }
 
-fn reopen(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopen(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn multires_levels_subdivide_sculpt_and_save() {
     run(&mut doc, "edit.redo", json!({}));
     let sculpted = object(&doc, "Cube")["dimensions"].clone();
     // Kept through a save.
-    let reopened = reopen(&doc);
+    let reopened = reopen(&mut doc);
     let cube = object(&reopened, "Cube");
     assert_eq!(cube["mesh"]["multiresLevels"], 2);
     assert_eq!(cube["dimensions"], sculpted);
@@ -133,7 +133,7 @@ fn dynamic_topology_refines_under_strokes() {
     let flood = run(&mut doc, "sculpt.detailFlood", json!({}));
     assert!(flood["faces"].as_u64().unwrap() > 100, "{flood}");
     assert_eq!(
-        reopen(&doc).inspect().unwrap()["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Cube").unwrap()["mesh"]["faces"],
+        reopen(&mut doc).inspect().unwrap()["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Cube").unwrap()["mesh"]["faces"],
         flood["faces"]
     );
     // Not with multiresolution levels.
@@ -168,7 +168,7 @@ fn face_sets_hiding_and_gestures() {
     run(&mut doc, "sculpt.stroke", json!({ "points": [[-0.6, 0, 0]], "worldRadius": 0.2, "strength": 1, "symmetry": [false, false, false] }));
     assert_eq!(object(&doc, "Clay")["dimensions"], before);
     // Kept through a save.
-    let reopened = reopen(&doc);
+    let reopened = reopen(&mut doc);
     assert_eq!(object(&reopened, "Clay")["mesh"]["hiddenFaces"].as_u64().unwrap(), hidden);
     assert_eq!(object(&reopened, "Clay")["mesh"]["faceSets"], 1);
     let mut doc = doc;

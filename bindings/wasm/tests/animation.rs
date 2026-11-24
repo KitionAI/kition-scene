@@ -6,8 +6,7 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn doc() -> SceneDocument {
-    let bytes = SceneDocument::create("Untitled cube.kscene", 1280, 720).unwrap().save(None).unwrap();
-    SceneDocument::open("t.kscene", &bytes).unwrap()
+    SceneDocument::create("Untitled cube.kscene", 1280, 720).unwrap().reopen("t.kscene").unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -58,8 +57,13 @@ fn animation_saves_and_reopens_at_its_frame() {
     run(&mut doc, "anim.insertKey", json!({ "objects": "Camera", "properties": "lens", "frame": 1 }));
     run(&mut doc, "frame.range", json!({ "start": 1, "end": 48, "fps": 30 }));
     run(&mut doc, "frame.set", json!({ "frame": 12 }));
-    let bytes = doc.save(None).unwrap();
-    let reopened = SceneDocument::open("t.kscene", &bytes).unwrap();
+    // The range and the rate are the scene's, in the file; the current frame is the person's view
+    // state, which the host keeps beside it: the file alone opens at the first frame, and with the
+    // view state at the frame it was saved at.
+    let alone = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
+    let animation = alone.inspect().unwrap()["animation"].clone();
+    assert_eq!((animation["frame"].as_i64(), animation["end"].as_i64(), animation["fps"].as_f64()), (Some(1), Some(48), Some(30.0)));
+    let reopened = doc.reopen("t.kscene").unwrap();
     let animation = reopened.inspect().unwrap()["animation"].clone();
     assert_eq!((animation["frame"].as_i64(), animation["end"].as_i64(), animation["fps"].as_f64()), (Some(12), Some(48), Some(30.0)));
     assert_eq!(animation["channels"].as_array().unwrap().len(), 1 + 3 + 4 + 1 + 1);

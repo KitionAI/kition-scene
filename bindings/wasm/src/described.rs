@@ -226,6 +226,12 @@ fn describe(id: &str) -> &'static str {
             "The editor's command for the host's color scheme: the viewport's background, grid and frame shade follow it; the scene, the file and renders do not change."
         }
         "view.resize" => "Sets the viewport size in pixels, which previews and the camera view use.",
+        "view.state" => {
+            "Answers the person's view state (viewport, shading, grid and overlays, selection, current frame, UV options), which the editor keeps with the host; never part of the file."
+        }
+        "view.restore" => {
+            "Puts back a view state `view.state` answered, leaving out objects the scene no longer has; a state of another version changes nothing. No edit."
+        }
         "mesh.extrudeIndividual" => {
             "Extrudes each selected face separately along its own normal by `distance`, in edit mode on the edited mesh's selected elements (`mode.set {mode: \"edit\"}` and `mesh.select` first)."
         }
@@ -580,6 +586,10 @@ fn output(id: &str) -> Option<Value> {
         "view.set" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.scheme" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.resize" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "view.state" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"state":{"type":"object","additionalProperties":true,"properties":{"v":{"type":"integer"}}}}}"#
+        }
+        "view.restore" => r#"{"type":"object","additionalProperties":true,"properties":{"restored":{"type":"boolean"}}}"#,
         "mesh.proportional" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"proportional":{"type":"object","additionalProperties":true,"properties":{"connected":{"type":"boolean"},"falloff":{"type":"string"},"radius":{"type":"number"}}}}}"#
         }

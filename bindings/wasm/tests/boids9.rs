@@ -49,7 +49,7 @@ fn boid_settings_are_typed_undoable_saved_and_seen_by_rendering() {
     run(&mut doc, "frame.set", json!({"frame":31}));
     let after = doc.render(0.0, 0.0, 1.0, 640, 360).unwrap();
     assert_ne!(before, after);
-    let mut back = SceneDocument::open("Boids.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut back = SceneDocument::open("Boids.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(settings(&back), modified);
     assert_eq!(run(&mut back, "particles.stats", json!({"object":"Cube","frame":31})), at31);
     for frame in [90, 1, 11, 31] {
@@ -67,7 +67,7 @@ fn boid_settings_are_typed_undoable_saved_and_seen_by_rendering() {
 #[test]
 fn invalid_boid_edits_fail_atomically_and_deleting_targets_clears_only_references() {
     let mut doc = setup();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     for patch in [
         json!({"physics":null}),
         json!({"emitFrom":"volume"}),
@@ -89,7 +89,7 @@ fn invalid_boid_edits_fail_atomically_and_deleting_targets_clears_only_reference
         let mut patch = patch;
         patch["object"] = json!("Cube");
         assert!(doc.execute("particles.set", patch.clone()).is_err(), "{patch}");
-        assert_eq!(doc.save(None).unwrap(), before, "{patch}");
+        assert_eq!(doc.save_file(None).unwrap(), before, "{patch}");
     }
     run(&mut doc, "select.objects", json!({"objects":"Goal"}));
     run(&mut doc, "edit.delete", json!({}));
@@ -138,8 +138,8 @@ fn typed_rules_require_their_kind_and_explicit_null_clears_a_configured_target()
     let eight = vec![json!({"kind":"goal","target":"Goal"}); 8];
     run(&mut doc, "particles.set", json!({"object":"Cube","boids":{"rules":eight}}));
     assert_eq!(settings(&doc)["boids"]["rules"].as_array().unwrap().len(), 8);
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     let nine = vec![json!({"kind":"goal","target":"Goal"}); 9];
     assert!(doc.execute("particles.set", json!({"object":"Cube","boids":{"rules":nine}})).is_err());
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 }

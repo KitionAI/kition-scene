@@ -45,8 +45,8 @@ Blender executable.
 `.kscene` is a ZIP: `mimetype` (stored first), `meta.json` (what identifies the content: format,
 format version 1, kit, KDM and schema versions, document id), `content.kdm` (the scene's content:
 the replica's sealed content snapshot, no history), content-addressed mesh and image data under
-`blobs/<sha256>` (those the state references), and `editor.json` (view, selection, and current
-frame). Writing the same parts gives the same bytes. Reading validates the archive, the content
+`blobs/<sha256>` (those the state references); nothing of a person's session and no preview
+image. Writing the same parts gives the same bytes. Reading validates the archive, the content
 against `meta.json`'s document id, referenced blobs, and scene and refuses damaged files. See section 7.5 for the replica's file boundary.
 
 ## 4. Engine and editor
@@ -280,18 +280,26 @@ model 7.3, rule M16b). It is a ZIP of `mimetype`, `meta.json` (`format`, `format
 `kdm`, `schemaVersion`, `docId`, and nothing a save changes), `content.kdm` (the replica's sealed
 content snapshot: the state with its document id and object ids, and of the history only one
 `system` change, the `content-seal`; no deleted or overwritten content, no person's or agent's
-origin), `blobs/<sha256>` (every mesh and image the state references), and `editor.json` (view,
-selection, the current frame; written only when the editor has a state). The history lives in the
-host's history store (`snapshot()` of the live replica), never in the file. A file without
+origin), and `blobs/<sha256>` (every mesh and image the state references); no preview image. The
+history lives in the host's history store (`snapshot()` of the live replica), never in the file.
+
+The person's view (the viewport's camera, shading, grid and overlays, the selection and the active
+object, the current frame, the UV options) is never in the file either, so two sessions that open
+the same file and save it without an edit write the same bytes. It is the person's view state
+(Kit UI protocol section 7n): the editor reads it with `readViewState` when a document opens and
+puts it back with `view.restore`, and `useKitSession`'s `viewState` option keeps the last
+`view.state` answer with the host after each save. A host without the `view-state` capability
+keeps none: the scene opens with the default view and nothing selected. `view.restore` ignores a
+state whose `v` is not 1 and leaves out objects the scene no longer has. The viewport's size is
+the editor's canvas (`view.resize`), not part of the view state. A file without
 `content.kdm`, or whose content names another document than `meta.json`, is damaged; files of the
 earlier layout (`replica.kdm` with its history) are not read.
 
 Saving: every host calls `prepare_save` before `save`, which seals the live replica
 (`KitSession::seal`, no edit and no undo step), and `save` writes `sealed_content_snapshot`; an
-unchanged scene saves to the same bytes. One temporary fallback, for the kit editor until its
-`@kition/*` release calls `prepareSave` (delete it once that release is in `web/pnpm-lock.yaml`):
-a save of a replica nobody sealed writes the content of a copy sealed under an actor derived from
-the version, and `mark_saved` imports that seal into the session.
+unchanged scene saves to the same bytes. A save of a replica changed since its last seal is
+refused (`not-allowed`): `save` sees the replica read-only and cannot seal it.
+`SceneDocument::save_file` does both, for code that saves a scene itself (tests, sample builders).
 
 Opening: a file opened alone is the same document with the same object ids and takes edits. A file
 opened on the replica the host stored for it goes through `kition_kit::session::take_file`:
@@ -305,8 +313,7 @@ Identity and forks (Kit Process Protocol 5.6, KitModel M7a; `kition_scene::Scene
 the same document. Its identity is the docId of `content.kdm`; an empty file has none, and other
 bytes or damaged content are refused. A fork writes the SDK's copy under a new docId as
 `content.kdm` (a copy's birth is its seal), sets `meta.json`'s docId to it, keeps only the blobs
-its state references, and keeps `editor.json`, whose view and selection name objects by ids the
-copy keeps.
+its state references, and nothing else.
 
 ### Rigid body motors
 

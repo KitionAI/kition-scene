@@ -3,8 +3,9 @@
 //! the kit, the KDM version, the schema version and the document id), `content.kdm` (the scene's
 //! content: the replica's sealed content snapshot, its state and of its history only the seal;
 //! kition-sdk data model 7.3, rule M16b), `blobs/<sha256>` (the meshes and images the state
-//! references) and, when the editor has any, `editor.json` (the editor's state: view, selection,
-//! current frame). Writing is deterministic for the same parts.
+//! references). Nothing else: no editor state (a person's view, selection and current frame are
+//! the host's view state, Kit UI protocol section 7n), no preview image. Writing is deterministic
+//! for the same parts, so two sessions that save the same content write the same bytes.
 #![forbid(unsafe_code)]
 
 use std::io::{Cursor, Read, Write};
@@ -44,8 +45,6 @@ pub struct File {
     pub content: Vec<u8>,
     /// Blobs by their SHA-256 (lowercase hex), sorted by hash.
     pub blobs: Vec<(String, Vec<u8>)>,
-    /// The editor's state.
-    pub editor: Option<serde_json::Value>,
 }
 
 /// Why a file did not read or write.
@@ -75,7 +74,6 @@ pub fn write(file: &File) -> Result<Vec<u8>, Error> {
         "docId": file.meta.doc_id,
     }))
     .map_err(|error| invalid(error.to_string()))?;
-    let editor = file.editor.as_ref().map(serde_json::to_vec_pretty).transpose().map_err(|error| invalid(error.to_string()))?;
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     let fixed = zip::DateTime::default();
     let stored = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored).last_modified_time(fixed);
@@ -86,9 +84,6 @@ pub fn write(file: &File) -> Result<Vec<u8>, Error> {
     };
     put("mimetype", stored, MIME.as_bytes())?;
     put("meta.json", deflated, &meta)?;
-    if let Some(editor) = &editor {
-        put("editor.json", deflated, editor)?;
-    }
     put("content.kdm", deflated, &file.content)?;
     let mut blobs: Vec<&(String, Vec<u8>)> = file.blobs.iter().collect();
     blobs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -137,13 +132,6 @@ pub fn read(bytes: &[u8]) -> Result<File, Error> {
             .ok_or_else(|| invalid("meta.json names no document"))?
             .to_owned(),
     };
-    let editor = if archive.index_for_name("editor.json").is_some() {
-        let value: serde_json::Value =
-            serde_json::from_slice(&entry(&mut archive, "editor.json")?).map_err(|error| invalid(format!("editor.json: {error}")))?;
-        Some(value).filter(|value| !value.is_null())
-    } else {
-        None
-    };
     let content = entry(&mut archive, "content.kdm")?;
     let names: Vec<String> = archive.file_names().filter(|name| name.starts_with("blobs/")).map(str::to_owned).collect();
     if names.len() > MAX_BLOBS {
@@ -159,7 +147,7 @@ pub fn read(bytes: &[u8]) -> Result<File, Error> {
         blobs.push((hash, bytes));
     }
     blobs.sort_by(|a, b| a.0.cmp(&b.0));
-    Ok(File { meta, content, blobs, editor })
+    Ok(File { meta, content, blobs })
 }
 
 fn entry(archive: &mut zip::ZipArchive<Cursor<&[u8]>>, name: &str) -> Result<Vec<u8>, Error> {
@@ -181,19 +169,35 @@ mod tests {
             meta: Meta { kdm: 1, schema_version: 1, doc_id: "doc".into() },
             content: b"content bytes".to_vec(),
             blobs: vec![("a".repeat(64), b"mesh".to_vec()), ("b".repeat(64), b"image".to_vec())],
-            editor: Some(serde_json::json!({ "frame": 12 })),
         }
     }
 
     #[test]
     fn a_file_round_trips_byte_for_byte() {
-        for file in [sample(), File { editor: None, ..sample() }] {
+        for file in [sample(), File { blobs: Vec::new(), ..sample() }] {
             let bytes = write(&file).unwrap();
             assert!(sniff(&bytes));
             let back = read(&bytes).unwrap();
             assert_eq!(back, file);
             assert_eq!(write(&back).unwrap(), bytes);
         }
+    }
+
+    /// The file holds the content and what identifies it, nothing of a person's session (no
+    /// `editor.json`: view state is the host's, Kit UI protocol section 7n) and no preview image.
+    #[test]
+    fn the_file_holds_only_the_content_its_identity_and_its_blobs() {
+        let bytes = write(&sample()).unwrap();
+        let archive = zip::ZipArchive::new(Cursor::new(bytes.as_slice())).unwrap();
+        let names: Vec<&str> = archive.file_names().collect();
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        let blob_a = format!("blobs/{}", "a".repeat(64));
+        let blob_b = format!("blobs/{}", "b".repeat(64));
+        let mut wanted = vec!["content.kdm", "meta.json", "mimetype", blob_a.as_str(), blob_b.as_str()];
+        wanted.sort_unstable();
+        assert_eq!(sorted, wanted, "{names:?}");
+        assert_eq!(names.first(), Some(&"mimetype"), "mimetype comes first");
     }
 
     #[test]

@@ -87,7 +87,7 @@ fn a_group_runs_inside_another_with_its_interface_as_sockets() {
     let loose = add(&mut doc, inner.0, "group", json!({}))["node"].as_u64().unwrap();
     assert!(doc.execute("nodes.setValue", json!({ "group": inner.0, "node": loose, "id": "group", "value": outer.0 })).is_err());
     // The file keeps both groups and the outputs.
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("Groups.kscene", &bytes).unwrap();
     assert!((height(&back) - 18.0).abs() < 1e-3);
     assert_eq!(back.inspect().unwrap()["nodeGroups"][1]["outputs"][0]["name"], "Lift");
@@ -152,7 +152,7 @@ fn zones_come_in_pairs_with_their_items() {
     let inspected = doc.inspect().unwrap();
     assert!(!inspected["nodeGroups"][0]["links"].as_array().unwrap().iter().any(|link| link["fromSocket"] == "Count" || link["toSocket"] == "Count"));
     // The file keeps the zone; removing one of its nodes removes both.
-    let back = SceneDocument::open("Zones.kscene", &doc.save(None).unwrap()).unwrap();
+    let back = SceneDocument::open("Zones.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert!((height(&back) - 16.0).abs() < 1e-3);
     run(&mut doc, "nodes.removeNodes", json!({ "group": group, "nodes": [end] }));
     let inspected = doc.inspect().unwrap();

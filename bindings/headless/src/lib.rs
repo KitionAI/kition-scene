@@ -8,9 +8,8 @@ use kition_kit_server::{ErrorReason, RpcError};
 
 /// Where a `.kscene` file keeps the scene's replica (`docs/design.md` section 7.5): `content.kdm`,
 /// the document's content snapshot (its state; of its history only the seal). A fork's file holds
-/// the copy's content there, `meta.json`'s docId the copy's, the blobs that copy's state references
-/// and nothing else, and `editor.json` as it was (the view, the selection and the current frame
-/// name objects by ids the copy keeps).
+/// the copy's content there, `meta.json`'s docId the copy's, and the blobs that copy's state
+/// references; nothing else (a `.kscene` holds no editor state).
 pub struct SceneFiles;
 
 fn unsupported(error: impl std::fmt::Display) -> RpcError {
@@ -33,8 +32,7 @@ impl kition_headless::EmbeddedReplica for SceneFiles {
 
     /// `file` holding `snapshot`'s content as `content.kdm` (a copy's birth is its seal, so a copy
     /// adds no change, and none of the source's history stays), `meta.json`'s docId the
-    /// snapshot's, and only the blobs the snapshot's state references, as a save writes them;
-    /// `editor.json` is kept.
+    /// snapshot's, and only the blobs the snapshot's state references, as a save writes them.
     fn replace(&self, file: &[u8], snapshot: &[u8]) -> Result<Vec<u8>, RpcError> {
         let mut parts = kition_scene_kscene::read(file).map_err(unsupported)?;
         let mut replica = Replica::load(kition_scene_kdm::schema(), snapshot, ActorId::random()).map_err(unsupported)?;

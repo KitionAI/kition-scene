@@ -6,8 +6,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let doc = SceneDocument::create("Untitled.kscene", 320, 200).unwrap();
-    SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap()
+    let mut doc = SceneDocument::create("Untitled.kscene", 320, 200).unwrap();
+    doc.reopen("t.kscene").unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -75,7 +75,7 @@ fn images_go_into_material_slots_and_the_file() {
     assert!(r > g + 40 && r > b + 40, "the textured cube is red: {r} {g} {b}");
 
     // Saved and reopened, the image is still there; cleared, it goes.
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = doc.reopen("t.kscene").unwrap();
     assert_eq!(reopened.inspect().unwrap()["images"][0]["hash"], set["image"]);
     run(&mut doc, "material.setTexture", json!({ "material": "Material", "clear": true }));
     assert_eq!(doc.inspect().unwrap()["images"], json!([]));
@@ -86,7 +86,7 @@ fn images_go_into_material_slots_and_the_file() {
 #[test]
 fn bad_images_are_refused_and_change_nothing() {
     let mut doc = starter();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     for params in [
         json!({ "material": "Material", "base64": base64(b"not an image at all") }),
         json!({ "material": "Material", "base64": "@@@" }),
@@ -97,7 +97,7 @@ fn bad_images_are_refused_and_change_nothing() {
     ] {
         assert!(doc.execute("material.setTexture", params.clone()).is_err(), "{params} was accepted");
     }
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 }
 
 #[test]

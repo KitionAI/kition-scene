@@ -49,7 +49,7 @@ fn open(name: &str) -> (Headless<SceneDocument>, String, std::path::PathBuf) {
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(&root).unwrap();
     let root = std::fs::canonicalize(root).unwrap();
-    std::fs::write(root.join("Scene.kscene"), scene().save(None).unwrap()).unwrap();
+    std::fs::write(root.join("Scene.kscene"), scene().save_file(None).unwrap()).unwrap();
     let mut kit = kit();
     let folder = HostFolder::new(&root).unwrap();
     kit.set_host(folder.host());

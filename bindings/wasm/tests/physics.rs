@@ -49,7 +49,7 @@ fn settings_are_undoable_saved_and_inspected() {
     run(&mut doc, "physics.cloth.add", json!({ "objects": "Box", "pinGroup": "Pins" }));
     run(&mut doc, "edit.undo", json!({}));
     assert!(doc.inspect().unwrap()["physics"]["objects"][1].get("cloth").is_none(), "undo took the cloth back");
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     let physics = &reopened.inspect().unwrap()["physics"];
     assert_eq!(physics["world"]["frameEnd"], 60);
     assert_eq!(physics["objects"][1]["rigidBody"]["mass"].as_f64(), Some(2.0));

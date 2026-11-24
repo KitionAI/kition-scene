@@ -650,6 +650,15 @@ static SPECS: &[Spec] = &[
     spec("view.resize", "Resize View", &[], None, false, Needs::Always, || {
         s::of(vec![("width", s::required(s::integer("Pixels"))), ("height", s::required(s::integer("Pixels")))])
     }),
+    // The person's view state, which the editor keeps with the host (Kit UI protocol 7n), never in
+    // the file.
+    spec("view.state", "View State", &[], None, false, Needs::Always, none),
+    spec("view.restore", "Restore View State", &[], None, false, Needs::Always, || {
+        s::of(vec![(
+            "state",
+            s::required(serde_json::json!({ "type": "json", "description": "A view state view.state answered, in this session or another" })),
+        )])
+    }),
 ];
 
 /// Whether `file.import` names a `.blend` file (by path or by `format`).
@@ -832,6 +841,11 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
     }
     match command {
         "view.renderedStep" => return doc.viewport_trace_step(params),
+        "view.state" => return Ok(json!({ "state": doc.view_state() })),
+        "view.restore" => {
+            let state = params.get("state").ok_or_else(|| bad("`state` is required"))?;
+            return Ok(json!({ "restored": doc.restore_view_state(state) }));
+        }
         "edit.undo" => return undo(doc, params),
         "edit.redo" => return redo(doc, params),
         _ => {}

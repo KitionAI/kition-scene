@@ -41,7 +41,7 @@ fn released_cameras_keep_their_auto_frames_and_new_settings_round_trip() {
     assert_eq!(camera(&doc, "Camera"), before);
     run(&mut doc, "edit.redo", json!({}));
     assert_eq!(camera(&doc, "Camera"), changed);
-    let reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("Saved.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(camera(&reopened, "Camera"), changed);
     assert_eq!(camera(&reopened, "Ortho"), ortho);
     assert_eq!(reopened.scene().object_named("Cube").unwrap().particles, particles);
@@ -60,10 +60,10 @@ fn invalid_fit_and_height_are_atomic_and_described() {
         let mut params = params;
         params["object"] = json!("Camera");
         params["lens"] = json!(77);
-        let bytes = doc.save(None).unwrap();
+        let bytes = doc.save_file(None).unwrap();
         let details = doc.inspect().unwrap();
         assert!(doc.execute("camera.set", params).is_err());
-        assert_eq!(doc.save(None).unwrap(), bytes);
+        assert_eq!(doc.save_file(None).unwrap(), bytes);
         assert_eq!(doc.inspect().unwrap(), details);
     }
     let command = doc.commands().into_iter().find(|command| command.id == "camera.set").unwrap();

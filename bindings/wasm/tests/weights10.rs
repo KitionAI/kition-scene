@@ -39,9 +39,9 @@ fn partial_weights_are_typed_atomic_undoable_and_persistent() {
     assert_eq!(initial.as_object().unwrap().len(), 7);
     assert!(initial.as_object().unwrap().values().all(|value| value.as_f64() == Some(1.0)));
     assert_eq!(initial, weights(&doc, "Soft", "softBody"));
-    let before_multi = doc.save(None).unwrap();
+    let before_multi = doc.save_file(None).unwrap();
     assert!(doc.execute("physics.cloth.set", json!({"objects":["Cloth","Soft"],"effectorWeights":{"wind":0}})).is_err());
-    assert_eq!(doc.save(None).unwrap(), before_multi, "a mixed valid/invalid target list is one atomic edit");
+    assert_eq!(doc.save_file(None).unwrap(), before_multi, "a mixed valid/invalid target list is one atomic edit");
     for id in ["physics.cloth.add", "physics.cloth.set", "physics.softBody.add", "physics.softBody.set"] {
         let command = doc.commands().into_iter().find(|command| command.id == id).unwrap();
         assert!(command.mutates);
@@ -60,7 +60,7 @@ fn partial_weights_are_typed_atomic_undoable_and_persistent() {
         assert_eq!(changed["wind"].as_f64(), Some(200.0));
         assert_eq!(changed["all"].as_f64(), Some(0.0));
         assert_eq!(changed["force"].as_f64(), Some(1.0));
-        let before = doc.save(None).unwrap();
+        let before = doc.save_file(None).unwrap();
         for invalid in [
             json!(null),
             json!([]),
@@ -75,14 +75,14 @@ fn partial_weights_are_typed_atomic_undoable_and_persistent() {
         ] {
             let result = doc.execute(&command, json!({"objects":name,"effectorWeights":invalid}));
             assert!(result.is_err(), "{invalid}");
-            assert_eq!(doc.save(None).unwrap(), before, "invalid edit must be atomic: {invalid}");
+            assert_eq!(doc.save_file(None).unwrap(), before, "invalid edit must be atomic: {invalid}");
         }
         run(&mut doc, "edit.undo", json!({}));
         assert_eq!(weights(&doc, name, system)["all"].as_f64(), Some(1.0));
         run(&mut doc, "edit.redo", json!({}));
         assert_eq!(weights(&doc, name, system), changed);
     }
-    let reopened = SceneDocument::open("Weights.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("Weights.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(weights(&doc, "Cloth", "cloth"), weights(&reopened, "Cloth", "cloth"));
     assert_eq!(weights(&doc, "Soft", "softBody"), weights(&reopened, "Soft", "softBody"));
 }
@@ -110,7 +110,7 @@ fn each_system_invalidates_and_replays_its_weighted_bake_without_changing_the_ot
     assert_eq!(track(&doc, "Cloth"), cloth);
     run(&mut doc, "edit.redo", json!({}));
     run(&mut doc, "physics.softBody.set", json!({"objects":"Soft","effectorWeights":{"gravity":0,"wind":0}}));
-    let mut reopened = SceneDocument::open("Weights.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut reopened = SceneDocument::open("Weights.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(state(&reopened)["state"], "none");
     run(&mut reopened, "physics.bake", json!({"wait":false}));
     for _ in 0..4 {
@@ -135,7 +135,7 @@ fn failed_bakes_clear_partial_results_stop_following_and_allow_explicit_recovery
             let (other_name, other_system) = if system == "cloth" { ("Soft", "softBody") } else { ("Cloth", "cloth") };
             run(&mut doc, &format!("physics.{other_system}.set"), json!({"objects":other_name,"effectorWeights":{"all":0,"gravity":0}}));
             run(&mut doc, &format!("physics.{system}.set"), json!({"objects":name,"effectorWeights":{"all":200,"vortex":200}}));
-            let before = doc.save(None).unwrap();
+            let before = doc.save_file(None).unwrap();
             let result = if wait {
                 doc.execute("physics.bake", json!({}))
             } else {
@@ -150,7 +150,7 @@ fn failed_bakes_clear_partial_results_stop_following_and_allow_explicit_recovery
             assert_eq!(state(&doc)["frames"], 0);
             assert_eq!(state(&doc)["error"], error);
             assert!(doc.scene().physics_cache.baked.is_none());
-            assert_eq!(doc.save(None).unwrap(), before, "a failed derived bake does not edit the document");
+            assert_eq!(doc.save_file(None).unwrap(), before, "a failed derived bake does not edit the document");
             doc.scene().validate().unwrap();
             run(&mut doc, "frame.set", json!({"frame":12}));
             run(&mut doc, "physics.bakeStep", json!({}));
@@ -178,7 +178,7 @@ fn failed_initial_recording_does_not_retain_or_restart_a_stale_bake() {
         }
         run(&mut doc, "object.transform", json!({"objects":"Cloth","scale":[0,1,1]}));
         doc.scene().validate().unwrap();
-        let before = doc.save(None).unwrap();
+        let before = doc.save_file(None).unwrap();
         if !automatic {
             let error = doc.execute("physics.bake", json!({"wait":false})).unwrap_err();
             assert!(error.starts_with("failed:"));
@@ -186,7 +186,7 @@ fn failed_initial_recording_does_not_retain_or_restart_a_stale_bake() {
         assert_eq!(state(&doc)["state"], "failed");
         assert_eq!(state(&doc)["frames"], 0);
         assert!(doc.scene().physics_cache.baked.is_none());
-        assert_eq!(doc.save(None).unwrap(), before);
+        assert_eq!(doc.save_file(None).unwrap(), before);
         run(&mut doc, "object.transform", json!({"objects":"Cloth","scale":[1,1,1]}));
         assert_eq!(state(&doc)["state"], "failed");
         run(&mut doc, "physics.bakeStep", json!({}));

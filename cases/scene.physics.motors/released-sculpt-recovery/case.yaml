@@ -1,14 +1,14 @@
 format: 1
 id: scene.physics.motors/released-sculpt-recovery
 feature: scene.physics.motors
-intent: Recovering a sculpted lower subdivision level in a released scene preserves its motor and rigid body, invalidates derived physics, and survives one-step undo, redo, saving and reopening without losing the original sculpted surface.
+intent: In a scene opened from a .kscene with a sculpted multiresolution cube that is a rigid body, a motor added to drive it and the recovery of a sculpted lower subdivision level preserve the motor and rigid body, invalidates derived physics, and survives one-step undo, redo, saving and reopening without losing the original sculpted surface.
 layer: gate
 dimension: conversion
 source:
   kind: reference-sample
   from: bindings/wasm/tests/fixtures/create-released-0.15.0.mjs
   license: owned
-  note: The input is a scene saved by an earlier published Scene engine, without rigid body motors or multiresolution recovery.
+  note: The input is a current .kscene (content snapshot) of the scene create-released-0.15.0.mjs builds, rewritten by the current engine with its content kept; despite its name it is not a file saved by an earlier release (nothing was released, and no older file is read).
 input:
   - repo:bindings/wasm/tests/fixtures/released-0.15.0.kscene
 steps:

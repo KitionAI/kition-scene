@@ -45,7 +45,7 @@ fn leaves(path: &str, a: &Value, b: &Value, out: &mut Vec<String>) {
 /// The mismatches between `doc` and its saved file opened again: the object model's, then the
 /// engine scene's.
 fn mismatches(doc: &mut SceneDocument) -> Vec<String> {
-    let bytes = doc.save(Some(NAME)).unwrap();
+    let bytes = doc.save_file(Some(NAME)).unwrap();
     let mut again = SceneDocument::open(NAME, &bytes).unwrap();
     let schema = kition_scene_kdm::schema();
     let diff = reread::diff_paired(&schema, &state(doc), &state(&mut again)).to_json();
@@ -210,17 +210,17 @@ fn released_files_in_memory_are_what_their_saved_files_open_as() {
 fn derived_values_in_memory_are_those_of_the_saved_file() {
     let derived = |doc: &SceneDocument| serde_json::to_value(doc.derived(&[], &[]).unwrap()).unwrap();
     let mut found = Vec::new();
-    let mut check = |label: &str, doc: &SceneDocument| {
-        let again = SceneDocument::open(NAME, &doc.save(Some(NAME)).unwrap()).unwrap();
+    let mut check = |label: &str, doc: &mut SceneDocument| {
+        let again = SceneDocument::open(NAME, &doc.save_file(Some(NAME)).unwrap()).unwrap();
         let mut lines = Vec::new();
         leaves("derived", &derived(doc), &derived(&again), &mut lines);
         found.extend(lines.into_iter().map(|line| format!("{label}: {line}")));
     };
     let mut doc = SceneDocument::create(NAME, 320, 180).unwrap();
-    check("open/save", &doc);
+    check("open/save", &mut doc);
     for (command, params) in steps() {
         doc.execute(command, params.clone()).unwrap_or_else(|error| panic!("{command}: {error}"));
-        check(command, &doc);
+        check(command, &mut doc);
     }
     let values = derived(&doc);
     assert!(values.as_array().unwrap().iter().any(|object| object["values"]["topology"].is_string()), "{values}");
@@ -229,8 +229,8 @@ fn derived_values_in_memory_are_those_of_the_saved_file() {
     files.retain(|path| path.extension().is_some_and(|extension| extension == "kscene"));
     files.sort();
     for path in &files {
-        let doc = SceneDocument::open(NAME, &std::fs::read(path).unwrap()).unwrap();
-        check(&path.file_name().unwrap().to_string_lossy(), &doc);
+        let mut doc = SceneDocument::open(NAME, &std::fs::read(path).unwrap()).unwrap();
+        check(&path.file_name().unwrap().to_string_lossy(), &mut doc);
     }
     for line in &found {
         eprintln!("MISMATCH {line}");

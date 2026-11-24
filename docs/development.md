@@ -65,7 +65,8 @@ prepared scene between samples while keeping picking and overlays at full resolu
 
 A `.kscene` file is a ZIP containing `mimetype`, `meta.json` (format, kit, KDM and schema versions,
 document id), `content.kdm` (the scene's content, no history: the history stays with the host),
-content-addressed mesh and image data under `blobs/`, and local view settings in `editor.json`.
+and content-addressed mesh and image data under `blobs/`. The view, selection and current frame
+are the person's view state, which the host keeps (Kit UI protocol section 7n), not the file's.
 The engine contract is 2: the scene is a KDM replica.
 
 ## Take the README screenshots

@@ -130,7 +130,7 @@ async fn receipts_in_space() {
     doc.execute("material.new", json!({ "name": "Shared", "assign": false })).unwrap();
     let fifty: Vec<String> = (0..50).map(|n| format!("K{n}")).collect();
     doc.execute("material.assign", json!({ "material": "Shared", "objects": fifty })).unwrap();
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let f = Fixture::from_bytes(&bytes, kition_kits::tools::CallOptions::default());
     let (details, _) = f.inspect().await;
     let names = ids_by_name(&details);

@@ -31,7 +31,7 @@ fn workspace(name: &str) -> (std::path::PathBuf, HostFolder) {
     doc.execute("object.transform", json!({ "objects": "Cube", "location": [2, 0, 0] })).unwrap();
     doc.execute("anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 25 })).unwrap();
     doc.execute("frame.set", json!({ "frame": 1 })).unwrap();
-    std::fs::write(root.join("Scene.kscene"), doc.save(None).unwrap()).unwrap();
+    std::fs::write(root.join("Scene.kscene"), doc.save_file(None).unwrap()).unwrap();
     let folder = HostFolder::new(&root).unwrap();
     (root, folder)
 }

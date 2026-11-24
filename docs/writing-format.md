@@ -313,6 +313,9 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `view.resize` (reads): Sets the viewport size in pixels, which previews and the camera view use.
   - `height` integer, required, Pixels
   - `width` integer, required, Pixels
+- `view.state` (reads): Answers the person's view state (viewport, shading, grid and overlays, selection, current frame, UV options), which the editor keeps with the host; never part of the file. No parameters.
+- `view.restore` (reads): Puts back a view state `view.state` answered, leaving out objects the scene no longer has; a state of another version changes nothing. No edit.
+  - `state` json, required, A view state view.state answered, in this session or another
 - `material.setTexture` (writes): Sets an image (workspace `path` or base64) as a texture slot (base color, normal, roughness, …) of `material`, or clears it.
   - `base64` string, The image's bytes, instead of a path
   - `clear` boolean, Take the image out of the slot

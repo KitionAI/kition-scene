@@ -6,8 +6,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn editing_cube() -> SceneDocument {
-    let doc = SceneDocument::create("Untitled.kscene", 400, 300).unwrap();
-    let mut doc = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut doc = SceneDocument::create("Untitled.kscene", 400, 300).unwrap();
+    let mut doc = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
     run(&mut doc, "mode.set", json!({ "mode": "edit" }));
     doc
@@ -47,7 +47,7 @@ fn seams_unwrap_and_pins() {
     // The file keeps seams and pins.
     run(&mut doc, "mesh.select", json!({ "vertices": [0, 1, 2, 3] }));
     run(&mut doc, "mesh.markSeam", json!({}));
-    let mut reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     run(&mut reopened, "select.objects", json!({ "objects": "Cube" }));
     run(&mut reopened, "mode.set", json!({ "mode": "edit" }));
     let layout = run(&mut reopened, "uv.layout", json!({ "all": true }));
@@ -142,13 +142,13 @@ fn the_knife_and_slide_tools() {
     let ring = run(&mut doc, "mesh.loopCut", json!({ "edge": [0, 1] }))["vertices"].clone();
     run(&mut doc, "mesh.select", json!({ "vertices": ring }));
     doc.select_tool("slide", 1.0).unwrap();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     doc.pointer(&pointer(PointerAction::Down, 100.0, 100.0)).unwrap();
     doc.pointer(&pointer(PointerAction::Drag, 200.0, 100.0)).unwrap();
     doc.pointer(&pointer(PointerAction::Up, 200.0, 100.0)).unwrap();
-    assert_ne!(doc.save(None).unwrap(), before);
+    assert_ne!(doc.save_file(None).unwrap(), before);
     run(&mut doc, "edit.undo", json!({}));
-    let back = doc.save(None).unwrap();
+    let back = doc.save_file(None).unwrap();
     assert_eq!(
         SceneDocument::open("a.kscene", &back).unwrap().inspect().unwrap()["objects"],
         SceneDocument::open("b.kscene", &before).unwrap().inspect().unwrap()["objects"]

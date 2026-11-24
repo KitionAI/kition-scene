@@ -7,8 +7,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap()
+    let mut made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
+    SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -34,7 +34,7 @@ fn the_opening_takes_blades_a_turn_and_a_ratio() {
         assert!(doc.execute("camera.set", json!({ "object": "Camera", "blades": blades })).is_err(), "{blades} blades");
     }
     assert_eq!(camera(&doc)["blades"].as_u64(), Some(6), "a refused change changes nothing");
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(camera(&reopened)["ratio"].as_f64(), Some(1.4));
     assert_eq!(trace(&mut doc)["done"], true);
     run(&mut doc, "edit.undo", json!({}));
@@ -54,7 +54,7 @@ fn motion_blur_is_a_render_setting() {
     assert!(doc.execute("render.set", json!({ "shutter": 0 })).is_err());
     assert!(doc.execute("render.set", json!({ "shutterPosition": "middle" })).is_err());
     assert_eq!(doc.inspect().unwrap()["render"]["shutter"].as_f64(), Some(1.5));
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.inspect().unwrap()["render"]["shutterPosition"], "start");
     // A keyed cube renders blurred, and the render leaves the scene as it was.
     run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
@@ -90,6 +90,6 @@ fn shader_groups_give_materials_and_the_world_their_volumes() {
     assert_eq!(doc.inspect().unwrap()["world"]["volume"], Value::Null);
     run(&mut doc, "material.set", json!({ "material": "Material", "shader": null }));
     assert_eq!(doc.inspect().unwrap()["materials"][0]["shader"], Value::Null);
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.inspect().unwrap()["nodeGroups"].as_array().unwrap().len(), 2);
 }

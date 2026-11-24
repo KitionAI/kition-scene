@@ -32,7 +32,7 @@ fn material_json_members_refuse_out_of_range_path_and_whole_writes_atomically() 
     ] {
         for value in values {
             for whole in [false, true] {
-                let before = doc.save(None).unwrap();
+                let before = doc.save_file(None).unwrap();
                 let data = KitSessionDocument::session(&doc).replica().get(&record, "data").unwrap();
                 let (field, value) = if whole {
                     let mut data = data;
@@ -52,7 +52,7 @@ fn material_json_members_refuse_out_of_range_path_and_whole_writes_atomically() 
                     )
                     .unwrap_err();
                 assert_eq!(error.code, kition_kit::kdm::batch::BatchErrorCode::InvalidValue, "{error}");
-                assert_eq!(doc.save(None).unwrap(), before, "{member}, whole={whole}");
+                assert_eq!(doc.save_file(None).unwrap(), before, "{member}, whole={whole}");
             }
         }
     }
@@ -72,7 +72,7 @@ fn direct_batch_delete_refreshes_the_cache_before_the_next_command() {
     assert!(doc.scene().node_groups.is_empty(), "the cached scene still holds the deleted group");
     let replacement = doc.execute("nodes.newGroup", json!({"name":"G","tree":"shader"})).unwrap()["group"].as_u64().unwrap() as u32;
     assert_eq!(doc.scene().node_group(replacement).unwrap().name, "G", "name allocation must read the refreshed cache");
-    let reopened = SceneDocument::open("Scene.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("Scene.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.scene().node_groups.len(), 1);
     assert_eq!(reopened.scene().node_group(replacement).unwrap().name, "G");
 }
@@ -133,9 +133,9 @@ fn root_json_limits_refuse_invalid_counts_and_factors_in_direct_batches() {
         ("timeline.fps", json!(1001)),
         ("world.strength", json!(-1)),
     ] {
-        let before = doc.save(None).unwrap();
+        let before = doc.save_file(None).unwrap();
         let error = session_batch(&mut doc, &json!({"ops":[{"op":"set","target":"root","field":field,"value":invalid}]}), false).unwrap_err();
         assert_eq!(error.code, kition_kit::kdm::batch::BatchErrorCode::InvalidValue, "{error}");
-        assert_eq!(doc.save(None).unwrap(), before, "{field}");
+        assert_eq!(doc.save_file(None).unwrap(), before, "{field}");
     }
 }

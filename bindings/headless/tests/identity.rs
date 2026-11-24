@@ -3,7 +3,7 @@
 //! content (`content.kdm`, a content snapshot with no history, `docs/design.md` section 7.5), so a
 //! byte copy of a file is the same document. A host reads the identity a file carries without parsing the scene, and forks a file
 //! into a new document: a new docId, the same objects, ids and values, no history, only the blobs
-//! the scene references, and `editor.json` as it was.
+//! the scene references, and nothing of a person's session (a `.kscene` holds no editor state).
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
@@ -47,10 +47,10 @@ fn scene() -> Vec<u8> {
     let mut doc = SceneDocument::create("Plan.kscene", 320, 180).unwrap();
     doc.execute("add.cube", json!({ "name": "Kept", "location": [3, 0, 0] })).unwrap();
     doc.execute("add.uvSphere", json!({ "name": SECRET, "location": [6, 0, 0] })).unwrap();
-    let first = doc.save(None).unwrap();
+    let first = doc.save_file(None).unwrap();
     let mut doc = SceneDocument::open("Plan.kscene", &first).unwrap();
     doc.execute("edit.delete", json!({ "objects": [SECRET] })).unwrap();
-    let saved = doc.save(None).unwrap();
+    let saved = doc.save_file(None).unwrap();
     assert!(holds(&kition_kit::session::__snapshot(&doc).unwrap(), SECRET), "the control: the session's history holds the deleted name");
     let mut parts = kition_scene_kscene::read(&saved).unwrap();
     parts.blobs.push((sha256(STRAY), STRAY.to_vec()));
@@ -117,10 +117,14 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     assert_ne!(draft["documentId"], state["documentId"], "{draft}");
     kit.request("document.close", json!({ "documentId": state["documentId"] }), LIMIT).await.unwrap();
 
-    // The fork's file: the editor's state kept, the referenced blobs and no others.
+    // The fork's file: the referenced blobs and no others, and nothing of a person's session.
     let fork_bytes = std::fs::read(dir.join("Fork.kscene")).unwrap();
     let (source, forked) = (kition_scene_kscene::read(&source_bytes).unwrap(), kition_scene_kscene::read(&fork_bytes).unwrap());
-    assert_eq!(forked.editor, source.editor, "editor.json is kept");
+    let entries =
+        |bytes: &[u8]| zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap().file_names().map(str::to_owned).collect::<Vec<_>>();
+    for name in entries(&fork_bytes) {
+        assert!(["mimetype", "meta.json", "content.kdm"].contains(&name.as_str()) || name.starts_with("blobs/"), "the fork's file holds {name}");
+    }
     assert_eq!(forked.meta.doc_id, fork_id, "meta.json's docId is the fork's");
     assert_eq!(forked.meta.schema_version, source.meta.schema_version);
     assert!(
@@ -138,7 +142,7 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     assert_eq!(opened.doc_id(), fork_id);
     let count = opened.scene().objects.len();
     opened.execute("add.cube", json!({ "name": "New", "location": [0, 6, 0] })).unwrap();
-    let edited = opened.save(None).unwrap();
+    let edited = opened.save_file(None).unwrap();
     let reopened = SceneDocument::open("Fork.kscene", &edited).unwrap();
     assert_eq!((reopened.doc_id(), reopened.scene().objects.len()), (fork_id.clone(), count + 1));
 
@@ -177,7 +181,6 @@ async fn an_unsaved_scene_has_no_identity_and_bytes_that_are_no_scene_are_refuse
         meta: kition_scene_kscene::Meta { kdm: 1, schema_version: 1, doc_id: "damaged".into() },
         content: b"not a replica".to_vec(),
         blobs: Vec::new(),
-        editor: None,
     };
     std::fs::write(dir.join("Damaged.kscene"), kition_scene_kscene::write(&damaged).unwrap()).unwrap();
     for name in ["Text", "Damaged"] {

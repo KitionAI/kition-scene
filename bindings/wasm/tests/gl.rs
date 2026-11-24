@@ -8,8 +8,8 @@ use kition_scene_model::hdr;
 use serde_json::{Value, json};
 
 fn doc() -> SceneDocument {
-    let doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap()
+    let mut doc = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
+    doc.reopen("t.kscene").unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {

@@ -36,10 +36,10 @@ fn vertex(layout: &Value, vertex: u32) -> [f64; 2] {
 fn live_preview_is_readonly_and_commit_is_one_undo_step() {
     let mut doc = chart();
     let before = layout(&mut doc);
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let inspected = doc.inspect().unwrap();
     let mut preview = run(&mut doc, "uv.preview", json!({"offset":[0.08,0.04]}));
-    assert_eq!(doc.save(None).unwrap(), bytes);
+    assert_eq!(doc.save_file(None).unwrap(), bytes);
     assert_eq!(doc.inspect().unwrap(), inspected);
     assert_eq!(vertex(&preview, 0), vertex(&before, 0));
     let a = vertex(&preview, 4);
@@ -56,7 +56,7 @@ fn live_preview_is_readonly_and_commit_is_one_undo_step() {
     assert_eq!(layout(&mut doc)["faces"], before["faces"]);
     run(&mut doc, "edit.redo", json!({}));
     assert_eq!(layout(&mut doc)["faces"], committed["faces"]);
-    let mut reopened = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut reopened = doc.reopen("Saved.kscene").unwrap();
     run(&mut reopened, "mode.set", json!({"mode":"edit"}));
     let reopened = layout(&mut reopened);
     assert_eq!(reopened["liveUnwrap"], true);
@@ -68,8 +68,8 @@ fn live_preview_is_readonly_and_commit_is_one_undo_step() {
 
 #[test]
 fn settings_are_local_and_invalid_commands_preserve_all_state() {
-    let doc = chart();
-    let mut doc = SceneDocument::open("Clean.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut doc = chart();
+    let mut doc = doc.reopen("Clean.kscene").unwrap();
     run(&mut doc, "mode.set", json!({"mode":"edit"}));
     run(&mut doc, "uv.liveUnwrap", json!({"on":false,"method":"conformal","iterations":12}));
     assert!(!doc.dirty());
@@ -81,10 +81,10 @@ fn settings_are_local_and_invalid_commands_preserve_all_state() {
         ("uv.preview", json!({"offset":[1e300,0]})),
         ("uv.translate", json!({"offset":[1e300,0]})),
     ] {
-        let before = doc.save(None).unwrap();
+        let before = doc.save_file(None).unwrap();
         let view = doc.inspect().unwrap();
         assert!(doc.execute(command, params).is_err(), "{command}");
-        assert_eq!(doc.save(None).unwrap(), before);
+        assert_eq!(doc.save_file(None).unwrap(), before);
         assert_eq!(doc.inspect().unwrap(), view);
     }
     for id in ["uv.preview", "uv.liveUnwrap"] {
@@ -120,9 +120,9 @@ fn source_tokens_ignore_display_changes_and_reject_changed_mesh_or_selection() {
     run(&mut doc, "mesh.select", json!({"vertices":[0]}));
     assert_ne!(layout(&mut doc)["source"], token);
     for command in ["uv.preview", "uv.translate"] {
-        let before = doc.save(None).unwrap();
+        let before = doc.save_file(None).unwrap();
         assert!(doc.execute(command, json!({"offset":[0.03,0.02],"source":token})).is_err());
-        assert_eq!(doc.save(None).unwrap(), before);
+        assert_eq!(doc.save_file(None).unwrap(), before);
     }
 }
 
@@ -142,7 +142,7 @@ fn minimum_stretch_unwrap_is_one_saved_undoable_command() {
     assert_eq!(layout(&mut doc)["faces"], before["faces"]);
     run(&mut doc, "edit.redo", json!({}));
     assert_eq!(layout(&mut doc)["faces"], after["faces"]);
-    let mut back = SceneDocument::open("Unwrapped.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut back = doc.reopen("Unwrapped.kscene").unwrap();
     run(&mut back, "mode.set", json!({"mode":"edit"}));
     let reopened = layout(&mut back);
     for (a, b) in reopened["faces"].as_array().unwrap().iter().zip(after["faces"].as_array().unwrap()) {

@@ -7,8 +7,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
-    let mut doc = SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap();
+    let mut made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
+    let mut doc = SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap();
     run(&mut doc, "render.set", json!({ "width": 96, "height": 54 }));
     doc
 }
@@ -136,7 +136,7 @@ fn compositing_and_geometry_groups_keep_to_their_own_nodes() {
 fn compositing_is_saved_undone_and_removed_with_its_group() {
     let mut doc = starter();
     let (group, exposure) = with_exposure(&mut doc, -1.0);
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     let inspected = reopened.inspect().unwrap();
     assert_eq!(inspected["render"]["compositor"], group);
     let saved = inspected["nodeGroups"].as_array().unwrap().iter().find(|item| item["id"] == group).unwrap();
@@ -184,7 +184,7 @@ fn an_image_node_lays_a_picture_over_the_render_and_keeps_it_in_the_file() {
     let middle = (height - 1) / 2;
     assert_eq!(at(width / 2 - 1, middle), [255, 0, 0, 255]);
     assert_ne!(at(width / 2, middle)[..3], [255, 0, 0]);
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert!(reopened.inspect().unwrap()["images"].as_array().unwrap().iter().any(|item| item["hash"] == hash.as_str()));
 }
 

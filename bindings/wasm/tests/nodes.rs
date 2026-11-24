@@ -63,7 +63,7 @@ fn a_scatter_tree_is_built_saved_and_undone() {
     assert!(doc.execute("nodes.link", json!({ "from": join, "fromSocket": "Geometry", "to": instance, "toSocket": "Points" })).is_err());
     assert!(doc.execute("nodes.link", json!({ "from": scatter, "fromSocket": "Normal", "to": realize, "toSocket": "Geometry" })).is_err());
     // The file keeps the group, and the modifier still uses it.
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("Nodes.kscene", &bytes).unwrap();
     assert_eq!(evaluated(&back), (vertices, faces));
     // Removing the realize node unlinks it; undo puts both back.

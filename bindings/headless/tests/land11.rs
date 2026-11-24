@@ -9,7 +9,7 @@ use serde_json::json;
 async fn a_material_taking_an_objects_name_does_not_relocate_the_object() {
     let mut doc = scene_doc(2);
     let material = doc.execute("material.new", json!({"name":"M","assign":false})).unwrap()["material"].clone();
-    let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+    let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
     let (details, basis) = f.inspect().await;
     let cube = ids_by_name(&details)["C0"];
     let other = f.call_by("other", "batch", json!({"ops":[{"op":"set","target":material,"field":"name","value":"C0"}]})).await;
@@ -22,7 +22,7 @@ async fn a_material_taking_an_objects_name_does_not_relocate_the_object() {
 async fn disappeared_material_name(deleted: bool) {
     let mut doc = scene_doc(2);
     let material = doc.execute("material.new", json!({"name":"M","assign":false})).unwrap()["material"].clone();
-    let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+    let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
     let (_, basis) = f.inspect().await;
     let op = if deleted { json!({"op":"delete","target":material}) } else { json!({"op":"set","target":material,"field":"name","value":"Away"}) };
     let other = f.call_by("other", "batch", json!({"ops":[op]})).await;
@@ -70,7 +70,7 @@ async fn a_parent_rename_carries_no_world_transforms() {
         let names = ids_by_name(&doc.inspect().unwrap());
         let parent = names["C1"];
         doc.execute("object.parent", json!({"objects":[names["C0"]],"parent":parent})).unwrap();
-        let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+        let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (_, basis) = f.inspect().await;
         let params = json!({"object":parent,"name":"Renamed"});
         if outside {

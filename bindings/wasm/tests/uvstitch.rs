@@ -6,8 +6,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn editing_cube() -> SceneDocument {
-    let doc = SceneDocument::create("Untitled.kscene", 400, 300).unwrap();
-    let mut doc = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut doc = SceneDocument::create("Untitled.kscene", 400, 300).unwrap();
+    let mut doc = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
     run(&mut doc, "mode.set", json!({ "mode": "edit" }));
     doc

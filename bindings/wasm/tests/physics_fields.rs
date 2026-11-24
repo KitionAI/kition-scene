@@ -58,7 +58,7 @@ fn a_hinge_swings_the_bob_and_lets_go_of_deleted_bodies() {
     assert!((bob[0] - 0.33).abs() < 0.1 && (bob[2] + 1.97).abs() < 0.1 && bob[1].abs() < 1e-3, "{bob:?}");
     // Limits in degrees, kept in the file.
     run(&mut doc, "physics.constraint.set", json!({ "objects": "Hinge", "angleLimit": [-30, 30] }));
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     let limit = physics_of(&reopened, "Hinge")["rigidConstraint"]["angleLimit"].clone();
     assert!((limit[0].as_f64().unwrap() + 30f64.to_radians()).abs() < 1e-5, "{limit}");
     // Deleting a body lets go of it; undo brings it back.
@@ -147,6 +147,6 @@ fn cloth_self_collision_and_density_groups_are_settings() {
     let stats = run(&mut doc, "particles.stats", json!({ "frame": 2 }));
     assert_eq!(stats["alive"], 200);
     assert!(stats["meanPosition"][0].as_f64().unwrap() > 0.4, "{stats}");
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.inspect().unwrap()["particles"][0]["densityGroup"], "Dense");
 }

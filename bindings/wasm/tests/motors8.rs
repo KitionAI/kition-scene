@@ -76,7 +76,7 @@ fn motor_settings_undo_redo_and_reopen_then_rebake() {
     run(&mut doc, "physics.bake", json!({}));
     assert!(x(&doc) < 0.03);
     let saved_settings = settings(&doc);
-    let mut back = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut back = doc.reopen("Saved.kscene").unwrap();
     assert_eq!(settings(&back), saved_settings);
     assert_eq!(back.inspect().unwrap()["physics"]["state"], "none", "bakes are derived, never stored");
     run(&mut back, "physics.bake", json!({}));
@@ -89,7 +89,7 @@ fn motor_settings_undo_redo_and_reopen_then_rebake() {
 #[test]
 fn invalid_motor_edits_are_atomic_including_multi_object_operations() {
     let mut doc = setup();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     for patch in [
         json!({"linearMaxImpulse":-1}),
         json!({"angularMaxImpulse":1e30}),
@@ -102,10 +102,10 @@ fn invalid_motor_edits_are_atomic_including_multi_object_operations() {
         let mut params = json!({"objects":"Motor", "linearMotor":true});
         params.as_object_mut().unwrap().extend(patch.as_object().unwrap().clone());
         assert!(doc.execute("physics.constraint.set", params).is_err());
-        assert_eq!(doc.save(None).unwrap(), before);
+        assert_eq!(doc.save_file(None).unwrap(), before);
     }
     assert!(doc.execute("physics.constraint.set", json!({"objects":["Motor","Body"],"linearMotor":true})).is_err());
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 }
 
 #[test]
@@ -123,7 +123,7 @@ fn released_015_file_takes_motor_settings_without_new_kdm_fields() {
     assert!(doc.scene().object_named("Motor").unwrap().physics.as_ref().is_none_or(|p| p.rigid_constraint.is_none()));
     run(&mut doc, "edit.redo", json!({}));
     assert_eq!(settings(&doc), driven);
-    let mut back = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut back = doc.reopen("Saved.kscene").unwrap();
     assert_eq!(settings(&back), driven);
     assert_eq!(back.scene().object_named("Cube").unwrap().data, original);
     run(&mut back, "physics.bake", json!({}));

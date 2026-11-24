@@ -19,8 +19,8 @@ fn number(value: &Value) -> f64 {
     value.as_f64().unwrap_or_else(|| panic!("not a number: {value}"))
 }
 
-fn reopen(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("A.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopen(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("A.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 /// The cube's location at `frame`.
@@ -76,7 +76,7 @@ fn strips_play_actions_and_survive_saving() {
     run(&mut doc, "edit.undo", json!({}));
     assert!((at(&mut doc, 31.0)[0] - 1.5).abs() < 1e-4, "muting is one undo step");
 
-    let mut back = reopen(&doc);
+    let mut back = reopen(&mut doc);
     assert_eq!(object(&back.inspect().unwrap(), "Cube")["nla"], object(&doc.inspect().unwrap(), "Cube")["nla"]);
     assert!((at(&mut back, 31.0)[0] - 1.5).abs() < 1e-4);
 }
@@ -167,7 +167,7 @@ fn modifiers_reshape_a_channel_and_survive_saving() {
     assert!(listed["samples"].as_array().unwrap().len() > 100);
     let error = doc.execute("graph.setModifier", with(json!({ "modifier": 1, "coefficients": [] }))).unwrap_err();
     assert!(error.starts_with("invalid-params"), "{error}");
-    let mut back = reopen(&doc);
+    let mut back = reopen(&mut doc);
     assert_eq!(back.inspect().unwrap()["animation"]["channels"][0]["modifiers"], listed["modifiers"]);
     assert!((at(&mut back, 16.0)[0] - 3.0).abs() < 1e-4);
     run(&mut doc, "graph.removeModifier", with(json!({ "modifier": 0 })));
@@ -186,7 +186,7 @@ fn a_released_0_11_0_file_takes_tracks_and_modifiers() {
     run(&mut doc, "nla.tweak", json!({ "object": "Cube", "track": 0, "strip": 0 }));
     run(&mut doc, "graph.addModifier", json!({ "target": cube, "property": "location", "index": 2, "type": "noise", "strength": 0.5 }));
     run(&mut doc, "nla.tweakExit", json!({ "object": "Cube" }));
-    let mut back = reopen(&doc);
+    let mut back = reopen(&mut doc);
     let inspected = back.inspect().unwrap();
     assert_eq!(object(&inspected, "Ball")["nla"]["tracks"][0]["strips"][0]["blendIn"], 5.0);
     assert_eq!(object(&inspected, "Cube")["nla"]["tracks"][0]["strips"][0]["action"], "CubeAction");

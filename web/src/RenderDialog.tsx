@@ -109,7 +109,11 @@ export function RenderDialog({
             const manifest = engineManifest()
             const kitEngine = { base: manifest.base ?? '', module: manifest.module ?? 'kition_scene_kit', documentClass: manifest.documentClass ?? 'SceneDocument' }
             let shown = 0
-            await workersPool.run(kitEngine, snapshot, { samples: count, denoise: smooth }, PREVIEW_MS, async (sums) => {
+            // The file holds no current frame (it is the person's view state): the workers trace
+            // the frame the editor shows, as the engine's own render does.
+            const frame = (doc.info.inspected as { animation?: { frame?: unknown } }).animation?.frame
+            const options = { samples: count, denoise: smooth, ...(typeof frame === 'number' ? { frame } : {}) }
+            await workersPool.run(kitEngine, snapshot, options, PREVIEW_MS, async (sums) => {
               if (mine !== run.current) return
               const progress = JSON.parse(await doc.invoke<string>('traceMerge', sums)) as TraceProgress
               if (mine !== run.current) return

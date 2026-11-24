@@ -8,8 +8,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> SceneDocument {
-    let made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap()
+    let mut made = SceneDocument::create("Untitled.kscene", 1280, 720).unwrap();
+    SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -60,7 +60,7 @@ fn the_angle_is_a_mesh_setting() {
     for refused in [json!({ "objects": "Can", "angle": 181 }), json!({ "objects": "Can", "angle": -1 }), json!({ "objects": "Light" })] {
         assert!(doc.execute("object.shadeSmoothByAngle", refused.clone()).is_err(), "{refused}");
     }
-    let reopened = SceneDocument::open("t.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(mesh(&reopened, "Can")["smoothAngle"].as_f64(), Some(45.0));
     // Shade Smooth smooths every edge again; Shade Flat is flat.
     run(&mut doc, "object.shadeSmooth", json!({ "objects": "Can" }));

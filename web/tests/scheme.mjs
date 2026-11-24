@@ -3,8 +3,8 @@
 // The viewport's background, grid and frame shade are the editor's, not the scene's (as a
 // modeller's theme is): opened in the dark scheme the viewport is dark; switched to light and back
 // without a reload it repaints each time. The scene's own colours (the cube) are drawn the same in
-// both, the document stays clean, and a file saved in the dark scheme holds the same editor state
-// (`editor.json`) as one saved in the light, with no scheme in it. Every frame the ready viewport
+// both, the document stays clean, a file saved in the dark scheme holds no editor state, and the
+// view state the host keeps holds no scheme. Every frame the ready viewport
 // shows from the open is checked: none is light. Needs the engine built into public/ (pnpm run engine).
 // SHOT=<dir> writes the viewport in both schemes there.
 import assert from 'node:assert/strict'
@@ -204,19 +204,12 @@ try {
   const after = await status()
   assert.ok(!after.includes('unsaved'), `the scheme leaves the document clean: ${after}`)
 
-  // A file saved in the dark scheme holds the editor state (`editor.json`) one saved in the light
-  // does.
+  // A file saved in the dark scheme holds no editor state (the view state is the host's, Kit UI
+  // protocol 7n), and the view state kept with it holds no scheme.
   const dark = await savedWith('dark', sample)
-  const light = await savedWith('light', sample)
-  const [editorInDark, editorInLight] = [zipEntry(dark, 'editor.json'), zipEntry(light, 'editor.json')]
-  assert.ok(!/scheme|dark|light/i.test(editorInDark), `no scheme is saved: ${editorInDark}`)
-  // The copy, selected, has a new id in each (as a new object's id is): the rest is the same.
-  const state = (text) => {
-    const { active, selected, ...rest } = JSON.parse(text)
-    assert.deepEqual(selected, [active], 'the copy alone is selected')
-    return rest
-  }
-  assert.deepEqual(state(editorInDark), state(editorInLight), 'the editor state saved does not depend on the scheme')
+  assert.ok(zipEntry(dark, 'content.kdm') && !Buffer.from(dark).includes('editor.json'), 'no editor state in the file')
+  const kept = JSON.stringify((await page.evaluate(() => window.devHost.history.viewState('Sample.kscene'))).state)
+  assert.ok(!/scheme|dark|light/i.test(kept), `no scheme in the view state: ${kept}`)
 
   assert.deepEqual(errors, [], 'no page errors')
   console.log(`PASS the viewport follows the host's color scheme (${which}, ${gpu ? 'GPU' : 'software'} viewport)`)

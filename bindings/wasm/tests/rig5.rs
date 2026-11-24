@@ -88,7 +88,7 @@ fn custom_shapes_draw_bones_and_let_go_of_deleted_objects() {
     let wire = doc.render(0.0, 0.0, 1.0, 640, 360).unwrap();
     assert_ne!(shaped, wire, "a wire shape leaves its faces out");
     // Saved and reopened, the shape stays; deleting its object gives the octahedron back.
-    let reopened = SceneDocument::open("S.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = SceneDocument::open("S.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(object(&reopened.inspect().unwrap(), "Armature")["armature"]["bones"][0]["shape"]["wire"], true);
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
     assert!(object(&doc.inspect().unwrap(), "Armature")["armature"]["bones"][0]["shape"].is_null());

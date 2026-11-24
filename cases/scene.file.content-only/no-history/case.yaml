@@ -6,19 +6,19 @@ intent: >-
   overwritten name saves to a .kscene whose content entry, read through the engine, holds one
   change (the system content-seal) and none of those strings, each found in the session's full
   snapshot first; an unchanged scene saves to the same bytes, twice, after markSaved and from the
-  file opened again; a save nobody sealed for (the temporary fallback) writes the same sealed
-  content and markSaved takes the seal in; through the headless kit, which seals before every
-  save, an agent's batches save files holding only the seal.
+  file opened again; a save nobody sealed for after an edit is refused and seals nothing; through
+  the headless kit, which seals before every save, an agent's batches save files holding only the
+  seal.
 layer: gate
 source:
   kind: synthetic
-  from: bindings/wasm/tests/content_file.rs (the_file_holds_the_content_and_of_the_history_only_the_seal, an_unchanged_scene_saves_to_the_same_bytes, a_save_nobody_sealed_for_seals_a_copy_and_mark_saved_takes_the_seal_in), bindings/headless/tests/content_file.rs
+  from: bindings/wasm/tests/content_file.rs (the_file_holds_the_content_and_of_the_history_only_the_seal, an_unchanged_scene_saves_to_the_same_bytes, a_save_nobody_sealed_for_is_refused), bindings/headless/tests/content_file.rs
   license: Apache-2.0
 input: []
 steps:
   - cargo-test: { package: kition-scene-kit, test: content_file, filter: the_file_holds_the_content_and_of_the_history_only_the_seal }
   - cargo-test: { package: kition-scene-kit, test: content_file, filter: an_unchanged_scene_saves_to_the_same_bytes }
-  - cargo-test: { package: kition-scene-kit, test: content_file, filter: a_save_nobody_sealed_for_seals_a_copy_and_mark_saved_takes_the_seal_in }
+  - cargo-test: { package: kition-scene-kit, test: content_file, filter: a_save_nobody_sealed_for_is_refused }
   - cargo-test: { package: kition-scene, test: content_file }
 expected:
   - actual: out:cargo-test

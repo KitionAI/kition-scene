@@ -7,7 +7,7 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn starter() -> Vec<u8> {
-    SceneDocument::create("Room.kscene", 640, 400).unwrap().save(None).unwrap()
+    SceneDocument::create("Room.kscene", 640, 400).unwrap().save_file(None).unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {

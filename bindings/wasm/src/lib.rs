@@ -104,7 +104,9 @@ pub enum SelectMode {
     Face,
 }
 
-/// The editor state saved with the file (but never part of the scene, and never dirtying it).
+/// The person's editor state: never part of the scene or the file, never dirtying it. The editor
+/// keeps it with the host as the person's view state (Kit UI protocol section 7n, `view.state` and
+/// `view.restore`); without a host that keeps view state it lasts as long as the session.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Editor {
@@ -131,11 +133,10 @@ pub struct Editor {
     /// The current frame: each person's own, never part of the replica.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frame: Option<i32>,
-    /// The viewport's size when saved, so a reopened document shows what was saved until the
-    /// editor says how large its canvas is.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub viewport: Option<[u32; 2]>,
 }
+
+/// The version of the view state `view.state` answers (its `v`): `view.restore` ignores another.
+pub const VIEW_STATE_VERSION: u64 = 1;
 
 fn uv_iterations() -> u32 {
     30
@@ -158,7 +159,6 @@ impl Default for Editor {
             selected: Vec::new(),
             active: None,
             frame: None,
-            viewport: None,
         }
     }
 }
@@ -232,9 +232,6 @@ pub struct SceneDocument {
     origin: Origin,
     /// The labels of the steps each scope can undo and redo, newest last.
     history: History,
-    /// The seal the last `save` made on a copy (the fallback in [`content`]), which
-    /// `mark_saved` takes into the session once the host stored the file.
-    saving: RefCell<Option<Vec<u8>>>,
     /// Moves with every change, the view's included (it asks for a new picture).
     revision: u64,
     /// Moves with changes to the scene only (they need saving).
@@ -306,10 +303,9 @@ impl History {
 }
 
 impl SceneDocument {
-    /// A document over a replica and its blobs, with the editor state saved beside it.
-    fn attach(replica: KitSession<SceneModel>, blobs: SharedBlobs, editor: Option<Value>) -> Self {
+    /// A document over a replica and its blobs, with `editor` as the person's editor state.
+    fn attach(replica: KitSession<SceneModel>, blobs: SharedBlobs, mut editor: Editor) -> Self {
         kition_scene_nodes::install();
-        let mut editor: Editor = editor.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
         let mut doc = Self {
             scene: Scene::empty(),
             session: Session {
@@ -335,7 +331,6 @@ impl SceneDocument {
             blob_log: collab::BlobLog::default(),
             origin: person(),
             history: History::default(),
-            saving: RefCell::new(None),
             revision: 0,
             content: 0,
             saved: 0,
@@ -349,13 +344,62 @@ impl SceneDocument {
             answered: RefCell::default(),
         };
         let frame = editor.frame.take();
-        if let Some([width, height]) = editor.viewport.take().filter(|[w, h]| (1..=MAX_VIEWPORT).contains(w) && (1..=MAX_VIEWPORT).contains(h)) {
-            doc.session.width = width;
-            doc.session.height = height;
-        }
         doc.session.editor = editor;
         doc.view_from_replica(frame);
         doc
+    }
+
+    /// The person's view state (`view.state`, kept by the host after each save, Kit UI protocol
+    /// section 7n): the viewport's camera, shading, grid and overlays, the selection and the
+    /// active object, the current frame and the UV options, versioned (`v`). Never in the file.
+    pub fn view_state(&self) -> Value {
+        let editor = Editor { frame: Some(self.scene.animation.timeline.frame), ..self.session.editor.clone() };
+        let mut state = serde_json::to_value(&editor).unwrap_or(Value::Null);
+        if let Some(object) = state.as_object_mut() {
+            object.insert("v".into(), Value::from(VIEW_STATE_VERSION));
+        }
+        state
+    }
+
+    /// Puts back a view state [`SceneDocument::view_state`] answered, in this session or another
+    /// one, leaving out what the scene no longer has (an object deleted since, a camera view of a
+    /// camera that is gone). A state of another version, or one that does not read, changes
+    /// nothing (Kit UI protocol UI-S1). No edit: the document stays clean. Answers whether it was
+    /// put back.
+    pub fn restore_view_state(&mut self, state: &Value) -> bool {
+        if state.get("v").and_then(Value::as_u64) != Some(VIEW_STATE_VERSION) {
+            return false;
+        }
+        let Ok(mut editor) = serde_json::from_value::<Editor>(state.clone()) else { return false };
+        let frame = editor.frame.take().filter(|frame| frame.unsigned_abs() <= kition_scene_model::animation::MAX_FRAME.unsigned_abs());
+        self.session.editor = editor;
+        if let Some(frame) = frame {
+            self.scene.go_to_frame(frame as f32);
+        }
+        self.tidy_session();
+        self.touched();
+        true
+    }
+
+    /// This scene's file (saved as [`SceneDocument::save_file`] saves it) opened in a new session
+    /// that, as the editor does, sizes its viewport to this one's and takes this session's view
+    /// state back ([`SceneDocument::view_state`], which a host keeps apart from the file). For
+    /// code that saves and reopens a scene the way a person does (tests).
+    pub fn reopen(&mut self, name: &str) -> Result<SceneDocument, String> {
+        let bytes = self.save_file(Some(name))?;
+        let mut opened = SceneDocument::open(name, &bytes)?;
+        opened.session.width = self.session.width;
+        opened.session.height = self.session.height;
+        opened.restore_view_state(&self.view_state());
+        Ok(opened)
+    }
+
+    /// The file as a host saves it: [`KitDocument::prepare_save`] (the seal), then
+    /// [`KitDocument::save`]. For code that saves the document itself (tests, the sample
+    /// builders); a host calls the two in turn.
+    pub fn save_file(&mut self, name: Option<&str>) -> Result<Vec<u8>, String> {
+        self.prepare_save()?;
+        self.save(name)
     }
 
     /// Makes the view the replica's scene again, at `frame` (the current one when `None`), with
@@ -637,16 +681,6 @@ impl SceneDocument {
         }
     }
 
-    /// The editor state as saved with the file.
-    fn editor_value(&self) -> Option<Value> {
-        let editor = Editor {
-            frame: Some(self.scene.animation.timeline.frame),
-            viewport: Some([self.session.width, self.session.height]),
-            ..self.session.editor.clone()
-        };
-        serde_json::to_value(&editor).ok()
-    }
-
     /// A PNG of the scene rendered through its camera (and its compositing group, when
     /// compositing is on).
     pub fn render_png(&self, samples: u32) -> Result<Vec<u8>, String> {
@@ -691,8 +725,8 @@ impl KitDocument for SceneDocument {
     /// history only the seal) as a new actor's replica.
     fn open(_name: &str, bytes: &[u8]) -> Result<Self, String> {
         let blobs = SharedBlobs::default();
-        let (file, replica) = open_file(bytes, &blobs)?;
-        Ok(Self::attach(replica, blobs, file.editor))
+        let (_, replica) = open_file(bytes, &blobs)?;
+        Ok(Self::attach(replica, blobs, Editor::default()))
     }
 
     /// A new document: the starter scene, written in the replica's creating transaction.
@@ -709,7 +743,7 @@ impl KitDocument for SceneDocument {
         let replica = KitSession::from_replica(replica, Box::new(blobs.clone())).map_err(|error| error.to_string())?;
         let cube = scene.object_named("Cube").map(|object| object.id);
         let editor = Editor { selected: cube.into_iter().collect(), active: cube, ..Editor::default() };
-        let mut doc = Self::attach(replica, blobs, serde_json::to_value(editor).ok());
+        let mut doc = Self::attach(replica, blobs, editor);
         // The size the host asks for, until the editor says how large its canvas is.
         if (1..=MAX_VIEWPORT).contains(&width) && (1..=MAX_VIEWPORT).contains(&height) {
             doc.session.width = width;
@@ -821,18 +855,16 @@ impl KitDocument for SceneDocument {
         self.replica_changed();
     }
 
-    /// The scene as a `.kscene` file: the document's content (no history, rule M16b), the blobs
-    /// its state references, and the editor state; the same bytes while the document and the
-    /// editor state stay as they are.
+    /// The scene as a `.kscene` file: the document's content (no history, rule M16b) and the blobs
+    /// its state references; nothing of the person's session (the view state is the host's), so
+    /// the same content saves to the same bytes in every session.
     ///
     /// The content is sealed (kition-sdk data model 7.3): hosts call [`KitDocument::prepare_save`]
-    /// first, which seals the session, and the file holds the replica's own content snapshot. The
-    /// one fallback, for an editor that does not call `prepareSave` yet: a replica nobody sealed
-    /// saves the content of a sealed copy, and [`KitDocument::mark_saved`] takes that seal into
-    /// the session.
+    /// first, which seals the session, and the file holds the replica's own content snapshot. A
+    /// save of a replica nobody sealed since its last change is refused (`not-allowed`).
     fn save(&self, _name: Option<&str>) -> Result<Vec<u8>, String> {
         let replica = self.replica.replica();
-        let (content, seal) = content(replica)?;
+        let content = content(replica)?;
         let blobs = read::blob_hashes(replica)
             .into_iter()
             .filter_map(|hash| kition_kit::session::BlobSource::get(&self.blobs, &hash).map(|bytes| (hash, bytes.to_vec())))
@@ -842,10 +874,7 @@ impl KitDocument for SceneDocument {
             schema_version: replica.schema().schema_version,
             doc_id: replica.doc_id().to_string(),
         };
-        let bytes = kition_scene_kscene::write(&kition_scene_kscene::File { meta, content, blobs, editor: self.editor_value() })
-            .map_err(|error| error.to_string())?;
-        *self.saving.borrow_mut() = seal;
-        Ok(bytes)
+        kition_scene_kscene::write(&kition_scene_kscene::File { meta, content, blobs }).map_err(|error| error.to_string())
     }
 
     /// Seals the session (rule M16b) so `save` writes its content snapshot, and the seal is in the
@@ -855,14 +884,9 @@ impl KitDocument for SceneDocument {
         Ok(())
     }
 
-    /// Records that the file holds the last save, and takes the seal that save made on a copy into
-    /// the session (no edit: the scene, the revision and the undo histories stay as they are).
+    /// Records that the file holds the last save (no edit: the scene, the revision and the undo
+    /// histories stay as they are).
     fn mark_saved(&mut self) {
-        // The fallback's seal (see `content`; delete with it once the kit editor calls
-        // `prepareSave`). One that does not import leaves the session as it was.
-        if let Some(seal) = self.saving.get_mut().take() {
-            let _ = self.replica.import_changes(&seal);
-        }
         self.saved = self.content;
     }
 
@@ -992,30 +1016,14 @@ pub(crate) fn open_file(bytes: &[u8], blobs: &SharedBlobs) -> Result<(kition_sce
     Ok((file, replica))
 }
 
-/// The actor that seals a copy of a replica at `version` (the fallback in [`content`]): one per
-/// version, so saving one version twice writes the same seal, and two versions never share a seal's
-/// change id.
-fn seal_actor(version: &kition_kit::kdm::Version) -> ActorId {
-    let value = version.encode().iter().fold(0xcbf2_9ce4_8422_2325u64, |hash, byte| (hash ^ u64::from(*byte)).wrapping_mul(0x0100_0000_01b3)) >> 1;
-    ActorId::from_u64(value).unwrap_or_else(|_| ActorId::random())
-}
-
-/// What `replica` saves as `content.kdm`, and the seal made for it on a copy, if any. The direct
-/// path: the host sealed the replica (`KitDocument::prepare_save`), and its own content snapshot
-/// is written.
-fn content(replica: &Replica) -> Result<(Vec<u8>, Option<Vec<u8>>), String> {
-    if replica.is_sealed() {
-        return Ok((replica.sealed_content_snapshot().map_err(|error| error.to_string())?, None));
+/// What `replica` saves as `content.kdm`: its own content snapshot, which the host sealed
+/// (`KitDocument::prepare_save`, every host calls it right before `save`). A replica changed since
+/// its last seal is refused: `save` sees it read-only and cannot seal it.
+fn content(replica: &Replica) -> Result<Vec<u8>, String> {
+    if !replica.is_sealed() {
+        return Err("not-allowed: save before prepare_save: the scene changed since it was last sealed".into());
     }
-    // FALLBACK, delete once a kit-editor release that calls prepareSave is in web/pnpm-lock.yaml:
-    // until then the editor saves a replica nobody sealed, and `save` sees it read-only. The
-    // content of a copy sealed under an actor derived from the version (the same version gives the
-    // same bytes); `mark_saved` imports the seal.
-    let version = replica.version();
-    let mut sealed = replica.fork(seal_actor(&version)).map_err(|error| error.to_string())?;
-    sealed.seal().map_err(|error| error.to_string())?;
-    let seal = sealed.export_changes(&version).map_err(|error| error.to_string())?;
-    Ok((sealed.sealed_content_snapshot().map_err(|error| error.to_string())?, Some(seal)))
+    replica.sealed_content_snapshot().map_err(|error| error.to_string())
 }
 
 impl KitSessionDocument for SceneDocument {
@@ -1126,10 +1134,12 @@ mod web {
             self.0.trace_merge(sums).map(|value| value.to_string()).map_err(|error| JsError::new(&error))
         }
 
-        /// The scene as it is now, as file bytes, for workers to open (nothing is marked saved).
+        /// The scene as it is now, as file bytes, for workers to open: sealed first, as a save is
+        /// (no edit; nothing is marked saved). The file holds no current frame: the render dialog
+        /// gives the workers the frame it shows.
         #[wasm_bindgen(js_name = traceSnapshot)]
-        pub fn trace_snapshot(&self) -> Result<Vec<u8>, JsError> {
-            kition_kit::KitDocument::save(&self.0, None).map_err(|error| JsError::new(&error))
+        pub fn trace_snapshot(&mut self) -> Result<Vec<u8>, JsError> {
+            self.0.save_file(None).map_err(|error| JsError::new(&error))
         }
 
         /// An image's encoded bytes by hash (empty when the scene has no such image).

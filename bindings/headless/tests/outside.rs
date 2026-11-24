@@ -660,10 +660,7 @@ async fn s11_fifty_rounds_of_mixed_editing() {
         // delete the object the setup left selected.
         doc.execute("select.none", json!({})).unwrap();
     }
-    let bytes = {
-        use kition_kit::KitDocument;
-        doc.save(None).unwrap()
-    };
+    let bytes = doc.save_file(None).unwrap();
     // Per their change and write: rounds, applied, refused necessary, refused false, applied
     // wrongly, failed at the kit (not refused by the guard: the step itself found nothing to act
     // on, nothing written), the refusals' reasons.

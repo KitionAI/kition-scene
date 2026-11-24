@@ -7,8 +7,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
     doc.execute(command, params).unwrap_or_else(|error| panic!("{command}: {error}"))
 }
 fn starter() -> SceneDocument {
-    let doc = SceneDocument::create("View.kscene", 96, 64).unwrap();
-    let mut doc = SceneDocument::open("View.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut doc = SceneDocument::create("View.kscene", 96, 64).unwrap();
+    let mut doc = doc.reopen("View.kscene").unwrap();
     run(&mut doc, "view.resize", json!({"width":96,"height":64}));
     run(&mut doc, "view.grid", json!({"on":false}));
     run(&mut doc, "select.none", json!({}));
@@ -36,7 +36,7 @@ fn sampling_keeps_one_compiled_scene_without_dirtying_or_undo() {
     assert!(!doc.dirty());
     assert_eq!(doc.inspect().unwrap()["canUndo"], false);
     assert_eq!(doc.gl_scene()["supported"], false);
-    let reopened = SceneDocument::open("View.kscene", &doc.save(None).unwrap()).unwrap();
+    let reopened = doc.reopen("View.kscene").unwrap();
     assert_eq!(reopened.inspect().unwrap()["view"]["shading"], "rendered");
     assert_eq!(reopened.inspect().unwrap()["view"]["rendered"]["samples"], 0);
     assert_eq!(doc.render_area(0, 0, 96, 64, 48, 32).unwrap(), doc.render(0.0, 0.0, 0.5, 48, 32).unwrap());
@@ -120,7 +120,7 @@ fn peer_edits_invalidate_samples_in_both_orders_with_fixed_actors() {
         run(&mut doc, "view.rendered", json!({}));
         doc
     }
-    let bytes = starter().save(None).unwrap();
+    let bytes = starter().save_file(None).unwrap();
     for _ in 0..20 {
         let mut left = fixed(&bytes, 101);
         let mut right = fixed(&bytes, 202);

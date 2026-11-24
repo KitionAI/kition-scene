@@ -1,0 +1,23 @@
+format: 1
+id: scene.view.state/two-sessions-same-bytes
+feature: scene.view.state
+intent: >-
+  A .kscene holds no editor state: two sessions open the same file, each moves its own viewport,
+  shading, grid, overlays, selection and current frame, and saves without an edit, and both write
+  the bytes of the file they opened. What a session shows is its view state (view.state), which
+  the editor keeps with the host (Kit UI protocol 7n) and a third session puts back (view.restore)
+  without an edit, leaving out objects the scene no longer has; a state of another version changes
+  nothing.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/content_file.rs (two_sessions_that_open_the_same_file_and_save_without_editing_write_the_same_bytes), crates/formats/kscene/src/lib.rs (the_file_holds_only_the_content_its_identity_and_its_blobs)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: content_file, filter: two_sessions_that_open_the_same_file_and_save_without_editing_write_the_same_bytes }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-24"

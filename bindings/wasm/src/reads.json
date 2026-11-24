@@ -252,5 +252,6 @@
   "vertexGroup.unassign": ["mode", "selection"],
   "view.frameAll": ["mode"],
   "view.frameSelected": ["mode", "selection"],
-  "view.renderedStep": ["mode", "selection"]
+  "view.renderedStep": ["mode", "selection"],
+  "view.state": ["time"]
 }

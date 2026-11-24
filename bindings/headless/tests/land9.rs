@@ -181,7 +181,7 @@ async fn review_driver_variable_object_ids_are_premises() {
         // added, would be selected.
         let mut doc = scene_doc(2);
         doc.execute("select.none", json!({})).unwrap();
-        let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+        let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (details, basis) = f.inspect().await;
         let ids = ids_by_name(&details);
         // A variable's source is only referenced: it has to exist (declarations_independent).
@@ -240,7 +240,7 @@ async fn review_typed_node_values_hold_ids_without_treating_numbers_as_ids() {
         // The session selects nothing: a reread that deletes a selected object is refused by name
         // (kition-sdk call-context.md, "Session Continuity On Reread"), and C1 would be selected.
         doc.execute("select.none", json!({})).unwrap();
-        let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+        let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (_, basis) = f.inspect().await;
         // An object a value names is stored by id: it has to exist (declarations_independent).
         f.colleague(&[("edit.delete", json!({"objects":[ids["C1"]]}))]);

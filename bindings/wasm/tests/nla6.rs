@@ -42,7 +42,7 @@ fn released_file_takes_transition_meta_and_round_trip_undo() {
     run(&mut doc, "edit.undo", json!({}));
     near(at(&mut doc, 16.0), 5.0);
     run(&mut doc, "edit.redo", json!({}));
-    let saved = doc.save(None).unwrap();
+    let saved = doc.save_file(None).unwrap();
     let mut back = SceneDocument::open("Saved.kscene", &saved).unwrap();
     assert_eq!(cube(&back)["nla"], cube(&doc)["nla"]);
     near(at(&mut back, 41.0), 5.0);
@@ -74,7 +74,7 @@ fn limits_are_transactional_and_survive_action_tweaking_and_save() {
     run(&mut doc, "graph.setModifier", json!({"target":target,"property":"location","index":0,"modifier":0,"minY":null}));
     near(at(&mut doc, 1.0), 2.0);
     run(&mut doc, "nla.tweakExit", json!({"object":"Cube"}));
-    let mut back = SceneDocument::open("Saved.kscene", &doc.save(None).unwrap()).unwrap();
+    let mut back = SceneDocument::open("Saved.kscene", &doc.save_file(None).unwrap()).unwrap();
     near(at(&mut back, 1.0), 2.0);
     near(at(&mut back, 11.0), 6.0);
 }

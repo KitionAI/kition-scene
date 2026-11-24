@@ -7,8 +7,8 @@ use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
 
 fn doc() -> SceneDocument {
-    let made = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
-    SceneDocument::open("t.kscene", &made.save(None).unwrap()).unwrap()
+    let mut made = SceneDocument::create("Untitled scene.kscene", 1280, 720).unwrap();
+    made.reopen("t.kscene").unwrap()
 }
 
 fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
@@ -135,9 +135,9 @@ fn the_new_modifiers_take_degrees_and_check_ranges() {
 #[test]
 fn damaged_blend_files_change_nothing() {
     let mut doc = doc();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     assert!(doc.execute("file.import", json!({ "base64": "QkxFTkRFUi12NDA1", "format": "blend" })).is_err());
-    assert_eq!(doc.save(None).unwrap(), before);
+    assert_eq!(doc.save_file(None).unwrap(), before);
 }
 
 #[test]

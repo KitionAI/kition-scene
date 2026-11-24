@@ -67,9 +67,9 @@ fn a_lattice_bends_a_mesh_and_the_file_keeps_it() {
     let size = dimensions(&doc, "Cube");
     assert!((size[2] - 2.5).abs() < 1e-3, "{size:?}");
 
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let mut back = SceneDocument::open("Lattice.kscene", &bytes).unwrap();
-    assert_eq!(back.save(None).unwrap(), bytes);
+    assert_eq!(back.save_file(None).unwrap(), bytes);
     assert_eq!(object(&back, "Lattice")["lattice"], object(&doc, "Lattice")["lattice"]);
     assert_eq!(dimensions(&back, "Cube"), dimensions(&doc, "Cube"));
     run(&mut back, "lattice.set", json!({ "object": "Lattice", "reset": true }));
@@ -153,7 +153,7 @@ fn shrinkwrap_decimate_and_an_image_displace_through_commands() {
     assert!((size[2]).abs() < 1e-4, "a flat push keeps it flat: {size:?}");
     let ground = object(&doc, "Ground");
     assert!((ground["worldLocation"][2].as_f64().unwrap()).abs() < 1e-6);
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("Mods.kscene", &bytes).unwrap();
     assert_eq!(object(&back, "Ground")["modifiers"][0]["image"], set["image"]);
     assert!(back.inspect().unwrap()["images"].as_array().is_some_and(|images| images.iter().any(|image| image["hash"] == set["image"])));
@@ -173,7 +173,7 @@ fn released_files_take_lattices_and_the_new_modifiers() {
         run(&mut doc, "add.uvSphere", json!({ "name": "Wrapped", "location": [4, 0, 0] }));
         run(&mut doc, "modifier.add", json!({ "object": "Wrapped", "type": "shrinkwrap", "operand": "Cube" }));
         run(&mut doc, "modifier.add", json!({ "object": "Wrapped", "type": "decimate", "mode": "unsubdivide", "iterations": 1 }));
-        let saved = doc.save(None).unwrap();
+        let saved = doc.save_file(None).unwrap();
         doc.mark_saved();
         let back = SceneDocument::open("Room.kscene", &saved).unwrap();
         let cage = object(&back, "Cage");

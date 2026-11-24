@@ -88,7 +88,7 @@ async fn stale_family(setup: &[(&str, Value)], other: &[(&str, Value)], command:
         for (command, params) in setup {
             doc.execute(command, params.clone()).unwrap();
         }
-        let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+        let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (_, basis) = f.inspect().await;
         if outside {
             f.colleague(other);
@@ -219,7 +219,7 @@ async fn curve_and_bone_insertions_hold_the_edited_objects_data() {
         let mut doc = scene_doc(1);
         doc.execute(add, json!({"name":"Edited"})).unwrap();
         let id = ids_by_name(&doc.inspect().unwrap())["Edited"];
-        let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+        let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (_, basis) = f.inspect().await;
         f.colleague(&[("select.objects", json!({"objects":[id]})), (mode, json!({})), (select, selection.clone()), (insert, json!({}))]);
         let steps = json!([
@@ -251,7 +251,7 @@ async fn union_scalars_are_guarded_and_coordinate_components_are_never_names_or_
                 let mut doc = scene_doc(2);
                 // Removing the last object cannot relocate the command's own camera/objects.
                 doc.execute("object.order", json!({"object":"Cube","index":100})).unwrap();
-                let f = Fixture::from_bytes(&doc.save(None).unwrap(), Default::default());
+                let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
                 let (details, basis) = f.inspect().await;
                 let ids = ids_by_name(&details);
                 assert_eq!(ids["Cube"], 2);

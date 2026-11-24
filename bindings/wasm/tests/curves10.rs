@@ -49,14 +49,14 @@ fn spline_type_nodes_are_discoverable_editable_undoable_and_saved() {
     run(&mut doc, "edit.redo", json!({}));
     assert_eq!(vertices(&doc), 21);
     let expected = group(&doc);
-    let bytes = doc.save(None).unwrap();
+    let bytes = doc.save_file(None).unwrap();
     let opened = SceneDocument::open("Splines.kscene", &bytes).unwrap();
     assert_eq!(group(&opened), expected);
     assert_eq!(vertices(&opened), 21);
     assert!(doc.check().iter().all(|entry| entry.code != "scene.nodesError"));
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     assert!(doc.execute("nodes.setValue", json!({"node": kind, "id": "splineType", "value": "unknown"})).is_err());
-    assert_eq!(doc.save(None).unwrap(), before, "invalid settings are atomic");
+    assert_eq!(doc.save_file(None).unwrap(), before, "invalid settings are atomic");
 }
 
 #[test]

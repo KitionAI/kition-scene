@@ -28,8 +28,8 @@ fn mesh<'a>(doc: &'a SceneDocument, name: &str) -> &'a Mesh {
     doc.scene().object_named(name).unwrap_or_else(|| panic!("no {name}")).mesh().unwrap()
 }
 
-fn reopened(doc: &SceneDocument) -> SceneDocument {
-    SceneDocument::open("Keeps.kscene", &doc.save(None).unwrap()).unwrap()
+fn reopened(doc: &mut SceneDocument) -> SceneDocument {
+    SceneDocument::open("Keeps.kscene", &doc.save_file(None).unwrap()).unwrap()
 }
 
 fn group<'a>(mesh: &'a Mesh, name: &str) -> &'a [f32] {
@@ -128,8 +128,9 @@ fn append_join_carries_groups_and_keys_by_name() {
         assert_eq!(side[vertex], if vertex == 8 { 0.25 } else { 0.0 }, "Side of {vertex}");
     }
     // It is stored that way.
-    let again = reopened(&doc);
-    assert_eq!(mesh.groups, again.scene().object_named("Cube").unwrap().mesh().unwrap().groups);
+    let groups = mesh.groups.clone();
+    let again = reopened(&mut doc);
+    assert_eq!(groups, again.scene().object_named("Cube").unwrap().mesh().unwrap().groups);
 }
 
 /// Cube made of two loose parts (the second added in edit mode at x = 4), with a face set per
@@ -185,8 +186,9 @@ fn edit_face_sets_follow_a_deleted_face() {
     let mesh = mesh(&doc, "Cube");
     assert_eq!(mesh.face_sets, [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]);
     assert_eq!(mesh.hidden, [false, false, false, false, false, true, true, true, true, true, true]);
-    let again = reopened(&doc);
-    assert_eq!(again.scene().object_named("Cube").unwrap().mesh().unwrap().face_sets, mesh.face_sets, "stored");
+    let face_sets = mesh.face_sets.clone();
+    let again = reopened(&mut doc);
+    assert_eq!(again.scene().object_named("Cube").unwrap().mesh().unwrap().face_sets, face_sets, "stored");
 }
 
 #[test]
@@ -299,7 +301,7 @@ fn delete_object_references_in_modifiers_let_go() {
     assert!(modifier_objects(&doc, "Cube").iter().all(Option::is_some));
     run(&mut doc, "edit.delete", json!({ "objects": ["Tool", "Lattice", "Rig"] }));
     assert_eq!(modifier_objects(&doc, "Cube"), [None, None, None, None], "the modifiers name no object, as after clearing their field");
-    let again = reopened(&doc);
+    let again = reopened(&mut doc);
     assert_eq!(modifier_objects(&again, "Cube"), [None, None, None, None]);
 }
 

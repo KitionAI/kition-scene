@@ -26,7 +26,7 @@ fn numeric_model_fields_declare_the_engine_id_range() {
 fn batches_refuse_out_of_range_scalars_atomically() {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
     let mut exchange = Exchange::new();
-    let before = doc.save(None).unwrap();
+    let before = doc.save_file(None).unwrap();
     for value in [json!(0), json!(-1), json!(u64::from(u32::MAX) + 1), json!(1.5)] {
         let error = exchange
             .batch(
@@ -39,7 +39,7 @@ fn batches_refuse_out_of_range_scalars_atomically() {
             )
             .unwrap_err();
         assert_eq!(error.code, kition_kit::kdm::batch::BatchErrorCode::InvalidValue, "{error}");
-        assert_eq!(doc.save(None).unwrap(), before);
+        assert_eq!(doc.save_file(None).unwrap(), before);
     }
 }
 
@@ -62,7 +62,7 @@ fn node_group_lists_own_nodes_and_links_but_references_own_nothing() {
     assert!(children.iter().all(|id| !replica.exists(id)), "the engine deletes both owning lists");
     doc.execute("edit.undo", json!({})).unwrap();
     assert_eq!(doc.scene().node_groups.len(), 1);
-    let before_batch = doc.save(None).unwrap();
+    let before_batch = doc.save_file(None).unwrap();
     exchange.batch(&mut doc, &json!({"ops":[{"op":"delete","target":record.to_string()}]}), false).unwrap();
     let replica = exchange.replica(&mut doc).unwrap();
     assert!(!replica.exists(&record));

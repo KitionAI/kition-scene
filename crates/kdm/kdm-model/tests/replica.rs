@@ -59,8 +59,15 @@ fn edits_write_only_what_changed_and_read_back() {
         let cube = scene.object_named("Cube").unwrap().id;
         scene.object_mut(cube).unwrap().location = Vec3::new(1.0, 2.0, 3.0);
     });
-    let changes = replica.export_changes(&version).unwrap();
-    assert!(changes.len() < 400, "a move writes one register, not the scene ({} bytes)", changes.len());
+    let changes: serde_json::Value = serde_json::from_slice(&replica.export_changes(&version).unwrap()).unwrap();
+    let changes = changes["changes"].as_array().unwrap();
+    assert_eq!(changes.len(), 1, "one change: {changes:?}");
+    let ops = changes[0]["ops"].as_array().unwrap();
+    let registers: Vec<&serde_json::Value> = ops.iter().filter(|op| !(op["op"] == "mapSet" && op["field"] == "keys")).collect();
+    assert!(
+        registers.len() == 1 && registers[0]["op"] == "set" && registers[0]["field"] == "location",
+        "a move writes one register, not the scene: {ops:?}"
+    );
     let mut added = 0;
     edit(&mut replica, &mut blobs, |scene| {
         added = scene.add_object("Ball", ObjectData::Mesh(Primitive::IcoSphere { subdivisions: 2, radius: 1.0 }.build().unwrap()));

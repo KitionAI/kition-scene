@@ -65,8 +65,21 @@ fn regenerate_samples() {
     let mut printed = 0;
     for sample in samples() {
         let content = std::fs::read(regen.join(format!("{}.json", sample.replace('/', "__")))).unwrap();
-        let mut file = kition_scene_kscene::read(&std::fs::read(repo().join(&sample)).unwrap()).unwrap();
-        file.content = content;
+        // The old sample's blobs, read from its ZIP (its content entry is the old one).
+        let old = std::fs::read(repo().join(&sample)).unwrap();
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(old.as_slice())).unwrap();
+        let mut blobs = Vec::new();
+        for index in 0..archive.len() {
+            let mut entry = archive.by_index(index).unwrap();
+            if let Some(hash) = entry.name().strip_prefix("blobs/").map(str::to_owned) {
+                let mut bytes = Vec::new();
+                std::io::Read::read_to_end(&mut entry, &mut bytes).unwrap();
+                blobs.push((hash, bytes));
+            }
+        }
+        let parsed: serde_json::Value = serde_json::from_slice(&content).unwrap();
+        let meta = kition_scene_kscene::Meta { kdm: 1, schema_version: 1, doc_id: parsed["docId"].as_str().unwrap().to_owned() };
+        let file = kition_scene_kscene::File { meta, content, blobs };
         let bytes = kit_save(&sample, &kition_scene_kscene::write(&file).unwrap());
         println!("REGEN {sample} {}", base64(&bytes));
         printed += 1;

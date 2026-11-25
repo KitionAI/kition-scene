@@ -1,5 +1,5 @@
 //! Compositing through commands: a compositing group renders pass through, its nodes edited with
-//! `nodes.*`, kept apart from geometry groups, saved, undone, and previewed.
+//! `node.*`, kept apart from geometry groups, saved, undone, and previewed.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::KitDocument;

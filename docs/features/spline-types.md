@@ -1,6 +1,6 @@
 # Geometry-node spline types
 
-The node editor and `nodes.*` commands expose **Set Spline Type** (`setSplineType`),
+The node editor and `node.*` commands expose **Set Spline Type** (`setSplineType`),
 **Set NURBS Order** (`setNurbsOrder`) and **Set NURBS Weight** (`setNurbsWeight`). These
 operate on geometry inside a node graph. Native curve objects keep their existing model.
 

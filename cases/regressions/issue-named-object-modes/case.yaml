@@ -4,7 +4,7 @@ feature: scene.curve.text-lattice
 intent: >-
   A named curve or lattice is not made active and selected before the command is allowed (and
   outside its undo step); lattice.set on another lattice keeps the edited lattice's selection;
-  particles.* and sculpt.remesh naming an object wait for object mode.
+  particle.* and sculpt.remesh naming an object wait for object mode.
 layer: gate
 source:
   kind: synthetic

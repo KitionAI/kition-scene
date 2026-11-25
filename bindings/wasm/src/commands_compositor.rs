@@ -1,6 +1,6 @@
 //! Compositing: renders pass through the compositing node group the render settings name, when
 //! compositing is on (Render ▸ Compositing). `compositor.new` makes such a group (Render Layers
-//! into the Group Output) and uses it; `nodes.*` edit its nodes; `compositor.set` picks another
+//! into the Group Output) and uses it; `node.*` edit its nodes; `compositor.set` picks another
 //! group or turns compositing off; `compositor.setImage` gives an Image node a picture;
 //! `compositor.pickMatte` adds the name under a point of the render to a Cryptomatte node's
 //! matte (or takes it away); and

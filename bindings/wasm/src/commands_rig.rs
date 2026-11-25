@@ -359,7 +359,7 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
         });
     }
     // Objects are added in object mode, as in the reference application.
-    if doc.session.rig.is_some() && command.starts_with("add.") {
+    if doc.session.rig.is_some() && command.starts_with("object.add") {
         return Some(Err("not-allowed: leave the armature's edit or pose mode to add objects".into()));
     }
     // Leaving the armature's modes: any mesh mode change or another object's edit mode.

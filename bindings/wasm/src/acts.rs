@@ -63,7 +63,7 @@ pub fn targets(schema: Option<&Value>) -> Option<&'static str> {
 pub fn moves_the_editor(id: &str) -> bool {
     ["select.", "view.", "frame.", "mode."].iter().any(|prefix| id.starts_with(prefix))
         || id.contains(".select")
-        || matches!(id, "animation.nextKey" | "animation.previousKey" | "edit.undo" | "edit.redo")
+        || matches!(id, "edit.deselectAll" | "animation.nextKey" | "animation.previousKey" | "edit.undo" | "edit.redo")
 }
 
 /// Whether a call names what it acts on (`objects`, `object`, the mesh `elements`, a world point

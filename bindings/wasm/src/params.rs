@@ -298,7 +298,7 @@ pub fn object_types(
                 "material" => &["Material"],
                 "group" | "shader" | "volume" => &["NodeGroup"],
                 "node" | "nodes" => &["Node"],
-                "from" | "to" if command.starts_with("nodes.") => &["Node"],
+                "from" | "to" if command.starts_with("node.") => &["Node"],
                 "target" if command.starts_with("graph.") => &["Object", "Material"],
                 "image" => &["Image"],
                 _ => &["Object"],

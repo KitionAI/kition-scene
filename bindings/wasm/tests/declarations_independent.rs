@@ -34,7 +34,7 @@
 //! - a read that is not held: the scene's own fields (camera, timeline, keying sets, actions,
 //!   render, world, physics): 39; an ancestor's place where the result projects through the world:
 //!   15; a field of the object itself (its constraints, a modifier by index, the stack): 11;
-//! - a value naming another object, not held (an object parameter no table marked, `anim.*`'s
+//! - a value naming another object, not held (an object parameter no table marked, `animation.*`'s
 //!   `objects`; the material a colour key goes to through the slot; a parent by default): 20;
 //! - editor state read but not declared: the UV projections' mode and selection (5), the current
 //!   frame of imports, particle conversion, matte picks and the sculpt picture commands (8);
@@ -1445,7 +1445,7 @@ const ROWS: &[Row] = &[
     // Common to the nla/graph family: after success the wrapper re-evaluates the scene at the current frame
     // (go_to_frame) — treated like the commit's driver re-evaluation: not `time`, not held. action.assign does the
     // same inside its handler (only to apply the keys it just wrote); also not counted.
-    // anim.*: gate needs object mode, no rig session and a non-empty selection unless `objects` is named (gate only).
+    // animation.*: gate needs object mode, no rig session and a non-empty selection unless `objects` is named (gate only).
 
     // animation.insertKey: objects=id-or-name else selection; frame else current frame; with properties given (no
     // keyingSet) keys each property's CURRENT value (location/rotation/scale: positions) into the object's
@@ -2362,7 +2362,7 @@ const ROWS: &[Row] = &[
     r("node.newGroup", r##"{"tree": "shader", "material": "Mat"}"##, "", &[("$Mat", "data,name", "-")]),
     // was: {}
     r("node.newGroup", r##"{"tree": "shader", "world": true}"##, "", &[("scene", "world", "-")]),
-    // nodes.* below: group = id, or a name among all groups, or the only group when absent (the fixture has two groups, so the absent path only refuses: no row).
+    // node.* below: group = id, or a name among all groups, or the only group when absent (the fixture has two groups, so the absent path only refuses: no row).
     // node.removeGroup: removes the group; the references to it (Group nodes, render.compositor, materials, world, modifiers) are cleared as they are at write time
     // was: {$G */*}
     r("node.removeGroup", r##"{"group": "$G"}"##, "", &[("$G", "-", "-")]),

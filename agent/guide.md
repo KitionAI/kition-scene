@@ -40,7 +40,7 @@ step in `scene_run` (see Exporting, under Common tasks).
   objects in the parameters, or in the step's `on` (see [Steps](#steps)).
 - **Materials by name or id** ([`material.assign`](/kits/scene/commands/material.assign/)
   `{material, objects}`, [`material.set`](/kits/scene/commands/material.set/) `{material, …}`).
-- `add.*` commands answer `{"name", "object": <id>}`.
+- `object.add*` commands answer `{"name", "object": <id>}`.
 - **Mesh elements:** vertex and face indices of a mesh, counted from **0**, in an edit-mode
   command's `elements` or in [`mesh.select`](/kits/scene/commands/mesh.select/).
 - **Particle systems:** `system` is a system's name or its index on the object, counted from **0**.

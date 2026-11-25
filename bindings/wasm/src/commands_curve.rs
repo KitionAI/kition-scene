@@ -343,7 +343,7 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
         doc.session.shape = None;
         doc.touched();
     }
-    if doc.session.shape.is_some() && command.starts_with("add.") {
+    if doc.session.shape.is_some() && command.starts_with("object.add") {
         return Some(Err("not-allowed: leave the edit mode to add objects".into()));
     }
     let spec = spec_of(command)?;

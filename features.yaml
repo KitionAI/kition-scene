@@ -407,7 +407,7 @@ features:
     paths: [bindings/wasm/examples/conformance.rs, bindings/wasm/src/check.rs, bindings/wasm/src/commands_uv.rs, bindings/wasm/src/files.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    cases: [regressions/issue-4]
+    cases: [regressions/issue-4, regressions/issue-set-material-deleted-material]
     since: "2026-11-17"
   - id: scene.render.lights-world
     title: "Lights, cameras, world and render settings"

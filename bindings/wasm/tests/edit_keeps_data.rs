@@ -370,6 +370,34 @@ fn object_info_lets_go_of_a_deleted_object() {
     assert_eq!(setting(&doc), None);
 }
 
+/// A Set Material node lets go of a material deleted by command (`material.delete`), as the
+/// repair after a merged draft lets go of one the person deleted meanwhile; undo brings the
+/// material and the node's setting back, and the file keeps the setting cleared (case
+/// `regressions/issue-set-material-deleted-material`).
+#[test]
+fn set_material_lets_go_of_a_deleted_material() {
+    let mut doc = new_doc();
+    let made = run(&mut doc, "node.newGroup", json!({ "object": "Cube", "name": "Paints" }));
+    let group = made["group"].as_u64().unwrap();
+    let material = run(&mut doc, "material.new", json!({ "name": "Paint", "assign": false }))["material"].as_u64().unwrap();
+    let node =
+        run(&mut doc, "node.addNode", json!({ "group": group, "kind": "setMaterial", "values": { "Material": material } }))["node"].as_u64().unwrap();
+    let setting = |doc: &SceneDocument| -> Option<Value> {
+        let tree = doc.scene().node_groups.iter().find(|tree| u64::from(tree.id) == group).unwrap();
+        tree.nodes.iter().find(|found| u64::from(found.id) == node).unwrap().values.get("Material").cloned()
+    };
+    assert_eq!(setting(&doc), Some(json!(material)), "the control: the node sets the material");
+    run(&mut doc, "material.delete", json!({ "material": material }));
+    assert!(doc.scene().materials.iter().all(|found| u64::from(found.id) != material));
+    assert_eq!(setting(&doc), None, "the node names no material");
+    assert_eq!(setting(&reopened(&mut doc)), None, "nor does the saved file");
+    run(&mut doc, "edit.undo", json!({}));
+    assert!(doc.scene().materials.iter().any(|found| u64::from(found.id) == material), "the material is back");
+    assert_eq!(setting(&doc), Some(json!(material)), "and the node sets it again");
+    run(&mut doc, "edit.redo", json!({}));
+    assert_eq!(setting(&doc), None);
+}
+
 #[test]
 fn delete_object_references_dangling_ones_are_refused() {
     use kition_scene_model::{Curve, Modifier, ModifierKind, Scene};

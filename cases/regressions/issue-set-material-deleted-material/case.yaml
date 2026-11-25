@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-set-material-deleted-material
+feature: scene.material.manage
+intent: >-
+  Deleting a material by command lets go of a Set Material node's Material setting that names
+  it, as the repair after a merged draft does; undo brings the material and the setting back,
+  and the saved file keeps the cleared setting. Before, the command left the setting naming a
+  material no record holds.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: set_material_lets_go_of_a_deleted_material
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

@@ -1099,6 +1099,15 @@ impl Scene {
                 object.material = None;
             }
         }
+        // A node's Material setting (Set Material) lets go of it, as the repair after a merged
+        // draft lets go of one the draft named.
+        for group in &mut self.node_groups {
+            for node in &mut group.nodes {
+                if node.values.get("Material").and_then(serde_json::Value::as_u64) == Some(u64::from(id)) {
+                    node.values.remove("Material");
+                }
+            }
+        }
         self.prune_animation();
         self.prune_images();
         Ok(())

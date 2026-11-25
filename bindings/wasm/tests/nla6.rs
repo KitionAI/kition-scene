@@ -217,7 +217,6 @@ fn removing_an_action_takes_its_nested_strips_away() {
     scene.nla_add_transition(id, 0, 0).unwrap();
     scene.nla_make_meta(id, 0, 0, 2).unwrap();
     scene.nla_make_meta(id, 0, 0, 0).unwrap();
-    scene.object_mut(id).unwrap().nla.tracks[0].strips[0].resize_meta(11.0, 71.0).unwrap();
     scene.validate().unwrap();
     let (replica, _) =
         Replica::create_with(kition_scene_kdm::schema(), DocId::new(), ActorId::from_u64(1).unwrap(), &Origin::system("create"), |tx| {

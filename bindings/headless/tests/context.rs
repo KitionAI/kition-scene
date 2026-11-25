@@ -32,12 +32,12 @@ fn kit() -> Headless<SceneDocument> {
 fn scene() -> SceneDocument {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
     for (name, x) in [("Left", -3), ("Right", 3)] {
-        doc.execute("add.cube", json!({ "name": name, "location": [x, 0, 0] })).unwrap();
+        doc.execute("object.addCube", json!({ "name": name, "location": [x, 0, 0] })).unwrap();
     }
     doc.execute("modifier.add", json!({ "object": "Cube", "type": "simpleDeform", "mode": "bend" })).unwrap();
     doc.execute("frame.range", json!({ "start": 1, "end": 120, "fps": 24 })).unwrap();
-    doc.execute("anim.insertKey", json!({ "objects": "Light", "properties": ["power"], "frame": 1 })).unwrap();
-    doc.execute("anim.insertKey", json!({ "objects": "Light", "properties": ["power"], "frame": 25 })).unwrap();
+    doc.execute("animation.insertKey", json!({ "objects": "Light", "properties": ["power"], "frame": 1 })).unwrap();
+    doc.execute("animation.insertKey", json!({ "objects": "Light", "properties": ["power"], "frame": 25 })).unwrap();
     doc.execute("select.objects", json!({ "objects": "Cube" })).unwrap();
     doc.execute("frame.set", json!({ "frame": 1 })).unwrap();
     doc
@@ -140,7 +140,7 @@ fn a_step_on_named_objects_through_the_context_requests() {
     let _ = std::fs::remove_dir_all(root);
 }
 
-/// An agent's `anim.insertKey` at `at.time` 2 s keys frame 49 (frame 1 at 0 s, 24 fps, as
+/// An agent's `animation.insertKey` at `at.time` 2 s keys frame 49 (frame 1 at 0 s, 24 fps, as
 /// `file.render`'s `target.time` counts), and the current frame stays where the person left it.
 #[test]
 fn a_step_at_a_time_keys_there_and_leaves_the_current_frame() {
@@ -148,7 +148,7 @@ fn a_step_at_a_time_keys_there_and_leaves_the_current_frame() {
     run(&mut kit, &id, "frame.set", json!({ "frame": 7 }), Origin::User);
     let before = kit.context_get(&id).unwrap();
     kit.context_set(&id, &params(json!({ "time": 2.0 }))).unwrap();
-    run(&mut kit, &id, "anim.insertKey", json!({ "objects": "Right", "properties": ["location"] }), Origin::Agent);
+    run(&mut kit, &id, "animation.insertKey", json!({ "objects": "Right", "properties": ["location"] }), Origin::Agent);
     kit.context_restore(&id, &before).unwrap();
     assert_eq!(kit.context_get(&id).unwrap(), before);
     let doc = kit.document(&id).unwrap();
@@ -197,7 +197,7 @@ fn the_agent_sees_what_commands_read() {
     let commands = kit.agent_commands(Some(&id)).unwrap();
     let params = |wanted: &str| commands.iter().find(|command| command.id == wanted).map(|command| command.params.clone()).unwrap();
     assert_eq!(params("material.assign")["x-khp-reads"], json!(["selection"]));
-    assert!(params("anim.insertKey")["x-khp-reads"].as_array().unwrap().contains(&json!("time")), "{}", params("anim.insertKey"));
-    assert!(params("add.cube").get("x-khp-reads").is_none(), "{}", params("add.cube"));
+    assert!(params("animation.insertKey")["x-khp-reads"].as_array().unwrap().contains(&json!("time")), "{}", params("animation.insertKey"));
+    assert!(params("object.addCube").get("x-khp-reads").is_none(), "{}", params("object.addCube"));
     let _ = std::fs::remove_dir_all(root);
 }

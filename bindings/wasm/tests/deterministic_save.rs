@@ -18,7 +18,7 @@ const OUT: &str = "KITION_SCENE_DETERMINISM_OUT";
 
 fn build() -> Vec<u8> {
     let mut doc = SceneDocument::create("still.kscene", 320, 180).unwrap();
-    doc.execute("add.uvSphere", json!({ "name": "Ball", "location": [2, 0, 1] })).unwrap();
+    doc.execute("object.addUvSphere", json!({ "name": "Ball", "location": [2, 0, 1] })).unwrap();
     doc.execute("material.new", json!({ "name": "Clay", "baseColor": "#c08060" })).unwrap();
     doc.save_file(Some("still.kscene")).unwrap()
 }

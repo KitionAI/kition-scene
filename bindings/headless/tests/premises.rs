@@ -207,8 +207,8 @@ async fn a_transform_key_holds_the_channels_and_the_transform() {
     check(Family {
         name: "keyframes",
         setup: none,
-        write: |ids| json!({ "command": "anim.insertKey", "params": { "objects": [ids["C2"]], "frame": 10 } }),
-        inside: |ids| vec![("anim.insertKey", json!({ "objects": [ids["C2"]], "frame": 20 }))],
+        write: |ids| json!({ "command": "animation.insertKey", "params": { "objects": [ids["C2"]], "frame": 10 } }),
+        inside: |ids| vec![("animation.insertKey", json!({ "objects": [ids["C2"]], "frame": 20 }))],
         on: "C2",
         reason: "changed",
         outside: |ids| vec![("object.rename", json!({ "object": ids["C2"], "name": "Theirs" }))],

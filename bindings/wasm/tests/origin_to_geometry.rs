@@ -31,9 +31,9 @@ fn origin_to_geometry_moves_the_origin_and_nothing_in_the_world() {
         .map(|n| [2.0 + if n & 1 == 0 { -0.5 } else { 0.5 }, if n & 2 == 0 { -0.5 } else { 0.5 }, if n & 4 == 0 { -0.5 } else { 0.5 }])
         .collect();
     let faces = json!([[0, 2, 3, 1], [4, 5, 7, 6], [0, 1, 5, 4], [2, 6, 7, 3], [0, 4, 6, 2], [1, 3, 7, 5]]);
-    doc.execute("add.cube", json!({ "name": "Box", "location": [0, 0, 1], "rotation": [0, 0, 90] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "Box", "location": [0, 0, 1], "rotation": [0, 0, 90] })).unwrap();
     doc.execute("mesh.setGeometry", json!({ "object": "Box", "positions": shifted, "faces": faces })).unwrap();
-    doc.execute("add.empty", json!({ "name": "Tag", "location": [0, 0, 2] })).unwrap();
+    doc.execute("object.addEmpty", json!({ "name": "Tag", "location": [0, 0, 2] })).unwrap();
     doc.execute("object.parent", json!({ "objects": ["Tag"], "parent": "Box" })).unwrap();
     let (points, tag) = (world_points(&doc, "Box"), world_origin(&doc, "Tag"));
 

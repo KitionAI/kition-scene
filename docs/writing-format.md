@@ -29,7 +29,7 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 |---|---|---|
 | `action` | `hide`, `isolate`, `showAll`, `toggle` | `sculpt.faceSetVisibility` |
 | `action` | `mask`, `unmask`, `hide`, `show`, `faceSet` | `sculpt.gesture` |
-| `action` | `select`, `deselect`, `invert` | `select.all` |
+| `action` | `select`, `deselect`, `invert` | `edit.selectAll` |
 | `after` | `none`, `repeat`, `repeatOffset`, `mirror` | `graph.addModifier`, `graph.setModifier` |
 | `align` | `left`, `center`, `right` | `text.set` |
 | `alphaMode` | `opaque`, `clip`, `blend` | `material.set` |
@@ -39,32 +39,32 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 | `blend` | `replace`, `add`, `subtract`, `multiply` | `graph.addModifier`, `graph.setModifier` |
 | `blend` | `replace`, `combine`, `add`, `subtract`, `multiply` | `nla.setStrip`, `nla.setAction` |
 | `channel` | `locationX`, `locationY`, `locationZ`, `rotationX`, `rotationY`, `rotationZ`, `scaleX`, `scaleY`, `scaleZ` | `constraint.add`, `constraint.set` |
-| `children` | `none`, `simple`, `interpolated` | `particles.add`, `particles.set` |
+| `children` | `none`, `simple`, `interpolated` | `particle.add`, `particle.set` |
 | `coordinates` | `local`, `global`, `uv` | `modifier.add`, `modifier.set` |
 | `dimensions` | `2d`, `3d` | `curve.set` |
 | `direction` | `positive`, `negative` | `mesh.symmetrize` |
 | `direction` | `normal`, `x`, `y`, `z` | `modifier.add`, `modifier.set` |
-| `distribution` | `jittered`, `random` | `particles.add`, `particles.set` |
+| `distribution` | `jittered`, `random` | `particle.add`, `particle.set` |
 | `easeEnds` | `none`, `in`, `out`, `inOut` | `camera.move` |
-| `emitFrom` | `faces`, `verts`, `volume` | `particles.add`, `particles.set` |
+| `emitFrom` | `faces`, `verts`, `volume` | `particle.add`, `particle.set` |
 | `extrapolation` | `hold`, `holdForward`, `nothing` | `nla.setStrip`, `nla.setAction` |
 | `falloff` | `smooth`, `sphere`, `root`, `linear`, `sharp`, `constant` | `mesh.proportional` |
 | `falloff` | `smooth`, `sphere`, `root`, `sharp`, `linear`, `constant` | `paint.brush`, `sculpt.brush`, `sculpt.stroke` |
-| `fill` | `nothing`, `ngon`, `triangleFan` | `add.circle`, `add.cylinder`, `add.cone` |
+| `fill` | `nothing`, `ngon`, `triangleFan` | `object.addCircle`, `object.addCylinder`, `object.addCone` |
 | `fillMode` | `full`, `half`, `both`, `front`, `back`, `none` | `curve.set` |
 | `format` | `glb`, `gltf`, `obj`, `stl`, `fbx`, `usda`, `usdc`, `usdz`, `png` | `file.export` |
 | `format` | `glb`, `gltf`, `obj`, `stl`, `fbx`, `usd`, `usda`, `usdc`, `usdz`, `blend` | `file.import` |
 | `from` | `current`, `position` | `camera.move` |
 | `function` | `sin`, `cos`, `tan`, `sqrt`, `ln`, `sinc` | `graph.addModifier`, `graph.setModifier` |
-| `interpolation` | `bezier`, `linear`, `constant` | `anim.setInterpolation`, `graph.setInterpolation` |
+| `interpolation` | `bezier`, `linear`, `constant` | `animation.setInterpolation`, `graph.setInterpolation` |
 | `interpolation` | `bspline`, `linear` | `lattice.set` |
 | `keepAxis` | `swingY`, `planeX`, `planeZ` | `constraint.add`, `constraint.set` |
-| `kind` | `point`, `sun`, `spot`, `area` | `add.light`, `light.set` |
+| `kind` | `point`, `sun`, `spot`, `area` | `object.addLight`, `light.set` |
 | `kind` | `average`, `sum`, `min`, `max`, `scripted` | `driver.add`, `driver.set` |
-| `kind` | `groupInput`, `groupOutput`, `group`, `repeatInput`, `repeatOutput`, `simulationInput`, `simulationOutput`, `meshCube`, `meshGrid`, `meshUvSphere`, `meshIcoSphere`, `meshCylinder`, `meshCone`, `meshLine`, `meshCircle`, `curveLine`, `curveCircle`, `curveBezierSegment`, `curveQuadrilateral`, `curveSpiral`, `curveStar`, `curveToMesh`, `curveToPoints`, `fillCurve`, `resampleCurve`, `trimCurve`, `reverseCurve`, `setCurveRadius`, `setCurveTilt`, `setSplineType`, `setNurbsOrder`, `setNurbsWeight`, `setSplineCyclic`, `setSplineResolution`, `splineParameter`, `curveLength`, `endpointSelection`, `transform`, `joinGeometry`, `setPosition`, `deleteGeometry`, `mergeByDistance`, `subdivideMesh`, `subdivisionSurface`, `extrudeMesh`, `meshToPoints`, `meshToCurve`, `distributePointsOnFaces`, `pointsToVertices`, `instanceOnPoints`, `realizeInstances`, `setMaterial`, `storeNamedAttribute`, `captureAttribute`, `position`, `normal`, `index`, `value`, `vector`, `objectInfo`, `separateXyz`, `combineXyz`, `math`, `vectorMath`, `randomValue`, `compare`, `switch`, `mapRange`, `sceneTime`, `namedAttribute`, `domainSize`, `attributeStatistic`, `accumulateField`, `meshBoolean`, `dualMesh`, `flipFaces`, `splitEdges`, `triangulate`, `scaleElements`, `meshIsland`, `edgeAngle`, `faceArea`, `edgeNeighbors`, `sampleIndex`, `sampleNearest`, `raycast`, `geometryProximity`, `translateInstances`, `rotateInstances`, `scaleInstances`, `instanceRotation`, `instanceScale`, `rotateEuler`, `rotateRotation`, `rotateVector`, `eulerToRotation`, `rotationToEuler`, `axisAngleToRotation`, `invertRotation`, `renderLayers`, `image`, `rgb`, `compositorOutput`, `viewer`, `alphaOver`, `brightContrast`, `colorBalance`, `exposure`, `hueSaturation`, `invert`, `mixColor`, `rgbCurves`, `blur`, `denoise`, `glare`, `defocus`, `vectorBlur`, `kuwahara`, `cryptomatte`, `chromaKey`, `colorKey`, `differenceKey`, `distanceKey`, `keying`, `luminanceKey`, `ellipseMask`, `lensDistortion`, `crop`, `flip`, `rotate`, `scale`, `imageTransform`, `translate`, `materialOutput`, `textureCoordinate`, `geometryInfo`, `fresnel`, `layerWeight`, `principledBsdf`, `diffuseBsdf`, `glossyBsdf`, `glassBsdf`, `transparentBsdf`, `emission`, `volumeAbsorption`, `volumeScatter`, `principledVolume`, `mixShader`, `addShader`, `imageTexture`, `noiseTexture`, `voronoiTexture`, `gradientTexture`, `checkerTexture`, `waveTexture`, `colorRamp`, `separateColor`, `combineColor`, `mapping`, `bump`, `normalMap` | `nodes.addNode` |
+| `kind` | `groupInput`, `groupOutput`, `group`, `repeatInput`, `repeatOutput`, `simulationInput`, `simulationOutput`, `meshCube`, `meshGrid`, `meshUvSphere`, `meshIcoSphere`, `meshCylinder`, `meshCone`, `meshLine`, `meshCircle`, `curveLine`, `curveCircle`, `curveBezierSegment`, `curveQuadrilateral`, `curveSpiral`, `curveStar`, `curveToMesh`, `curveToPoints`, `fillCurve`, `resampleCurve`, `trimCurve`, `reverseCurve`, `setCurveRadius`, `setCurveTilt`, `setSplineType`, `setNurbsOrder`, `setNurbsWeight`, `setSplineCyclic`, `setSplineResolution`, `splineParameter`, `curveLength`, `endpointSelection`, `transform`, `joinGeometry`, `setPosition`, `deleteGeometry`, `mergeByDistance`, `subdivideMesh`, `subdivisionSurface`, `extrudeMesh`, `meshToPoints`, `meshToCurve`, `distributePointsOnFaces`, `pointsToVertices`, `instanceOnPoints`, `realizeInstances`, `setMaterial`, `storeNamedAttribute`, `captureAttribute`, `position`, `normal`, `index`, `value`, `vector`, `objectInfo`, `separateXyz`, `combineXyz`, `math`, `vectorMath`, `randomValue`, `compare`, `switch`, `mapRange`, `sceneTime`, `namedAttribute`, `domainSize`, `attributeStatistic`, `accumulateField`, `meshBoolean`, `dualMesh`, `flipFaces`, `splitEdges`, `triangulate`, `scaleElements`, `meshIsland`, `edgeAngle`, `faceArea`, `edgeNeighbors`, `sampleIndex`, `sampleNearest`, `raycast`, `geometryProximity`, `translateInstances`, `rotateInstances`, `scaleInstances`, `instanceRotation`, `instanceScale`, `rotateEuler`, `rotateRotation`, `rotateVector`, `eulerToRotation`, `rotationToEuler`, `axisAngleToRotation`, `invertRotation`, `renderLayers`, `image`, `rgb`, `compositorOutput`, `viewer`, `alphaOver`, `brightContrast`, `colorBalance`, `exposure`, `hueSaturation`, `invert`, `mixColor`, `rgbCurves`, `blur`, `denoise`, `glare`, `defocus`, `vectorBlur`, `kuwahara`, `cryptomatte`, `chromaKey`, `colorKey`, `differenceKey`, `distanceKey`, `keying`, `luminanceKey`, `ellipseMask`, `lensDistortion`, `crop`, `flip`, `rotate`, `scale`, `imageTransform`, `translate`, `materialOutput`, `textureCoordinate`, `geometryInfo`, `fresnel`, `layerWeight`, `principledBsdf`, `diffuseBsdf`, `glossyBsdf`, `glassBsdf`, `transparentBsdf`, `emission`, `volumeAbsorption`, `volumeScatter`, `principledVolume`, `mixShader`, `addShader`, `imageTexture`, `noiseTexture`, `voronoiTexture`, `gradientTexture`, `checkerTexture`, `waveTexture`, `colorRamp`, `separateColor`, `combineColor`, `mapping`, `bump`, `normalMap` | `node.addNode` |
 | `kind` | `linear`, `radial` | `paint.gradient` |
 | `kind` | `comb`, `cut`, `length`, `puff`, `smooth` | `particleEdit.brush`, `particleEdit.stroke` |
-| `kind` | `emitter`, `hair` | `particles.add`, `particles.set` |
+| `kind` | `emitter`, `hair` | `particle.add`, `particle.set` |
 | `kind` | `draw`, `clayStrips`, `smooth`, `grab`, `inflate`, `crease`, `flatten`, `pinch`, `snakeHook`, `mask`, `drawFaceSets` | `sculpt.brush`, `sculpt.stroke` |
 | `look` | `none`, `punchy`, `greyscale`, `high-contrast`, `low-contrast` | `render.set` |
 | `mapFrom` | `location`, `rotation`, `scale` | `constraint.add`, `constraint.set` |
@@ -81,14 +81,14 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 | `mode` | `wireframe`, `solid`, `material`, `rendered` | `view.shading` |
 | `operation` | `difference`, `union`, `intersect` | `modifier.add`, `modifier.set` |
 | `ownerSpace` | `world`, `local`, `pose`, `localWithParent` | `constraint.add`, `constraint.set` |
-| `physics` | `newtonian`, `boids` | `particles.add`, `particles.set` |
+| `physics` | `newtonian`, `boids` | `particle.add`, `particle.set` |
 | `place` | `start`, `end`, `lineStart`, `lineEnd`, `up`, `down` | `text.caret` |
 | `preset` | `pushIn`, `pushHover`, `orbit`, `craneRise`, `reveal`, `pullBack`, `whip`, `follow`, `zoomThrough`, `pullOut` | `camera.move` |
 | `preset` | `product`, `dramatic`, `soft` | `light.studio` |
 | `property` | `location`, `rotation`, `scale`, `hidden`, `power`, `color`, `lens`, `baseColor`, `boneLocation`, `boneRotation`, `boneScale`, `shapeKey` | `driver.add`, `driver.set`, `driver.remove` |
 | `property` | `scale`, `color` | `object.wave` |
 | `refine` | `subdivideCollapse`, `subdivide`, `collapse` | `sculpt.dyntopo` |
-| `renderAs` | `halo`, `object`, `none` | `particles.add`, `particles.set` |
+| `renderAs` | `halo`, `object`, `none` | `particle.add`, `particle.set` |
 | `scope` | `person`, `agent` | `edit.undo`, `edit.redo` |
 | `sensorFit` | `auto`, `horizontal`, `vertical` | `camera.set` |
 | `shape` | `box`, `sphere`, `capsule`, `cylinder`, `convexHull`, `mesh` | `physics.rigidBody.add`, `physics.rigidBody.set` |
@@ -100,14 +100,14 @@ Themes, layouts and every other parameter that takes one of a fixed list of valu
 | `tool` | `brush`, `linearGradient`, `radialGradient`, `sampleWeight` | `paint.tool` |
 | `tool` | `brush`, `boxMask`, `lassoMask`, `boxHide`, `lassoHide`, `boxFaceSet`, `lassoFaceSet` | `sculpt.tool` |
 | `trackAxis` | `x`, `y`, `z`, `-x`, `-y`, `-z` | `constraint.add`, `constraint.set` |
-| `tree` | `geometry`, `compositor`, `shader` | `nodes.describe` |
-| `tree` | `geometry`, `shader` | `nodes.newGroup` |
+| `tree` | `geometry`, `compositor`, `shader` | `node.describe` |
+| `tree` | `geometry`, `shader` | `node.newGroup` |
 | `type` | `trackTo`, `dampedTrack`, `copyLocation`, `copyRotation`, `limitRotation`, `childOf`, `ik`, `stretchTo`, `floor`, `transform`, `action`, `armature`, `splineIk` | `constraint.add` |
 | `type` | `auto`, `vector`, `aligned`, `free` | `curve.setHandleType` |
 | `type` | `generator`, `function`, `envelope`, `cycles`, `noise`, `stepped`, `limits` | `graph.addModifier` |
 | `type` | `mirror`, `array`, `subdivision`, `solidify`, `triangulate`, `weld`, `smooth`, `bevel`, `boolean`, `screw`, `displace`, `decimate`, `wireframe`, `simpleDeform`, `cast`, `multires`, `shrinkwrap`, `lattice`, `geometryNodes` | `modifier.add` |
-| `type` | `geometry`, `float`, `int`, `bool`, `vector`, `rotation`, `object`, `material`, `string` | `nodes.addInput` |
-| `type` | `geometry`, `float`, `int`, `bool`, `vector`, `rotation` | `nodes.addOutput`, `nodes.addZoneItem` |
+| `type` | `geometry`, `float`, `int`, `bool`, `vector`, `rotation`, `object`, `material`, `string` | `node.addInput` |
+| `type` | `geometry`, `float`, `int`, `bool`, `vector`, `rotation` | `node.addOutput`, `node.addZoneItem` |
 | `type` | `fixed`, `point`, `hinge`, `slider`, `genericSpring`, `motor` | `physics.constraint.add`, `physics.constraint.set`, `physics.constraint.connect` |
 | `type` | `force`, `wind`, `vortex`, `turbulence`, `drag` | `physics.field.new`, `physics.field.add`, `physics.field.set` |
 | `type` | `active`, `passive` | `physics.rigidBody.add`, `physics.rigidBody.set` |
@@ -143,9 +143,9 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Edit > Select
 
-- `select.all` (reads): Selects every object in object mode (or every element in edit mode); `action: "toggle"`/`"deselect"` changes that. Answers whether the selection changed.
+- `edit.selectAll` (reads): Selects every object in object mode (or every element in edit mode); `action: "toggle"`/`"deselect"` changes that. Answers whether the selection changed.
   - `action` string, one of `select` | `deselect` | `invert`, What to do
-- `select.none` (reads): Clears the selection. Answers whether it changed. No parameters.
+- `edit.deselectAll` (reads): Clears the selection. Answers whether it changed. No parameters.
 
 ### (no menu)
 
@@ -188,7 +188,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `enabled` boolean, Shown in the viewport and renders
   - `envelopes` boolean, armature: vertices in no bone's group follow the bones whose envelopes reach them (false)
   - `factor` number, smooth: how far each vertex moves towards its neighbours
-  - `group` integer, geometryNodes: the node group's id (nodes.newGroup makes one)
+  - `group` integer, geometryNodes: the node group's id (node.newGroup makes one)
   - `image` string, displace: an image's hash (from image.add) whose brightness pushes; null for none
   - `index` integer, The modifier's position in the stack, from 0
   - `inputs` object, geometryNodes: the group's inputs by name
@@ -377,7 +377,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `keyingSet.removePath` (writes): Removes path `index` from keying set `name`.
   - `index` integer, required, The path's position, from 0
   - `name` string, The keying set; the active one when left out
-- `keyingSet.setActive` (writes): Makes keying set `name` the one `anim.insertKey` uses by default.
+- `keyingSet.setActive` (writes): Makes keying set `name` the one `animation.insertKey` uses by default.
   - `name` string, location, rotation, scale, locRot, locScale, locRotScale, rotScale, available, wholeCharacter, or the name of one of the scene's own; null for none
 - `action.remove` (writes): Deletes action `name` from the file; objects using it lose their animation.
   - `name` string, required, The action
@@ -714,7 +714,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `from` integer or string, required, A mesh with the highest level's vertices, whose shape is copied
   - `object` integer or string, The mesh; the sculpted or active one when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
-- `particles.set` (writes): Changes particle system `system`'s settings, including airborne boids with averaged Goal, Avoid, Separate and Flock rules. Targets use their current world-space positions; animated target history, collisions and force fields are unsupported.
+- `particle.set` (writes): Changes particle system `system`'s settings, including airborne boids with averaged Goal, Avoid, Separate and Flock rules. Targets use their current world-space positions; animated target history, collisions and force fields are unsupported.
   - `boids` object, Airborne boids. Enabled rules are averaged, not evaluated by priority. Up to 2048 particles, 1000 emission-plus-lifetime frames and 500000 particle-frames and 500000 birth/death-aware particle updates. Faces or vertices only; scene force fields and collisions are inert. Targets use current world-space positions.
   - `bounce` number, The share of speed kept on a bounce, 0 to 1 (0.5)
   - `childCount` integer, Hair: children per parent strand (10)
@@ -752,7 +752,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `strandWidth` number, Hair: strand width at the root, metres (0.01)
   - `system` integer or string, The system's index or name; the first when left out
   - `timestep` number, Seconds simulated per frame (0.04)
-- `particles.stats` (reads): Answers particle system `system`'s counts (particles, alive, children) at `frame`.
+- `particle.stats` (reads): Answers particle system `system`'s counts (particles, alive, children) at `frame`.
   - `frame` number, The frame (the current one when left out)
   - `object` integer or string, The mesh; the active one when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
@@ -829,66 +829,66 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `deselect` boolean, Take them out of the selection
   - `extend` boolean, Add to the selection
   - `points` integer[], Point indices
-- `nodes.removeGroup` (writes): Deletes node group `group`.
+- `node.removeGroup` (writes): Deletes node group `group`.
   - `group` integer or string, The group's id or name; the only group when left out
-- `nodes.renameGroup` (writes): Renames node group `group`.
+- `node.renameGroup` (writes): Renames node group `group`.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The new name
-- `nodes.addNode` (writes): Adds a node of `kind` (see `nodes.describe`) to `group` at `location` with input `values`.
+- `node.addNode` (writes): Adds a node of `kind` (see `node.describe`) to `group` at `location` with input `values`.
   - `group` integer or string, The group's id or name; the only group when left out
-  - `kind` string, required, one of `groupInput` | `groupOutput` | `group` | `repeatInput` | `repeatOutput` | `simulationInput` | `simulationOutput` | `meshCube` | `meshGrid` | `meshUvSphere` | `meshIcoSphere` | `meshCylinder` | `meshCone` | `meshLine` | `meshCircle` | `curveLine` | `curveCircle` | `curveBezierSegment` | `curveQuadrilateral` | `curveSpiral` | `curveStar` | `curveToMesh` | `curveToPoints` | `fillCurve` | `resampleCurve` | `trimCurve` | `reverseCurve` | `setCurveRadius` | `setCurveTilt` | `setSplineType` | `setNurbsOrder` | `setNurbsWeight` | `setSplineCyclic` | `setSplineResolution` | `splineParameter` | `curveLength` | `endpointSelection` | `transform` | `joinGeometry` | `setPosition` | `deleteGeometry` | `mergeByDistance` | `subdivideMesh` | `subdivisionSurface` | `extrudeMesh` | `meshToPoints` | `meshToCurve` | `distributePointsOnFaces` | `pointsToVertices` | `instanceOnPoints` | `realizeInstances` | `setMaterial` | `storeNamedAttribute` | `captureAttribute` | `position` | `normal` | `index` | `value` | `vector` | `objectInfo` | `separateXyz` | `combineXyz` | `math` | `vectorMath` | `randomValue` | `compare` | `switch` | `mapRange` | `sceneTime` | `namedAttribute` | `domainSize` | `attributeStatistic` | `accumulateField` | `meshBoolean` | `dualMesh` | `flipFaces` | `splitEdges` | `triangulate` | `scaleElements` | `meshIsland` | `edgeAngle` | `faceArea` | `edgeNeighbors` | `sampleIndex` | `sampleNearest` | `raycast` | `geometryProximity` | `translateInstances` | `rotateInstances` | `scaleInstances` | `instanceRotation` | `instanceScale` | `rotateEuler` | `rotateRotation` | `rotateVector` | `eulerToRotation` | `rotationToEuler` | `axisAngleToRotation` | `invertRotation` | `renderLayers` | `image` | `rgb` | `compositorOutput` | `viewer` | `alphaOver` | `brightContrast` | `colorBalance` | `exposure` | `hueSaturation` | `invert` | `mixColor` | `rgbCurves` | `blur` | `denoise` | `glare` | `defocus` | `vectorBlur` | `kuwahara` | `cryptomatte` | `chromaKey` | `colorKey` | `differenceKey` | `distanceKey` | `keying` | `luminanceKey` | `ellipseMask` | `lensDistortion` | `crop` | `flip` | `rotate` | `scale` | `imageTransform` | `translate` | `materialOutput` | `textureCoordinate` | `geometryInfo` | `fresnel` | `layerWeight` | `principledBsdf` | `diffuseBsdf` | `glossyBsdf` | `glassBsdf` | `transparentBsdf` | `emission` | `volumeAbsorption` | `volumeScatter` | `principledVolume` | `mixShader` | `addShader` | `imageTexture` | `noiseTexture` | `voronoiTexture` | `gradientTexture` | `checkerTexture` | `waveTexture` | `colorRamp` | `separateColor` | `combineColor` | `mapping` | `bump` | `normalMap`, The node's kind (nodes.describe lists their sockets)
+  - `kind` string, required, one of `groupInput` | `groupOutput` | `group` | `repeatInput` | `repeatOutput` | `simulationInput` | `simulationOutput` | `meshCube` | `meshGrid` | `meshUvSphere` | `meshIcoSphere` | `meshCylinder` | `meshCone` | `meshLine` | `meshCircle` | `curveLine` | `curveCircle` | `curveBezierSegment` | `curveQuadrilateral` | `curveSpiral` | `curveStar` | `curveToMesh` | `curveToPoints` | `fillCurve` | `resampleCurve` | `trimCurve` | `reverseCurve` | `setCurveRadius` | `setCurveTilt` | `setSplineType` | `setNurbsOrder` | `setNurbsWeight` | `setSplineCyclic` | `setSplineResolution` | `splineParameter` | `curveLength` | `endpointSelection` | `transform` | `joinGeometry` | `setPosition` | `deleteGeometry` | `mergeByDistance` | `subdivideMesh` | `subdivisionSurface` | `extrudeMesh` | `meshToPoints` | `meshToCurve` | `distributePointsOnFaces` | `pointsToVertices` | `instanceOnPoints` | `realizeInstances` | `setMaterial` | `storeNamedAttribute` | `captureAttribute` | `position` | `normal` | `index` | `value` | `vector` | `objectInfo` | `separateXyz` | `combineXyz` | `math` | `vectorMath` | `randomValue` | `compare` | `switch` | `mapRange` | `sceneTime` | `namedAttribute` | `domainSize` | `attributeStatistic` | `accumulateField` | `meshBoolean` | `dualMesh` | `flipFaces` | `splitEdges` | `triangulate` | `scaleElements` | `meshIsland` | `edgeAngle` | `faceArea` | `edgeNeighbors` | `sampleIndex` | `sampleNearest` | `raycast` | `geometryProximity` | `translateInstances` | `rotateInstances` | `scaleInstances` | `instanceRotation` | `instanceScale` | `rotateEuler` | `rotateRotation` | `rotateVector` | `eulerToRotation` | `rotationToEuler` | `axisAngleToRotation` | `invertRotation` | `renderLayers` | `image` | `rgb` | `compositorOutput` | `viewer` | `alphaOver` | `brightContrast` | `colorBalance` | `exposure` | `hueSaturation` | `invert` | `mixColor` | `rgbCurves` | `blur` | `denoise` | `glare` | `defocus` | `vectorBlur` | `kuwahara` | `cryptomatte` | `chromaKey` | `colorKey` | `differenceKey` | `distanceKey` | `keying` | `luminanceKey` | `ellipseMask` | `lensDistortion` | `crop` | `flip` | `rotate` | `scale` | `imageTransform` | `translate` | `materialOutput` | `textureCoordinate` | `geometryInfo` | `fresnel` | `layerWeight` | `principledBsdf` | `diffuseBsdf` | `glossyBsdf` | `glassBsdf` | `transparentBsdf` | `emission` | `volumeAbsorption` | `volumeScatter` | `principledVolume` | `mixShader` | `addShader` | `imageTexture` | `noiseTexture` | `voronoiTexture` | `gradientTexture` | `checkerTexture` | `waveTexture` | `colorRamp` | `separateColor` | `combineColor` | `mapping` | `bump` | `normalMap`, The node's kind (node.describe lists their sockets)
   - `location` number[], [x, y] in the editor's units
-  - `values` object, Socket and setting values by id, as nodes.setValue takes them
-- `nodes.removeNodes` (writes): Removes nodes by index from `group`.
+  - `values` object, Socket and setting values by id, as node.setValue takes them
+- `node.removeNodes` (writes): Removes nodes by index from `group`.
   - `group` integer or string, The group's id or name; the only group when left out
   - `nodes` integer[], required, The nodes' ids
-- `nodes.moveNodes` (writes): Moves nodes of `group` to `location` or by `offset` in the node editor.
+- `node.moveNodes` (writes): Moves nodes of `group` to `location` or by `offset` in the node editor.
   - `group` integer or string, The group's id or name; the only group when left out
   - `location` number[], [x, y] to put the (one) node at
   - `nodes` integer[], required, The nodes' ids
   - `offset` number[], [dx, dy] to move each by
-- `nodes.setValue` (writes): Sets input or property `id` of node `node` in `group` to `value`.
+- `node.setValue` (writes): Sets input or property `id` of node `node` in `group` to `value`.
   - `group` integer or string, The group's id or name; the only group when left out
   - `id` string, required, An input socket's or a setting's id
   - `node` integer, required, The node's id: its id
   - `value` json, The value: a number, [x, y, z], a boolean, a setting's choice, an object or material id, a text; null clears it
-- `nodes.link` (writes): Links output socket `fromSocket` of node `from` to input socket `toSocket` of node `to` in `group`.
+- `node.link` (writes): Links output socket `fromSocket` of node `from` to input socket `toSocket` of node `to` in `group`.
   - `from` integer, required, The node whose output to link: its id
   - `fromSocket` string, required, The output socket's id
   - `group` integer or string, The group's id or name; the only group when left out
   - `to` integer, required, The node whose input to link: its id
   - `toSocket` string, required, The input socket's id; a link already there is replaced unless the input takes several
-- `nodes.unlink` (writes): Removes the link between two sockets in `group`.
+- `node.unlink` (writes): Removes the link between two sockets in `group`.
   - `from` integer, Only the link from this node: its id
   - `fromSocket` string, Only the link from this output socket
   - `group` integer or string, The group's id or name; the only group when left out
   - `to` integer, required, The node whose input to unlink: its id
   - `toSocket` string, required, The input socket's id
-- `nodes.addInput` (writes): Adds an input socket of `type` to node group `group`'s interface.
+- `node.addInput` (writes): Adds an input socket of `type` to node group `group`'s interface.
   - `default` json, The value a modifier uses when it sets none
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The input's name, unique in the group
   - `type` string, required, one of `geometry` | `float` | `int` | `bool` | `vector` | `rotation` | `object` | `material` | `string`, What the input carries
-- `nodes.removeInput` (writes): Removes input `name` from node group `group`'s interface.
+- `node.removeInput` (writes): Removes input `name` from node group `group`'s interface.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The input's name
-- `nodes.addOutput` (writes): Adds an output socket of `type` to node group `group`'s interface.
+- `node.addOutput` (writes): Adds an output socket of `type` to node group `group`'s interface.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The output's name, unique in the group (a Group node using the group gives it)
   - `type` string, required, one of `geometry` | `float` | `int` | `bool` | `vector` | `rotation`, What the output carries
-- `nodes.removeOutput` (writes): Removes output `name` from node group `group`'s interface.
+- `node.removeOutput` (writes): Removes output `name` from node group `group`'s interface.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The output's name
-- `nodes.addZoneItem` (writes): Adds an item to a repeat or simulation zone node's state.
+- `node.addZoneItem` (writes): Adds an item to a repeat or simulation zone node's state.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The item's name, unique in the zone: a socket on both of its nodes
   - `node` integer, required, Either node of the zone: its id
   - `type` string, required, one of `geometry` | `float` | `int` | `bool` | `vector` | `rotation`, What the item carries
-- `nodes.removeZoneItem` (writes): Removes an item from a repeat or simulation zone node's state.
+- `node.removeZoneItem` (writes): Removes an item from a repeat or simulation zone node's state.
   - `group` integer or string, The group's id or name; the only group when left out
   - `name` string, required, The item's name
   - `node` integer, required, Either node of the zone: its id
-- `nodes.describe` (reads): Lists the node kinds a tree takes (or one `kind`) with their inputs, outputs and properties, for `nodes.addNode`.
+- `node.describe` (reads): Lists the node kinds a tree takes (or one `kind`) with their inputs, outputs and properties, for `node.addNode`.
   - `group` integer or string, The group's id or name; the only group when left out
   - `kind` string, One kind; every kind when left out
   - `tree` string, one of `geometry` | `compositor` | `shader`, Only the kinds a geometry, a compositing, or a shader group takes
@@ -1013,13 +1013,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Add > Mesh
 
-- `add.plane` (writes): Adds a plane mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addPlane` (writes): Adds a plane mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `size` number, Side length in metres (2)
-- `add.backdrop` (writes): Adds a backdrop (a cyclorama): a floor curving up into a wall, smooth, so renders show no horizon. `width`, `depth` (floor in front of the curve, centred on the origin), `height`, and `radius` in metres, `segments` round the curve.
+- `object.addBackdrop` (writes): Adds a backdrop (a cyclorama): a floor curving up into a wall, smooth, so renders show no horizon. `width`, `depth` (floor in front of the curve, centred on the origin), `height`, and `radius` in metres, `segments` round the curve.
   - `depth` number, Depth of the floor in front of the curve in metres, centred on the origin (10)
   - `height` number, Height of the wall in metres (8)
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
@@ -1029,13 +1029,13 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `scale` number[], Scale [x, y, z]
   - `segments` integer, Faces round the curve, 1 to 256 (16)
   - `width` number, Width across X in metres (20)
-- `add.cube` (writes): Adds a cube mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCube` (writes): Adds a cube mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `size` number, Side length in metres (2)
-- `add.circle` (writes): Adds a circle mesh of `radius` and vertex count, optionally filled at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCircle` (writes): Adds a circle mesh of `radius` and vertex count, optionally filled at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `fill` string, one of `nothing` | `ngon` | `triangleFan`, How to fill it
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
@@ -1043,7 +1043,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `vertices` integer, Vertices (32)
-- `add.uvSphere` (writes): Adds a UV sphere mesh of `radius` with segments and rings at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addUvSphere` (writes): Adds a UV sphere mesh of `radius` with segments and rings at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `radius` number, Radius in metres (1)
@@ -1051,14 +1051,14 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `segments` integer, Segments around (32)
-- `add.icoSphere` (writes): Adds a icosphere mesh of `radius` and subdivision level at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addIcoSphere` (writes): Adds a icosphere mesh of `radius` and subdivision level at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `radius` number, Radius in metres (1)
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `subdivisions` integer, Subdivisions, 1 to 8 (2)
-- `add.cylinder` (writes): Adds a cylinder mesh of `radius` and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCylinder` (writes): Adds a cylinder mesh of `radius` and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `depth` number, Height in metres (2)
   - `fill` string, one of `nothing` | `ngon` | `triangleFan`, How the ends are closed
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
@@ -1067,7 +1067,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `vertices` integer, Vertices around (32)
-- `add.cone` (writes): Adds a cone mesh with bottom and top radii and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCone` (writes): Adds a cone mesh with bottom and top radii and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `depth` number, Height in metres (2)
   - `fill` string, one of `nothing` | `ngon` | `triangleFan`, How the ends are closed
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
@@ -1077,7 +1077,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `vertices` integer, Vertices around (32)
-- `add.torus` (writes): Adds a torus mesh with major and minor radii and segments at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addTorus` (writes): Adds a torus mesh with major and minor radii and segments at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `majorRadius` number, Ring radius in metres (1)
   - `majorSegments` integer, Segments around the ring (48)
@@ -1086,7 +1086,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
-- `add.grid` (writes): Adds a grid mesh of `size` with x and y subdivisions at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addGrid` (writes): Adds a grid mesh of `size` with x and y subdivisions at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
@@ -1097,7 +1097,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Add
 
-- `add.light` (writes): Adds a light (point, sun, spot or area) with color and power at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addLight` (writes): Adds a light (point, sun, spot or area) with color and power at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `color` array or string, Colour
   - `kind` string, one of `point` | `sun` | `spot` | `area`, The kind of light
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
@@ -1105,29 +1105,29 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `power` number, Watts (W/m² for a sun)
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
-- `add.camera` (writes): Adds a camera with a lens in millimetres at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCamera` (writes): Adds a camera with a lens in millimetres at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `lens` number, Focal length in millimetres (50)
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
-- `add.empty` (writes): Adds a empty (an axis marker for parenting and targets) at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addEmpty` (writes): Adds a empty (an axis marker for parenting and targets) at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `size` number, Axis length in metres (1)
-- `add.armature` (writes): Adds an armature with one bone at `location` and answers its name and object id.
+- `object.addArmature` (writes): Adds an armature with one bone at `location` and answers its name and object id.
   - `location` number[], Where to put it, in metres [x, y, z]
   - `name` string, The object's name
-- `add.text` (writes): Adds a text object with `body` and `size` at `location` and answers its name and object id.
+- `object.addText` (writes): Adds a text object with `body` and `size` at `location` and answers its name and object id.
   - `body` string, The text ("Text")
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
   - `size` number, The text's size (1)
-- `add.lattice` (writes): Adds a lattice of `resolution` at `location` and answers its name and object id.
+- `object.addLattice` (writes): Adds a lattice of `resolution` at `location` and answers its name and object id.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `resolution` integer or array, Points along each side, 1 to 64: one number for all three, or [u, v, w]
@@ -1343,7 +1343,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `distance` number, weld: the distance that joins vertices
   - `envelopes` boolean, armature: vertices in no bone's group follow the bones whose envelopes reach them (false)
   - `factor` number, smooth: how far each vertex moves towards its neighbours
-  - `group` integer, geometryNodes: the node group's id (nodes.newGroup makes one)
+  - `group` integer, geometryNodes: the node group's id (node.newGroup makes one)
   - `image` string, displace: an image's hash (from image.add) whose brightness pushes; null for none
   - `inputs` object, geometryNodes: the group's inputs by name
   - `invertVertexGroup` boolean, armature: use one minus that group's weights
@@ -1550,23 +1550,23 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Object > Animation
 
-- `anim.insertKey` (writes): Inserts keyframes for `properties` (location, rotation, scale, …) or a keying set of `objects` (names or ids; the selection without it) at `frame`.
+- `animation.insertKey` (writes): Inserts keyframes for `properties` (location, rotation, scale, …) or a keying set of `objects` (names or ids; the selection without it) at `frame`.
   - `frame` number, The frame; the current frame when left out
   - `keyingSet` string, insertKey: key what this keying set names instead (the active one is used when no properties are given)
   - `objects` integer or string or array, The objects; the selection when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
   - `properties` string[], What to key: location, rotation, scale, hidden; power and color of a light; lens of a camera; baseColor of the object's material (location, rotation, and scale when left out)
-- `anim.deleteKey` (writes): Deletes the keyframes for `properties` of `objects` (names or ids; the selection without it) at `frame`.
+- `animation.deleteKey` (writes): Deletes the keyframes for `properties` of `objects` (names or ids; the selection without it) at `frame`.
   - `frame` number, The frame; the current frame when left out
   - `keyingSet` string, insertKey: key what this keying set names instead (the active one is used when no properties are given)
   - `objects` integer or string or array, The objects; the selection when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
   - `properties` string[], What to key: location, rotation, scale, hidden; power and color of a light; lens of a camera; baseColor of the object's material (location, rotation, and scale when left out)
-- `anim.clear` (writes): Clears every keyframe (or those of `properties`) of `objects` (names or ids; the selection without it).
+- `animation.clear` (writes): Clears every keyframe (or those of `properties`) of `objects` (names or ids; the selection without it).
   - `objects` integer or string or array, The objects; the selection when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
   - `properties` string[], Only these properties (every animated one when left out)
-- `anim.setInterpolation` (writes): Sets the interpolation (constant, linear, bezier, …) of keyframes of `objects` (names or ids; the selection without it) at `frame`.
+- `animation.setInterpolation` (writes): Sets the interpolation (constant, linear, bezier, …) of keyframes of `objects` (names or ids; the selection without it) at `frame`.
   - `frame` number, Only the keys on this frame (every key when left out)
   - `interpolation` string, required, one of `bezier` | `linear` | `constant`, How the curve runs from a key to the next
   - `keyingSet` string, insertKey: key what this keying set names instead (the active one is used when no properties are given)
@@ -1580,8 +1580,8 @@ No schema states a default; the parameter descriptions name the defaults that ex
 - `frame.previous` (reads): Goes to the previous frame (wrapping to the end) and answers it. No parameters.
 - `frame.start` (reads): Goes to the first frame of the range and answers it. No parameters.
 - `frame.end` (reads): Goes to the last frame of the range and answers it. No parameters.
-- `anim.nextKey` (reads): Goes to the next keyframe of the selected objects and answers its frame. No parameters.
-- `anim.previousKey` (reads): Goes to the previous keyframe of the selected objects and answers its frame. No parameters.
+- `animation.nextKey` (reads): Goes to the next keyframe of the selected objects and answers its frame. No parameters.
+- `animation.previousKey` (reads): Goes to the previous keyframe of the selected objects and answers its frame. No parameters.
 
 ### Object > Animation > Drivers
 
@@ -1875,7 +1875,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Object > Particles
 
-- `particles.add` (writes): Adds a particle system (Newtonian or airborne averaged boid emitter, or hair) with its settings to `object`.
+- `particle.add` (writes): Adds a particle system (Newtonian or airborne averaged boid emitter, or hair) with its settings to `object`.
   - `boids` object, Airborne boids. Enabled rules are averaged, not evaluated by priority. Up to 2048 particles, 1000 emission-plus-lifetime frames and 500000 particle-frames and 500000 birth/death-aware particle updates. Faces or vertices only; scene force fields and collisions are inert. Targets use current world-space positions.
   - `bounce` number, The share of speed kept on a bounce, 0 to 1 (0.5)
   - `childCount` integer, Hair: children per parent strand (10)
@@ -1912,11 +1912,11 @@ No schema states a default; the parameter descriptions name the defaults that ex
   - `sizeRandom` number, How much of the size may randomly be taken off, 0 to 1
   - `strandWidth` number, Hair: strand width at the root, metres (0.01)
   - `timestep` number, Seconds simulated per frame (0.04)
-- `particles.remove` (writes): Removes particle system `system` from `object`.
+- `particle.remove` (writes): Removes particle system `system` from `object`.
   - `object` integer or string, The mesh; the active one when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
   - `system` integer or string, The system's index or name; the first when left out
-- `particles.convert` (writes): Converts particle system `system` into a mesh object.
+- `particle.convert` (writes): Converts particle system `system` into a mesh object.
   - `object` integer or string, The mesh; the active one when left out
   - `pick` number[], Instead of `object`/`objects`: a world point [x, y, z] in metres; the command acts on the object there now (the smallest whose mesh's bounds hold the point, else the nearest light, camera, empty, curve, text, lattice or armature whose origin is within 0.25 m). A place: with `basis`, a write by it is refused when what is at the point is no longer what was there (moved away, another moved in, its parent moved)
   - `system` integer or string, The system's index or name; the first when left out
@@ -1924,19 +1924,19 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Add > Curve
 
-- `add.curveBezier` (writes): Adds a Bezier curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCurveBezier` (writes): Adds a Bezier curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `radius` number, Size: the curve spans twice this (1)
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
-- `add.curveCircle` (writes): Adds a Bezier circle curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCurveCircle` (writes): Adds a Bezier circle curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `radius` number, Radius in metres (1)
   - `rotation` number[], Rotation in degrees, XYZ Euler [x, y, z]
   - `scale` number[], Scale [x, y, z]
-- `add.curvePath` (writes): Adds a NURBS path curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
+- `object.addCurvePath` (writes): Adds a NURBS path curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run.
   - `location` number[], Where to put it, in metres (the origin when left out) [x, y, z]
   - `name` string, The object's name
   - `radius` number, Size: the path spans four times this (1)
@@ -2216,7 +2216,7 @@ No schema states a default; the parameter descriptions name the defaults that ex
 
 ### Geometry Nodes
 
-- `nodes.newGroup` (writes): Creates a node group (geometry, shader, compositor) for a modifier, material, world or as a library group.
+- `node.newGroup` (writes): Creates a node group (geometry, shader, compositor) for a modifier, material, world or as a library group.
   - `material` integer or string, shader: the material (id or name) the group gives its surface (a Principled BSDF into the Material Output's Surface)
   - `modifier` integer, With object: the Geometry Nodes modifier (its index) to use the group instead of adding one
   - `name` string, The group's name (Geometry Nodes, Shader, or Volume when left out)
@@ -2236,11 +2236,11 @@ The new scene has `Cube` (id 2) with material `Material`, `Light` and `Camera`.
 ```json
 scene_run {"path": "scene.kscene", "steps": [
   {"command": "edit.delete", "params": {"objects": "Cube"}},
-  {"command": "add.cube", "params": {"name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04]}},
-  {"command": "add.cylinder", "params": {"name": "Leg 1", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, 0.5, 0.36]}},
-  {"command": "add.cylinder", "params": {"name": "Leg 2", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, 0.5, 0.36]}},
-  {"command": "add.cylinder", "params": {"name": "Leg 3", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, -0.5, 0.36]}},
-  {"command": "add.cylinder", "params": {"name": "Leg 4", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, -0.5, 0.36]}},
+  {"command": "object.addCube", "params": {"name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04]}},
+  {"command": "object.addCylinder", "params": {"name": "Leg 1", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, 0.5, 0.36]}},
+  {"command": "object.addCylinder", "params": {"name": "Leg 2", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, 0.5, 0.36]}},
+  {"command": "object.addCylinder", "params": {"name": "Leg 3", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, -0.5, 0.36]}},
+  {"command": "object.addCylinder", "params": {"name": "Leg 4", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, -0.5, 0.36]}},
   {"command": "material.set", "params": {"material": "Material", "name": "Wood", "baseColor": "#8b5a2b", "roughness": 0.6}},
   {"command": "material.assign", "params": {"material": "Wood", "objects": ["Top", "Leg 1", "Leg 2", "Leg 3", "Leg 4"]}},
   {"command": "object.parent", "params": {"objects": ["Leg 1", "Leg 2", "Leg 3", "Leg 4"], "parent": "Top"}},
@@ -2276,11 +2276,11 @@ The camera turns (the step answers its new `rotation`), and the check finds noth
 scene_run {"path": "scene.kscene", "steps": [
   {"command": "material.new", "params": {"name": "Blue", "baseColor": "#2050ff", "assign": false}},
   {"command": "material.assign", "on": ["Cube", "Left", "Right"], "params": {"material": "Blue"}},
-  {"command": "anim.insertKey", "at": {"time": 2}, "params": {"objects": "Right", "properties": ["location"]}}
+  {"command": "animation.insertKey", "at": {"time": 2}, "params": {"objects": "Right", "properties": ["location"]}}
 ]}
 ```
 
-`material.assign` gives Blue to exactly the three objects `on` names, and `anim.insertKey` keys
+`material.assign` gives Blue to exactly the three objects `on` names, and `animation.insertKey` keys
 Right's location at 2 s, frame 49 of a scene that starts at frame 1 at 24 fps (it answers
 `"keys": 3`). The selection and the current frame are what they were before the run.
 

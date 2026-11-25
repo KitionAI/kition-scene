@@ -26,8 +26,8 @@ fn keeps_the_kit_sdk_contract() {
     // sphere, selected, is outlined, and a selection is the person's view state, not the file's, so
     // the edit leaves nothing selected.
     kition_kit::testing::check_contract::<SceneDocument>(&starter(), "fixture.kscene", |doc| {
-        doc.execute("add.uvSphere", json!({ "location": [3, 0, 1] }))?;
-        doc.execute("select.none", json!({}))?;
+        doc.execute("object.addUvSphere", json!({ "location": [3, 0, 1] }))?;
+        doc.execute("edit.deselectAll", json!({}))?;
         Ok(())
     })
     .unwrap();
@@ -37,12 +37,12 @@ fn keeps_the_kit_sdk_contract() {
 fn the_agent_builds_a_table() {
     let mut doc = SceneDocument::open("t.kscene", &starter()).unwrap();
     agent(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    let top = agent(&mut doc, "add.cube", json!({ "name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04] }));
+    let top = agent(&mut doc, "object.addCube", json!({ "name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04] }));
     assert_eq!(top["name"], "Top");
     for (index, [x, y]) in [[0.9, 0.5], [-0.9, 0.5], [0.9, -0.5], [-0.9, -0.5]].into_iter().enumerate() {
         agent(
             &mut doc,
-            "add.cylinder",
+            "object.addCylinder",
             json!({ "name": format!("Leg {}", index + 1), "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [x, y, 0.36] }),
         );
     }
@@ -107,8 +107,8 @@ fn bad_input_is_refused_and_changes_nothing() {
     let mut doc = SceneDocument::open("t.kscene", &starter()).unwrap();
     let before = doc.save_file(None).unwrap();
     for (command, params) in [
-        ("add.uvSphere", json!({ "segments": 2 })),
-        ("add.cube", json!({ "location": [0, 0] })),
+        ("object.addUvSphere", json!({ "segments": 2 })),
+        ("object.addCube", json!({ "location": [0, 0] })),
         ("object.transform", json!({ "objects": "Nope", "location": [0, 0, 0] })),
         ("object.parent", json!({ "objects": ["Cube"], "parent": "Cube" })),
         ("mesh.extrude", json!({})),
@@ -153,7 +153,7 @@ fn bevel_boolean_and_screw_through_commands() {
     run(&mut doc, "edit.undo", json!({}));
     run(&mut doc, "mode.set", json!({ "mode": "object" }));
 
-    run(&mut doc, "add.cube", json!({ "name": "Cutter", "location": [1, 1, 1] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Cutter", "location": [1, 1, 1] }));
     let added = run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "boolean", "operand": "Cutter" }));
     assert_eq!(added["object"], doc.inspect().unwrap()["objects"][0]["id"]);
     let cube = doc.inspect().unwrap()["objects"][0].clone();

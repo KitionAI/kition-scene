@@ -22,14 +22,14 @@ fn scene() -> SceneDocument {
     let mut doc = SceneDocument::create("Preview.kscene", 640, 360).unwrap();
     run(&mut doc, "render.set", json!({ "width": 320, "height": 180 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [-2, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
     run(&mut doc, "frame.set", json!({ "frame": 25 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [2, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 25 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 25 }));
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
-    run(&mut doc, "add.camera", json!({ "name": "Side", "location": [0, -12, 1] }));
+    run(&mut doc, "object.addCamera", json!({ "name": "Side", "location": [0, -12, 1] }));
     run(&mut doc, "object.lookAt", json!({ "object": "Side", "target": [0, 0, 0] }));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "edit.deselectAll", json!({}));
     doc.mark_saved();
     doc
 }
@@ -164,7 +164,7 @@ fn named_views_are_different_pictures() {
 #[test]
 fn a_fitted_view_shows_the_whole_scene_and_an_object_fills_it() {
     let mut doc = scene();
-    run(&mut doc, "add.cylinder", json!({ "name": "Post", "radius": 0.3, "depth": 3, "location": [0, 2, 1.5] }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Post", "radius": 0.3, "depth": 3, "location": [0, 2, 1.5] }));
     // Front, the scene's meshes fill the picture with a margin: the edges are background.
     let front = picture(&render(&mut doc, json!({ "target": { "view": "front", "pass": "id" } })));
     let (w, h) = front.dimensions();
@@ -354,7 +354,7 @@ fn without_a_target_it_shows_four_views() {
 #[test]
 fn the_id_pass_colours_each_object_and_names_the_colours() {
     let mut doc = scene();
-    run(&mut doc, "add.cylinder", json!({ "name": "Post", "radius": 0.3, "depth": 3, "location": [0, 2, 1.5] }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Post", "radius": 0.3, "depth": 3, "location": [0, 2, 1.5] }));
     let answer = render(&mut doc, json!({ "target": { "view": "front", "pass": "id" } }));
     let legend = answer["legend"].as_array().unwrap_or_else(|| panic!("an id pass answers its legend: {answer}"));
     let names: Vec<&str> = legend.iter().map(|entry| entry["name"].as_str().unwrap()).collect();
@@ -453,7 +453,7 @@ fn every_wrong_target_is_a_typed_refusal_that_says_what_to_do() {
     run(&mut doc, "edit.delete", json!({ "objects": ["Camera", "Side"] }));
     let (message, pointer) = refused(&mut doc, json!({ "target": { "view": "camera" } }));
     assert_eq!(pointer, "/target/view", "{message}");
-    assert!(message.contains("no active camera") && message.contains("add.camera"), "{message}");
+    assert!(message.contains("no active camera") && message.contains("object.addCamera"), "{message}");
     let (message, _) = refused(&mut doc, json!({ "target": { "camera": "Side" } }));
     assert!(message.contains("no cameras"), "{message}");
 }

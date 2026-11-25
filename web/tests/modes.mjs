@@ -9,5 +9,5 @@ await runModeSmoke({
   config: new URL('../vite.config.ts', import.meta.url).pathname,
   browser: process.argv[2] === 'webkit' ? webkit : chromium,
   createServer,
-  line: { tab: 'Add', primary: ['scene-cmd-add.cube', 'scene-cmd-add.uvSphere', 'scene-cmd-add.cylinder', 'scene-cmd-add.plane', 'scene-cmd-add.light', 'scene-cmd-add.camera'] },
+  line: { tab: 'Add', primary: ['scene-cmd-object.addCube', 'scene-cmd-object.addUvSphere', 'scene-cmd-object.addCylinder', 'scene-cmd-object.addPlane', 'scene-cmd-object.addLight', 'scene-cmd-object.addCamera'] },
 })

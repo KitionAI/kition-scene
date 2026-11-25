@@ -21,7 +21,7 @@ export function ParticlesSection({ object, info }: { object: SceneObject; info: 
   const busy = readOnly || (info.mode !== 'object' && !editing)
   const add = (kind: 'emitter' | 'hair') => {
     setChosen(systems.length)
-    run('particles.add', { object: object.id, kind })
+    run('particle.add', { object: object.id, kind })
   }
   return (
     <PanelSection
@@ -63,7 +63,7 @@ export function ParticlesSection({ object, info }: { object: SceneObject; info: 
                 testId="scene-particle-edit"
               />
             ) : null}
-            <Button size="sm" disabled={busy || editing} onClick={() => run('particles.convert', { object: object.id, system: system.index })} data-testid="scene-particles-convert">
+            <Button size="sm" disabled={busy || editing} onClick={() => run('particle.convert', { object: object.id, system: system.index })} data-testid="scene-particles-convert">
               {p('Convert')}
             </Button>
             <IconButton
@@ -72,7 +72,7 @@ export function ParticlesSection({ object, info }: { object: SceneObject; info: 
               disabled={busy || editing}
               onClick={() => {
                 setChosen(Math.max(index - 1, 0))
-                run('particles.remove', { object: object.id, system: system.index })
+                run('particle.remove', { object: object.id, system: system.index })
               }}
               data-testid="scene-particles-remove"
             />
@@ -89,7 +89,7 @@ export function ParticlesSection({ object, info }: { object: SceneObject; info: 
 function SystemSettings({ object, info, system, disabled }: { object: SceneObject; info: SceneInfo; system: ParticleSystemInfo; disabled: boolean }) {
   const { t } = useKitEditor()
   const run = useRun()
-  const set = (values: Record<string, unknown>) => run('particles.set', { object: object.id, system: system.index, ...values })
+  const set = (values: Record<string, unknown>) => run('particle.set', { object: object.id, system: system.index, ...values })
   const meshes = info.objects.filter((other) => other.type === 'mesh' && other.id !== object.id)
   const colliders = system.colliders ?? []
   const number = (key: keyof ParticleSystemInfo, label: string, options: { min?: number; max?: number; step?: number; unit?: string } = {}) => (

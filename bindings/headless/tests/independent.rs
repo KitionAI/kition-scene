@@ -74,7 +74,7 @@ async fn the_active_object_a_command_acts_on_is_held() {
     assert_eq!(object["name"], "Mine");
 }
 
-/// Class "a value naming an object, not held": `anim.insertKey`'s `objects` take ids the
+/// Class "a value naming an object, not held": `animation.insertKey`'s `objects` take ids the
 /// declarations did not mark, and only a key of the transform was stated, so a key of a light's
 /// power by id held nothing of the light: the value the colleague changed was keyed where the agent
 /// did not look.
@@ -82,7 +82,7 @@ async fn the_active_object_a_command_acts_on_is_held() {
 async fn the_objects_a_key_names_by_id_are_held() {
     let bytes = scene_with(&[]);
     let (light, c1) = (id_of(&bytes, "Light"), id_of(&bytes, "C1"));
-    let key = step("anim.insertKey", json!({ "objects": [light], "properties": ["power"], "frame": 1 }));
+    let key = step("animation.insertKey", json!({ "objects": [light], "properties": ["power"], "frame": 1 }));
     let (answer, _) = after(&bytes, &[("light.set", json!({ "object": light, "power": 5 }))], key.clone(), "Light").await;
     refused_for(&answer, light, "changed");
     let (answer, object) = after(&bytes, &[("object.translate", json!({ "objects": [c1], "offset": [0, 0, 1] }))], key, "Light").await;
@@ -101,7 +101,7 @@ async fn the_material_a_colour_key_goes_to_is_held() {
         ("material.assign", json!({ "material": "Red", "objects": ["C0"] })),
     ]);
     let (c0, c1) = (id_of(&bytes, "C0"), id_of(&bytes, "C1"));
-    let key = step("anim.insertKey", json!({ "objects": [c0], "properties": ["baseColor"], "frame": 1 }));
+    let key = step("animation.insertKey", json!({ "objects": [c0], "properties": ["baseColor"], "frame": 1 }));
     let (answer, _) = after(&bytes, &[("material.assign", json!({ "material": "Blue", "objects": [c0] }))], key.clone(), "C0").await;
     refused_for(&answer, c0, "changed");
     let (answer, _) = after(&bytes, &[("object.rename", json!({ "object": c1, "name": "Other" }))], key, "C0").await;
@@ -113,7 +113,7 @@ async fn the_material_a_colour_key_goes_to_is_held() {
 /// lights placed for a view it never saw.
 #[tokio::test(flavor = "multi_thread")]
 async fn the_scene_camera_a_light_rig_is_aimed_from_is_held() {
-    let bytes = scene_with(&[("add.camera", json!({ "name": "Side", "location": [10, 0, 1] }))]);
+    let bytes = scene_with(&[("object.addCamera", json!({ "name": "Side", "location": [10, 0, 1] }))]);
     let c1 = id_of(&bytes, "C1");
     let side = id_of(&bytes, "Side");
     let studio = step("light.studio", json!({ "target": [0, 0, 0] }));
@@ -132,8 +132,8 @@ async fn the_scene_camera_a_light_rig_is_aimed_from_is_held() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_parent_a_knife_projects_through_is_held() {
     let bytes = scene_with(&[
-        ("add.empty", json!({ "name": "Rig" })),
-        ("add.cube", json!({ "name": "Held", "size": 1 })),
+        ("object.addEmpty", json!({ "name": "Rig" })),
+        ("object.addCube", json!({ "name": "Held", "size": 1 })),
         ("object.parent", json!({ "objects": ["Held"], "parent": "Rig" })),
         ("edit.delete", json!({ "objects": ["Cube"] })),
     ]);
@@ -208,11 +208,11 @@ async fn waiting_for_sdk_an_elements_edit_holds_the_positions_of_the_vertices_it
 #[tokio::test(flavor = "multi_thread")]
 async fn a_driven_value_rests_on_the_drivers_sources() {
     let bytes = scene_with(&[
-        ("add.empty", json!({ "name": "Handle", "location": [0, 5, 0] })),
-        ("anim.insertKey", json!({ "objects": ["Handle"], "properties": ["location"], "frame": 1 })),
+        ("object.addEmpty", json!({ "name": "Handle", "location": [0, 5, 0] })),
+        ("animation.insertKey", json!({ "objects": ["Handle"], "properties": ["location"], "frame": 1 })),
         ("frame.set", json!({ "frame": 19 })),
         ("object.transform", json!({ "objects": ["Handle"], "location": [4, 5, 0] })),
-        ("anim.insertKey", json!({ "objects": ["Handle"], "properties": ["location"], "frame": 19 })),
+        ("animation.insertKey", json!({ "objects": ["Handle"], "properties": ["location"], "frame": 19 })),
         ("frame.set", json!({ "frame": 1 })),
         (
             "driver.add",
@@ -222,7 +222,7 @@ async fn a_driven_value_rests_on_the_drivers_sources() {
     ]);
     let (c0, c1, c2, handle) = (id_of(&bytes, "C0"), id_of(&bytes, "C1"), id_of(&bytes, "C2"), id_of(&bytes, "Handle"));
     let hop = step("object.hop", json!({ "objects": [c1], "to": c0, "start": 1, "duration": 18 }));
-    let (answer, _) = after(&bytes, &[("anim.clear", json!({ "objects": [handle] }))], hop.clone(), "C1").await;
+    let (answer, _) = after(&bytes, &[("animation.clear", json!({ "objects": [handle] }))], hop.clone(), "C1").await;
     refused_for(&answer, handle, "changed");
     let (answer, _) = after(&bytes, &[("object.translate", json!({ "objects": [c2], "offset": [0, 0, 1] }))], hop, "C1").await;
     answer.unwrap_or_else(|error| panic!("an unrelated move refused the hop: {error}"));
@@ -271,7 +271,7 @@ async fn an_edit_mode_session_holds_its_mesh() {
 /// Armature edit mode: `bone.add` adds to the session's armature.
 #[tokio::test(flavor = "multi_thread")]
 async fn an_armature_edit_session_holds_its_armature() {
-    let setup = [("add.armature", json!({ "name": "Arm", "location": [-3, 0, 0] })), select("Arm")];
+    let setup = [("object.addArmature", json!({ "name": "Arm", "location": [-3, 0, 0] })), select("Arm")];
     let theirs = ("bone.set", json!({ "object": "Arm", "bone": "Bone", "tail": [0, 0, 3] }));
     let run = vec![step("mode.armature", json!({})), step("bone.add", json!({ "name": "B2", "head": [0, 0, 1], "tail": [0, 0, 2] }))];
     session_holds_its_object(&setup, "Arm", run, theirs).await;
@@ -280,7 +280,7 @@ async fn an_armature_edit_session_holds_its_armature() {
 /// Pose mode: `pose.set` poses the session's armature's bones.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_pose_session_holds_its_armature() {
-    let setup = [("add.armature", json!({ "name": "Arm", "location": [-3, 0, 0] })), select("Arm")];
+    let setup = [("object.addArmature", json!({ "name": "Arm", "location": [-3, 0, 0] })), select("Arm")];
     let theirs = ("bone.set", json!({ "object": "Arm", "bone": "Bone", "tail": [0, 0, 3] }));
     let run = vec![step("mode.pose", json!({})), step("pose.set", json!({ "bones": ["Bone"], "rotation": [0, 0, 45] }))];
     session_holds_its_object(&setup, "Arm", run, theirs).await;
@@ -298,7 +298,7 @@ async fn a_weight_paint_session_holds_its_mesh() {
 /// Curve point edit: `curve.translate` moves the session's selected points.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_curve_edit_session_holds_its_curve() {
-    let setup = [("add.curveBezier", json!({ "name": "Path", "location": [0, 3, 0] })), select("Path")];
+    let setup = [("object.addCurveBezier", json!({ "name": "Path", "location": [0, 3, 0] })), select("Path")];
     let theirs = ("curve.set", json!({ "object": "Path", "resolution": 6 }));
     let run =
         vec![step("mode.shape", json!({})), step("curve.select", json!({ "points": [0] })), step("curve.translate", json!({ "offset": [0, 0, 1] }))];
@@ -308,7 +308,7 @@ async fn a_curve_edit_session_holds_its_curve() {
 /// Text edit: `text.delete` deletes before the session's caret.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_text_edit_session_holds_its_text() {
-    let setup = [("add.text", json!({ "name": "Label", "location": [0, -3, 0] })), select("Label")];
+    let setup = [("object.addText", json!({ "name": "Label", "location": [0, -3, 0] })), select("Label")];
     let theirs = ("text.set", json!({ "object": "Label", "body": "Other" }));
     let run = vec![step("mode.shape", json!({})), step("text.delete", json!({ "count": 1 }))];
     session_holds_its_object(&setup, "Label", run, theirs).await;
@@ -317,7 +317,7 @@ async fn a_text_edit_session_holds_its_text() {
 /// Lattice edit: `lattice.movePoints` moves the session's selected points.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_lattice_edit_session_holds_its_lattice() {
-    let setup = [("add.lattice", json!({ "name": "Cage", "location": [0, 0, -3] })), select("Cage")];
+    let setup = [("object.addLattice", json!({ "name": "Cage", "location": [0, 0, -3] })), select("Cage")];
     let theirs = ("lattice.set", json!({ "object": "Cage", "interpolation": "linear" }));
     let run = vec![
         step("mode.shape", json!({})),
@@ -330,8 +330,8 @@ async fn a_lattice_edit_session_holds_its_lattice() {
 /// Particle Edit: `particleEdit.reset` clears the groom of the session's system.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_particle_edit_session_holds_its_emitter() {
-    let setup = [("particles.add", json!({ "object": "C0", "kind": "hair", "count": 20 })), select("C0")];
-    let theirs = ("particles.set", json!({ "object": "C0", "count": 30 }));
+    let setup = [("particle.add", json!({ "object": "C0", "kind": "hair", "count": 20 })), select("C0")];
+    let theirs = ("particle.set", json!({ "object": "C0", "count": 30 }));
     let run = vec![step("mode.particleEdit", json!({})), step("particleEdit.reset", json!({}))];
     session_holds_its_object(&setup, "C0", run, theirs).await;
 }
@@ -432,7 +432,7 @@ async fn a_matte_pick_holds_what_is_under_the_point() {
     let mut doc: SceneDocument = scene_doc(3);
     let made = doc.execute("compositor.new", json!({})).unwrap();
     let group = made["group"].clone();
-    let crypto = doc.execute("nodes.addNode", json!({ "group": group, "kind": "cryptomatte" })).unwrap()["node"].clone();
+    let crypto = doc.execute("node.addNode", json!({ "group": group, "kind": "cryptomatte" })).unwrap()["node"].clone();
     let bytes = doc.save_file(None).unwrap();
     let (cube, c1) = (id_of(&bytes, "Cube"), id_of(&bytes, "C1"));
     let pick = step("compositor.pickMatte", json!({ "group": group, "node": crypto, "x": 0.5, "y": 0.5 }));

@@ -104,11 +104,11 @@ fn only_more_lights_than_it_shades_with_leave_the_gpu_viewport() {
     let mut doc = doc();
     run(&mut doc, "view.material", json!({}));
     for index in 0..7 {
-        run(&mut doc, "add.light", json!({ "name": format!("Extra {index}"), "location": [index, 3, 3] }));
+        run(&mut doc, "object.addLight", json!({ "name": format!("Extra {index}"), "location": [index, 3, 3] }));
     }
     // The starter light and seven more: eight.
     assert_eq!(doc.gl_scene()["supported"], true);
-    run(&mut doc, "add.light", json!({ "name": "Ninth", "location": [0, -3, 3] }));
+    run(&mut doc, "object.addLight", json!({ "name": "Ninth", "location": [0, -3, 3] }));
     let frame = doc.gl_scene();
     assert_eq!(frame["supported"], false);
     assert_eq!(frame["reason"], "more than eight lights");
@@ -158,7 +158,7 @@ fn sculpt_mode_paints_clay_masks_face_sets_and_hides_faces_on_the_gpu() {
     run(&mut doc, "sculpt.maskClear", json!({}));
     run(&mut doc, "mode.sculpt", json!({ "on": false }));
     // Face sets tint, hidden faces have no triangles.
-    run(&mut doc, "add.grid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
+    run(&mut doc, "object.addGrid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
     run(&mut doc, "view.top", json!({}));
     run(&mut doc, "view.frameSelected", json!({}));
     run(&mut doc, "mode.sculpt", json!({ "on": true }));
@@ -211,7 +211,7 @@ fn weight_paint_colours_ride_in_the_geometry() {
 fn particles_are_drawn_as_the_meshes_the_software_viewport_makes() {
     let mut doc = doc();
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
-    run(&mut doc, "particles.add", json!({ "kind": "hair", "hairLength": 1, "count": 100 }));
+    run(&mut doc, "particle.add", json!({ "kind": "hair", "hairLength": 1, "count": 100 }));
     let frame = doc.gl_scene();
     assert_eq!(frame["supported"], true);
     let objects = frame["objects"].as_array().unwrap();
@@ -260,7 +260,7 @@ fn the_material_view_carries_shadow_plans_and_the_world_image() {
 #[test]
 fn edit_modes_draw_their_points_handles_and_bones_over_everything() {
     let mut doc = doc();
-    run(&mut doc, "add.curveBezier", json!({ "name": "Path" }));
+    run(&mut doc, "object.addCurveBezier", json!({ "name": "Path" }));
     run(&mut doc, "mode.shape", json!({}));
     let frame = doc.gl_scene();
     assert_eq!(frame["supported"], true);
@@ -268,7 +268,7 @@ fn edit_modes_draw_their_points_handles_and_bones_over_everything() {
     assert_eq!(frame["dots"]["sizes"].as_array().unwrap().len(), 6);
     assert_eq!(frame["front"]["positions"].as_array().unwrap().len(), 4 * 2 * 3);
     run(&mut doc, "mode.shape", json!({}));
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
     run(&mut doc, "mode.armature", json!({}));
     let frame = doc.gl_scene();
     assert_eq!(frame["supported"], true);

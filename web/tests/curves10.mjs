@@ -45,7 +45,7 @@ try {
     const group = (await connection.ai.inspect()).details.nodeGroups[0]
     const ops = ids.map((id, index) => {
       const node = group.nodes.find(node => node.id === id)
-      return { command: 'nodes.moveNodes', params: { nodes: [id], offset: [index * 230 - node.location[0], 40 - node.location[1]] } }
+      return { command: 'node.moveNodes', params: { nodes: [id], offset: [index * 230 - node.location[0], 40 - node.location[1]] } }
     })
     await connection.ai.run(ops, false)
   }, [source, kind, order, weight, output])
@@ -110,7 +110,7 @@ try {
   assert(await kit.getByTestId(new RegExp(`^scene-node-${weight}-Weight-`)).isDisabled())
   const blocked = await page.evaluate(async kind => {
     try {
-      const result = await window.devHost.connection().ai.run([{ command: 'nodes.setValue', params: { node: kind, id: 'splineType', value: 'poly' } }], false)
+      const result = await window.devHost.connection().ai.run([{ command: 'node.setValue', params: { node: kind, id: 'splineType', value: 'poly' } }], false)
       return result.error != null || result.failed != null || (result.completed?.length ?? 0) === 0
     } catch { return true }
   }, kind)

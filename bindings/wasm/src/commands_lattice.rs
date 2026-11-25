@@ -78,7 +78,7 @@ fn resolution() -> (&'static str, Value) {
 
 static SPECS: &[Spec] = &[
     Spec {
-        id: "add.lattice",
+        id: "object.addLattice",
         title: "Lattice",
         menu: &["Add"],
         mutates: true,
@@ -271,7 +271,7 @@ fn target_id(doc: &SceneDocument, params: &Value) -> Result<Id, String> {
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "add.lattice" => {
+        "object.addLattice" => {
             let lattice = Lattice::new(parse_resolution(params)?.unwrap_or([2, 2, 2]));
             crate::commands_curve::add(doc, "Lattice", ObjectData::Lattice(lattice), params)
         }

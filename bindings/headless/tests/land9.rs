@@ -128,12 +128,12 @@ async fn a_nested_boid_target_is_a_premise() {
     let f = Fixture::new(3);
     let (details, _) = f.inspect().await;
     let ids = ids_by_name(&details);
-    f.ok("run", json!({"steps":[{"command":"particles.add","params":{"object":ids["C0"],"count":10}}]})).await;
+    f.ok("run", json!({"steps":[{"command":"particle.add","params":{"object":ids["C0"],"count":10}}]})).await;
     let (_, basis) = f.inspect().await;
     // A boid target is only stored by id: it has to exist (declarations_independent).
     f.colleague(&[("edit.delete", json!({"objects":[ids["C1"]]}))]);
     let before = std::fs::read(f.file()).unwrap();
-    let refused = f.refused("run", json!({"basis":basis,"steps":[{"command":"particles.set","params":{"object":ids["C0"],"physics":"boids","boids":{"rules":[{"kind":"goal","target":ids["C1"]}]}}}]})).await;
+    let refused = f.refused("run", json!({"basis":basis,"steps":[{"command":"particle.set","params":{"object":ids["C0"],"physics":"boids","boids":{"rules":[{"kind":"goal","target":ids["C1"]}]}}}]})).await;
     assert_conflict(&refused, &ids["C1"].to_string(), "deleted");
     assert_eq!(std::fs::read(f.file()).unwrap(), before);
     f.shutdown().await;
@@ -150,7 +150,7 @@ async fn review_material_channel_edits_hold_the_material_id() {
             json!({"steps":[
                 {"command":"material.new","params":{"name":"M","assign":false}},
                 {"command":"material.assign","on":[cube],"params":{"material":"M"}},
-                {"command":"anim.insertKey","on":[cube],"params":{"properties":["baseColor"],"frame":1}}
+                {"command":"animation.insertKey","on":[cube],"params":{"properties":["baseColor"],"frame":1}}
             ]}),
         )
         .await;
@@ -180,7 +180,7 @@ async fn review_driver_variable_object_ids_are_premises() {
         // (kition-sdk call-context.md, "Session Continuity On Reread"), and C1, the last cube
         // added, would be selected.
         let mut doc = scene_doc(2);
-        doc.execute("select.none", json!({})).unwrap();
+        doc.execute("edit.deselectAll", json!({})).unwrap();
         let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (details, basis) = f.inspect().await;
         let ids = ids_by_name(&details);
@@ -231,23 +231,23 @@ async fn review_points_do_not_name_objects_but_scalar_references_do() {
 #[tokio::test(flavor = "multi_thread")]
 async fn review_typed_node_values_hold_ids_without_treating_numbers_as_ids() {
     use kition_kit::KitDocument;
-    for command in ["nodes.setValue", "nodes.addNode", "nodes.addInput", "modifier.set", "modifier.add"] {
+    for command in ["node.setValue", "node.addNode", "node.addInput", "modifier.set", "modifier.add"] {
         let mut doc = scene_doc(2);
         let ids = ids_by_name(&doc.inspect().unwrap());
-        let group = doc.execute("nodes.newGroup", json!({"name":"G","object":ids["C0"]})).unwrap()["group"].clone();
-        doc.execute("nodes.addInput", json!({"group":group,"name":"Source","type":"object"})).unwrap();
-        let node = doc.execute("nodes.addNode", json!({"group":group,"kind":"objectInfo"})).unwrap()["node"].clone();
+        let group = doc.execute("node.newGroup", json!({"name":"G","object":ids["C0"]})).unwrap()["group"].clone();
+        doc.execute("node.addInput", json!({"group":group,"name":"Source","type":"object"})).unwrap();
+        let node = doc.execute("node.addNode", json!({"group":group,"kind":"objectInfo"})).unwrap()["node"].clone();
         // The session selects nothing: a reread that deletes a selected object is refused by name
         // (kition-sdk call-context.md, "Session Continuity On Reread"), and C1 would be selected.
-        doc.execute("select.none", json!({})).unwrap();
+        doc.execute("edit.deselectAll", json!({})).unwrap();
         let f = Fixture::from_bytes(&doc.save_file(None).unwrap(), Default::default());
         let (_, basis) = f.inspect().await;
         // An object a value names is stored by id: it has to exist (declarations_independent).
         f.colleague(&[("edit.delete", json!({"objects":[ids["C1"]]}))]);
         let params = match command {
-            "nodes.setValue" => json!({"group":group,"node":node,"id":"Object","value":ids["C1"]}),
-            "nodes.addNode" => json!({"group":group,"kind":"objectInfo","values":{"Object":ids["C1"]}}),
-            "nodes.addInput" => json!({"group":group,"name":"Other","type":"object","default":ids["C1"]}),
+            "node.setValue" => json!({"group":group,"node":node,"id":"Object","value":ids["C1"]}),
+            "node.addNode" => json!({"group":group,"kind":"objectInfo","values":{"Object":ids["C1"]}}),
+            "node.addInput" => json!({"group":group,"name":"Other","type":"object","default":ids["C1"]}),
             "modifier.set" => json!({"object":ids["C0"],"index":0,"inputs":{"Source":ids["C1"]}}),
             _ => json!({"object":ids["C0"],"type":"geometryNodes","group":group,"inputs":{"Source":ids["C1"]}}),
         };
@@ -258,7 +258,7 @@ async fn review_typed_node_values_hold_ids_without_treating_numbers_as_ids() {
         // A float socket with exactly the same number has no object premise.
         f.ok(
             "run",
-            json!({"basis":basis,"steps":[{"command":"nodes.addInput","params":{
+            json!({"basis":basis,"steps":[{"command":"node.addInput","params":{
                 "group":group,"name":"Number","type":"float","default":ids["C1"]
             }}]}),
         )

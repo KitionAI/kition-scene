@@ -22,17 +22,17 @@ fn evaluated(doc: &SceneDocument) -> (u64, u64) {
 }
 
 fn add(doc: &mut SceneDocument, kind: &str, values: Value) -> u64 {
-    run(doc, "nodes.addNode", json!({ "kind": kind, "values": values }))["node"].as_u64().unwrap()
+    run(doc, "node.addNode", json!({ "kind": kind, "values": values }))["node"].as_u64().unwrap()
 }
 
 fn link(doc: &mut SceneDocument, from: u64, from_socket: &str, to: u64, to_socket: &str) {
-    run(doc, "nodes.link", json!({ "from": from, "fromSocket": from_socket, "to": to, "toSocket": to_socket }));
+    run(doc, "node.link", json!({ "from": from, "fromSocket": from_socket, "to": to, "toSocket": to_socket }));
 }
 
 #[test]
 fn a_scatter_tree_is_built_saved_and_undone() {
     let mut doc = SceneDocument::create("Nodes.kscene", 1280, 720).unwrap();
-    let made = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube" }));
+    let made = run(&mut doc, "node.newGroup", json!({ "object": "Cube" }));
     let (input, output) = (made["input"].as_u64().unwrap(), made["output"].as_u64().unwrap());
     assert_eq!(cube(&doc)["modifiers"][0]["type"], "geometryNodes");
     assert_eq!(evaluated(&doc), (8, 6), "a new group passes the mesh through");
@@ -60,14 +60,14 @@ fn a_scatter_tree_is_built_saved_and_undone() {
     assert_eq!(group["nodes"].as_array().unwrap().len(), 8);
     assert_eq!(group["links"].as_array().unwrap().len(), 7);
     // A cycle and a mismatched link are refused.
-    assert!(doc.execute("nodes.link", json!({ "from": join, "fromSocket": "Geometry", "to": instance, "toSocket": "Points" })).is_err());
-    assert!(doc.execute("nodes.link", json!({ "from": scatter, "fromSocket": "Normal", "to": realize, "toSocket": "Geometry" })).is_err());
+    assert!(doc.execute("node.link", json!({ "from": join, "fromSocket": "Geometry", "to": instance, "toSocket": "Points" })).is_err());
+    assert!(doc.execute("node.link", json!({ "from": scatter, "fromSocket": "Normal", "to": realize, "toSocket": "Geometry" })).is_err());
     // The file keeps the group, and the modifier still uses it.
     let bytes = doc.save_file(None).unwrap();
     let back = SceneDocument::open("Nodes.kscene", &bytes).unwrap();
     assert_eq!(evaluated(&back), (vertices, faces));
     // Removing the realize node unlinks it; undo puts both back.
-    run(&mut doc, "nodes.removeNodes", json!({ "nodes": [realize] }));
+    run(&mut doc, "node.removeNodes", json!({ "nodes": [realize] }));
     assert_eq!(evaluated(&doc), (8, 6));
     run(&mut doc, "edit.undo", json!({}));
     assert_eq!(evaluated(&doc), (vertices, faces));
@@ -76,9 +76,9 @@ fn a_scatter_tree_is_built_saved_and_undone() {
 #[test]
 fn group_inputs_are_the_modifiers_settings() {
     let mut doc = SceneDocument::create("Nodes.kscene", 1280, 720).unwrap();
-    let made = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube", "name": "Lift" }));
+    let made = run(&mut doc, "node.newGroup", json!({ "object": "Cube", "name": "Lift" }));
     let (input, output) = (made["input"].as_u64().unwrap(), made["output"].as_u64().unwrap());
-    run(&mut doc, "nodes.addInput", json!({ "group": "Lift", "name": "Height", "type": "float", "default": 1.0 }));
+    run(&mut doc, "node.addInput", json!({ "group": "Lift", "name": "Height", "type": "float", "default": 1.0 }));
     let combine = add(&mut doc, "combineXyz", json!({}));
     let transform = add(&mut doc, "transform", json!({}));
     link(&mut doc, input, "Height", combine, "Z");
@@ -91,17 +91,17 @@ fn group_inputs_are_the_modifiers_settings() {
     assert_eq!(cube(&doc)["modifiers"][0]["inputs"]["Height"], 3.0);
     // Setting values: a setting's choice, a socket's value; bad ones are refused.
     let math = add(&mut doc, "math", json!({ "operation": "sqrt" }));
-    run(&mut doc, "nodes.setValue", json!({ "node": math, "id": "Value", "value": 9.0 }));
-    assert!(doc.execute("nodes.setValue", json!({ "node": math, "id": "operation", "value": "cube_root" })).is_err());
-    assert!(doc.execute("nodes.setValue", json!({ "node": math, "id": "Value", "value": "nine" })).is_err());
-    run(&mut doc, "nodes.moveNodes", json!({ "nodes": [math], "offset": [10, 20] }));
+    run(&mut doc, "node.setValue", json!({ "node": math, "id": "Value", "value": 9.0 }));
+    assert!(doc.execute("node.setValue", json!({ "node": math, "id": "operation", "value": "cube_root" })).is_err());
+    assert!(doc.execute("node.setValue", json!({ "node": math, "id": "Value", "value": "nine" })).is_err());
+    run(&mut doc, "node.moveNodes", json!({ "nodes": [math], "offset": [10, 20] }));
     let inspected = doc.inspect().unwrap();
     let node = inspected["nodeGroups"][0]["nodes"].as_array().unwrap().iter().find(|node| node["id"] == math).cloned().unwrap();
     assert_eq!(node["location"], json!([10.0, 20.0]));
     assert_eq!(node["inputs"].as_array().unwrap().len(), 1, "sqrt shows one input");
     // Removing the input unlinks it; removing the group lets the modifier go of it.
-    run(&mut doc, "nodes.removeInput", json!({ "name": "Height" }));
-    run(&mut doc, "nodes.removeGroup", json!({}));
+    run(&mut doc, "node.removeInput", json!({ "name": "Height" }));
+    run(&mut doc, "node.removeGroup", json!({}));
     assert!(cube(&doc)["modifiers"][0].get("group").is_none());
     assert_eq!(evaluated(&doc), (8, 6));
 }
@@ -109,15 +109,15 @@ fn group_inputs_are_the_modifiers_settings() {
 #[test]
 fn a_broken_group_is_a_diagnostic_and_describe_lists_kinds() {
     let mut doc = SceneDocument::create("Nodes.kscene", 1280, 720).unwrap();
-    let made = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube" }));
-    run(&mut doc, "nodes.removeNodes", json!({ "nodes": [made["output"]] }));
+    let made = run(&mut doc, "node.newGroup", json!({ "object": "Cube" }));
+    run(&mut doc, "node.removeNodes", json!({ "nodes": [made["output"]] }));
     let codes: Vec<String> = doc.check().into_iter().map(|diagnostic| diagnostic.code).collect();
     assert!(codes.contains(&"scene.nodesError".to_owned()), "{codes:?}");
-    let described = run(&mut doc, "nodes.describe", json!({}));
+    let described = run(&mut doc, "node.describe", json!({}));
     let kinds = described["kinds"].as_array().unwrap();
     assert!(kinds.len() >= 38);
-    let math = run(&mut doc, "nodes.describe", json!({ "kind": "math" }));
+    let math = run(&mut doc, "node.describe", json!({ "kind": "math" }));
     assert_eq!(math["settings"][0]["id"], "operation");
     let catalogue = doc.commands();
-    assert!(catalogue.iter().any(|command| command.id == "nodes.link" && command.schema.is_some()));
+    assert!(catalogue.iter().any(|command| command.id == "node.link" && command.schema.is_some()));
 }

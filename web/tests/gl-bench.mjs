@@ -19,7 +19,7 @@ async function measure(gpu) {
   await page.goto(`${origin}/dev.html`)
   await page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
   const frame = page.frames().find((item) => item.url().includes('index.html'))
-  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'add.uvSphere', params: { segments: 256, rings: 200, radius: 1.5, location: [0, 0, 1] } }]))
+  await page.evaluate(() => window.devHost.connection().ai.run([{ command: 'object.addUvSphere', params: { segments: 256, rings: 200, radius: 1.5, location: [0, 0, 1] } }]))
   const triangles = (await page.evaluate(async () => (await window.devHost.connection().ai.inspect()).details.objects)).reduce((sum, object) => sum + (object.mesh?.evaluated?.faces ?? 0) * 2, 0)
   await page.waitForTimeout(gpu ? 3000 : 8000)
   // Each animation frame: the GPU frames drawn, or a digest of the software picture's pixels.

@@ -108,7 +108,7 @@ const KINDS: &[&str] = &["emitter", "hair"];
 const GROOM_BRUSHES: &[&str] = &["comb", "cut", "length", "puff", "smooth"];
 const PARTICLES: &[&str] = &["Object", "Particles"];
 
-/// The settings `particles.add` and `particles.set` take (the system's fields, camelCase).
+/// The settings `particle.add` and `particle.set` take (the system's fields, camelCase).
 const SETTINGS: &[&str] = &[
     "kind",
     "physics",
@@ -251,21 +251,21 @@ fn groom_fields() -> Vec<(&'static str, Value)> {
 }
 
 static SPECS: &[Spec] = &[
-    spec("particles.add", "Add Particle System", PARTICLES, true, Needs::Mesh, || {
+    spec("particle.add", "Add Particle System", PARTICLES, true, Needs::Mesh, || {
         let mut fields = settings_fields();
         fields.push(("object", s::object("The mesh; the active one when left out")));
         fields.push(("name", s::string("The system's name (ParticleSystem)")));
         s::of(fields)
     }),
-    spec("particles.set", "Particle Settings", &[], true, Needs::System, || {
+    spec("particle.set", "Particle Settings", &[], true, Needs::System, || {
         let mut fields = settings_fields();
         fields.extend(which_fields());
         fields.push(("name", s::string("A new name for the system")));
         s::of(fields)
     }),
-    spec("particles.remove", "Remove Particle System", PARTICLES, true, Needs::System, || s::of(which_fields())),
-    spec("particles.convert", "Convert Particles to Mesh", PARTICLES, true, Needs::System, || s::of(which_fields())),
-    spec("particles.stats", "Particle Statistics", &[], false, Needs::System, || {
+    spec("particle.remove", "Remove Particle System", PARTICLES, true, Needs::System, || s::of(which_fields())),
+    spec("particle.convert", "Convert Particles to Mesh", PARTICLES, true, Needs::System, || s::of(which_fields())),
+    spec("particle.stats", "Particle Statistics", &[], false, Needs::System, || {
         let mut fields = which_fields();
         fields.push(("frame", s::number("The frame (the current one when left out)")));
         s::of(fields)
@@ -532,7 +532,7 @@ fn stats(doc: &SceneDocument, object: Id, index: usize, frame: Option<f32>) -> R
 
 fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "particles.stats" => {
+        "particle.stats" => {
             let (object, index) = system_of(doc, params)?;
             stats(doc, object, index, params::number(params, "frame")?)
         }
@@ -597,7 +597,7 @@ fn configure_brush(brush: &mut Groom, params: &Value) -> Result<(), String> {
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "particles.add" => {
+        "particle.add" => {
             let object = object_of(doc, params)?;
             let kind = match params::string(params, "kind")? {
                 Some("hair") => Kind::Hair,
@@ -619,7 +619,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             doc.session.editor.active = Some(object);
             Ok(json!({ "object": object, "system": index, "name": name }))
         }
-        "particles.set" => {
+        "particle.set" => {
             let (object, index) = system_of(doc, params)?;
             if let Some(name) = params::string(params, "name")? {
                 let found = doc.scene.object(object).map_err(|error| error.to_string())?;
@@ -634,7 +634,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             let value = system_json(&scene, object, index, system);
             Ok(json!({ "system": value, "groomDropped": dropped }))
         }
-        "particles.remove" => {
+        "particle.remove" => {
             let (object, index) = system_of(doc, params)?;
             let target = doc.scene.object_mut(object).map_err(|error| error.to_string())?;
             let removed = target.particles.remove(index);
@@ -649,7 +649,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             Ok(json!({ "object": object, "removed": removed.name }))
         }
-        "particles.convert" => {
+        "particle.convert" => {
             let (object, index) = system_of(doc, params)?;
             let name =
                 doc.scene.object(object).ok().and_then(|found| found.particles.get(index)).map(|system| system.name.clone()).unwrap_or_default();

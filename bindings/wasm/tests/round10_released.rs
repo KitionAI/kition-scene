@@ -77,9 +77,9 @@ fn a_released_curve_and_deformable_bodies_keep_independent_settings_and_history(
     let source = nodes.iter().find(|node| node["kind"] == "curveBezierSegment").unwrap()["id"].clone();
     let output = nodes.iter().find(|node| node["kind"] == "groupOutput").unwrap()["id"].clone();
     let converted =
-        run(&mut doc, "nodes.addNode", json!({"group":"ReleasedCurves", "kind":"setSplineType", "values":{"splineType":"nurbs"}}))["node"].clone();
-    run(&mut doc, "nodes.link", json!({"group":"ReleasedCurves", "from":source, "fromSocket":"Curve", "to":converted, "toSocket":"Curve"}));
-    run(&mut doc, "nodes.link", json!({"group":"ReleasedCurves", "from":converted, "fromSocket":"Curve", "to":output, "toSocket":"Geometry"}));
+        run(&mut doc, "node.addNode", json!({"group":"ReleasedCurves", "kind":"setSplineType", "values":{"splineType":"nurbs"}}))["node"].clone();
+    run(&mut doc, "node.link", json!({"group":"ReleasedCurves", "from":source, "fromSocket":"Curve", "to":converted, "toSocket":"Curve"}));
+    run(&mut doc, "node.link", json!({"group":"ReleasedCurves", "from":converted, "fromSocket":"Curve", "to":output, "toSocket":"Geometry"}));
     let converted_groups = doc.inspect().unwrap()["nodeGroups"].clone();
     assert_ne!(converted_groups, released_groups);
     assert_positions(&positions(&doc, "Cube"), &curve_before);

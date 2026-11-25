@@ -15,7 +15,7 @@ fn sculpting() -> SceneDocument {
     let mut made = SceneDocument::create("Untitled scene.kscene", 800, 600).unwrap();
     let mut doc = SceneDocument::open("t.kscene", &made.save_file(None).unwrap()).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.grid", json!({ "name": "Clay", "xSubdivisions": 60, "ySubdivisions": 60, "size": 2 }));
+    run(&mut doc, "object.addGrid", json!({ "name": "Clay", "xSubdivisions": 60, "ySubdivisions": 60, "size": 2 }));
     run(&mut doc, "mode.sculpt", json!({}));
     doc
 }
@@ -126,7 +126,7 @@ fn grab_drags_and_remesh_rebuilds() {
     assert!((top - 0.5).abs() < 0.02, "{top}");
     // Remesh a closed shape.
     run(&mut doc, "mode.sculpt", json!({ "on": false }));
-    run(&mut doc, "add.cube", json!({ "name": "Block" }));
+    run(&mut doc, "object.addCube", json!({ "name": "Block" }));
     let done = run(&mut doc, "sculpt.remesh", json!({ "object": "Block", "voxelSize": 0.1 }));
     assert!(done["faces"].as_u64().unwrap() > 1500, "{done}");
     let block = doc.inspect().unwrap()["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Block").unwrap().clone();

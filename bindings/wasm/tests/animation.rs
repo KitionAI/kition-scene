@@ -21,10 +21,10 @@ fn cube_x(doc: &SceneDocument) -> f64 {
 fn keys_move_the_cube_between_frames() {
     let mut doc = doc();
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
-    run(&mut doc, "anim.insertKey", json!({}));
+    run(&mut doc, "animation.insertKey", json!({}));
     run(&mut doc, "frame.set", json!({ "frame": 21 }));
     run(&mut doc, "object.transform", json!({ "location": [4, 0, 0] }));
-    let keyed = run(&mut doc, "anim.insertKey", json!({ "properties": ["location"] }));
+    let keyed = run(&mut doc, "animation.insertKey", json!({ "properties": ["location"] }));
     assert_eq!(keyed["keys"], 3);
     let inspected = doc.inspect().unwrap();
     assert_eq!(inspected["animation"]["selectedKeyFrames"], json!([1.0, 21.0]));
@@ -34,7 +34,7 @@ fn keys_move_the_cube_between_frames() {
     assert!((cube_x(&doc) - 2.0).abs() < 1e-3);
     // Frame changes are not undo steps and leave the file clean.
     assert_eq!(doc.inspect().unwrap()["undo"], "Insert Keyframe");
-    run(&mut doc, "anim.setInterpolation", json!({ "interpolation": "constant", "frame": 1 }));
+    run(&mut doc, "animation.setInterpolation", json!({ "interpolation": "constant", "frame": 1 }));
     run(&mut doc, "frame.set", json!({ "frame": 15 }));
     assert_eq!(cube_x(&doc), 0.0);
     // An edit without a key lasts until the frame changes.
@@ -42,19 +42,19 @@ fn keys_move_the_cube_between_frames() {
     assert_eq!(cube_x(&doc), 9.0);
     run(&mut doc, "frame.next", json!({}));
     assert_eq!(cube_x(&doc), 0.0);
-    run(&mut doc, "anim.nextKey", json!({}));
+    run(&mut doc, "animation.nextKey", json!({}));
     assert_eq!(doc.inspect().unwrap()["animation"]["frame"], 21);
-    run(&mut doc, "anim.previousKey", json!({}));
+    run(&mut doc, "animation.previousKey", json!({}));
     assert_eq!(doc.inspect().unwrap()["animation"]["frame"], 1);
-    assert!(doc.execute("anim.previousKey", json!({})).is_err());
+    assert!(doc.execute("animation.previousKey", json!({})).is_err());
 }
 
 #[test]
 fn animation_saves_and_reopens_at_its_frame() {
     let mut doc = doc();
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Light", "properties": ["power", "color"], "frame": 1 }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["baseColor", "hidden"], "frame": 1 }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Camera", "properties": "lens", "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Light", "properties": ["power", "color"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["baseColor", "hidden"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Camera", "properties": "lens", "frame": 1 }));
     run(&mut doc, "frame.range", json!({ "start": 1, "end": 48, "fps": 30 }));
     run(&mut doc, "frame.set", json!({ "frame": 12 }));
     // The range and the rate are the scene's, in the file; the current frame is the person's view
@@ -67,7 +67,7 @@ fn animation_saves_and_reopens_at_its_frame() {
     let animation = reopened.inspect().unwrap()["animation"].clone();
     assert_eq!((animation["frame"].as_i64(), animation["end"].as_i64(), animation["fps"].as_f64()), (Some(12), Some(48), Some(30.0)));
     assert_eq!(animation["channels"].as_array().unwrap().len(), 1 + 3 + 4 + 1 + 1);
-    assert!(doc.execute("anim.insertKey", json!({ "objects": "Light", "properties": ["lens"] })).is_err());
+    assert!(doc.execute("animation.insertKey", json!({ "objects": "Light", "properties": ["lens"] })).is_err());
     assert!(doc.execute("frame.range", json!({ "start": 10, "end": 2 })).is_err());
     // Deleting the cube takes its channels; its material keeps its own.
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
@@ -80,9 +80,9 @@ fn renders_follow_the_frame() {
     let mut doc = doc();
     run(&mut doc, "render.set", json!({ "width": 64, "height": 36 }));
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
-    run(&mut doc, "anim.insertKey", json!({ "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "location": [0, 0, 30] }));
-    run(&mut doc, "anim.insertKey", json!({ "frame": 10 }));
+    run(&mut doc, "animation.insertKey", json!({ "frame": 10 }));
     let first = run(&mut doc, "render.image", json!({ "frame": 1, "samples": 1 }));
     let last = run(&mut doc, "render.image", json!({ "frame": 10, "samples": 1 }));
     assert_ne!(first["base64"], last["base64"], "the cube left the shot");

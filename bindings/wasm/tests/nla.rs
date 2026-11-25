@@ -35,11 +35,11 @@ fn at(doc: &mut SceneDocument, frame: f64) -> [f64; 3] {
 fn rising() -> SceneDocument {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(&mut doc, "frame.set", json!({ "frame": 11 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, 2] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
-    run(&mut doc, "anim.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
     let pushed = run(&mut doc, "nla.pushDown", json!({ "object": "Cube", "name": "Rise" }));
     assert_eq!(pushed["action"], "Rise");
     doc
@@ -63,10 +63,10 @@ fn strips_play_actions_and_survive_saving() {
     assert!((at(&mut doc, 61.0)[2] - 2.0).abs() < 1e-4);
 
     // A second strip adding a lift on a new track, at half influence.
-    run(&mut doc, "add.empty", json!({ "name": "Other" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Other" }));
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [3, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(&mut doc, "nla.pushDown", json!({ "object": "Cube", "name": "Shift" }));
     run(&mut doc, "nla.setStrip", json!({ "object": "Cube", "track": 1, "strip": 0, "blend": "add", "influence": 0.5 }));
     let shifted = at(&mut doc, 31.0);
@@ -116,7 +116,7 @@ fn tweak_mode_edits_the_action_through_the_strip() {
     // A key at scene frame 31 lands on action frame 6.
     run(&mut doc, "frame.set", json!({ "frame": 31 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, 5] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     let frames: Vec<f64> =
         doc.inspect().unwrap()["animation"]["channels"][2]["keys"].as_array().unwrap().iter().map(|key| number(&key["frame"])).collect();
     assert_eq!(frames, vec![1.0, 6.0, 11.0]);
@@ -137,11 +137,11 @@ fn tweak_mode_edits_the_action_through_the_strip() {
 fn modifiers_reshape_a_channel_and_survive_saving() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(&mut doc, "frame.set", json!({ "frame": 11 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [2, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
-    run(&mut doc, "anim.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
     let cube = object(&doc.inspect().unwrap(), "Cube")["id"].as_u64().unwrap();
     let channel = json!({ "target": cube, "property": "location", "index": 0 });
     let with = |extra: Value| {

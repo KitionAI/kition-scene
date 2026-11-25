@@ -66,8 +66,8 @@ fn curves_and_texts_go_out_to_fbx_and_usda_as_meshes() {
     for format in ["fbx", "usda"] {
         let mut doc = doc();
         run(&mut doc, "edit.delete", json!({ "objects": ["Cube", "Light", "Camera"] }));
-        run(&mut doc, "add.curveCircle", json!({}));
-        run(&mut doc, "add.text", json!({}));
+        run(&mut doc, "object.addCurveCircle", json!({}));
+        run(&mut doc, "object.addText", json!({}));
         let exported = run(&mut doc, "file.export", json!({ "format": format }));
         let base64 = exported["base64"].as_str().unwrap().to_string();
         let imported = run(&mut doc, "file.import", json!({ "base64": base64, "format": format }));

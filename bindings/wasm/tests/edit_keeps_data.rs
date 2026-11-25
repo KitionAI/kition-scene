@@ -70,7 +70,7 @@ fn object_mode(doc: &mut SceneDocument) {
 fn append_add_in_edit_mode_keeps_groups_and_keys() {
     let mut doc = cube_with_group_and_key();
     edit(&mut doc, "Cube");
-    run(&mut doc, "add.cube", json!({ "location": [4, 0, 0] }));
+    run(&mut doc, "object.addCube", json!({ "location": [4, 0, 0] }));
     object_mode(&mut doc);
     let mesh = mesh(&doc, "Cube");
     assert_eq!(mesh.positions.len(), 16);
@@ -104,7 +104,7 @@ fn append_duplicate_in_edit_mode_copies_weights_keys_and_uvs() {
 #[test]
 fn append_join_carries_groups_and_keys_by_name() {
     let mut doc = cube_with_group_and_key();
-    run(&mut doc, "add.cube", json!({ "name": "Other", "location": [4, 0, 0] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Other", "location": [4, 0, 0] }));
     let other_top = top(mesh(&doc, "Other"));
     run(&mut doc, "vertexGroup.assign", json!({ "object": "Other", "name": "Top", "weight": 1.0, "vertices": other_top }));
     run(&mut doc, "vertexGroup.assign", json!({ "object": "Other", "name": "Side", "weight": 0.25, "vertices": [0] }));
@@ -138,7 +138,7 @@ fn append_join_carries_groups_and_keys_by_name() {
 fn two_part_cube_with_face_sets() -> SceneDocument {
     let mut doc = new_doc();
     edit(&mut doc, "Cube");
-    run(&mut doc, "add.cube", json!({ "location": [4, 0, 0] }));
+    run(&mut doc, "object.addCube", json!({ "location": [4, 0, 0] }));
     object_mode(&mut doc);
     run(&mut doc, "mode.sculpt", json!({}));
     run(&mut doc, "sculpt.faceSetsFromLooseParts", json!({}));
@@ -154,7 +154,7 @@ fn two_part_cube_with_face_sets() -> SceneDocument {
 fn append_add_in_edit_mode_keeps_face_sets() {
     let mut doc = two_part_cube_with_face_sets();
     edit(&mut doc, "Cube");
-    run(&mut doc, "add.cube", json!({ "location": [0, 4, 0] }));
+    run(&mut doc, "object.addCube", json!({ "location": [0, 4, 0] }));
     object_mode(&mut doc);
     let mesh = mesh(&doc, "Cube");
     assert_eq!(mesh.face_sets, [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0]);
@@ -291,9 +291,9 @@ fn modifier_objects(doc: &SceneDocument, name: &str) -> Vec<Option<u32>> {
 #[test]
 fn delete_object_references_in_modifiers_let_go() {
     let mut doc = new_doc();
-    run(&mut doc, "add.cube", json!({ "name": "Tool", "location": [0.5, 0, 0] }));
-    run(&mut doc, "add.lattice", json!({ "resolution": 2, "scale": [3, 3, 3] }));
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addCube", json!({ "name": "Tool", "location": [0.5, 0, 0] }));
+    run(&mut doc, "object.addLattice", json!({ "resolution": 2, "scale": [3, 3, 3] }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
     run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "boolean", "operand": "Tool" }));
     run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "shrinkwrap", "operand": "Tool" }));
     run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "lattice", "operand": "Lattice" }));
@@ -310,7 +310,7 @@ fn delete_object_references_in_modifiers_let_go() {
 #[test]
 fn delete_object_references_in_constraints_let_go() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Goal", "location": [3, 4, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Goal", "location": [3, 4, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Light", "type": "trackTo", "target": "Goal" }));
     let constraints = |doc: &SceneDocument| -> Vec<Value> {
         let inspected = doc.inspect().unwrap();
@@ -349,11 +349,11 @@ fn delete_object_references_in_curves_and_texts_let_go() {
 #[test]
 fn object_info_lets_go_of_a_deleted_object() {
     let mut doc = new_doc();
-    let made = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube", "name": "Reads" }));
+    let made = run(&mut doc, "node.newGroup", json!({ "object": "Cube", "name": "Reads" }));
     let group = made["group"].as_u64().unwrap();
     let light = u64::from(doc.scene().object_named("Light").unwrap().id);
     let info =
-        run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "objectInfo", "values": { "Object": light } }))["node"].as_u64().unwrap();
+        run(&mut doc, "node.addNode", json!({ "group": group, "kind": "objectInfo", "values": { "Object": light } }))["node"].as_u64().unwrap();
     let setting = |doc: &SceneDocument| -> Option<Value> {
         let tree = doc.scene().node_groups.iter().find(|tree| u64::from(tree.id) == group).unwrap();
         tree.nodes.iter().find(|node| u64::from(node.id) == info).unwrap().values.get("Object").cloned()
@@ -394,27 +394,27 @@ fn delete_object_references_dangling_ones_are_refused() {
 fn removed_index_particle_edit_keeps_its_system() {
     let mut doc = new_doc();
     for name in ["A", "B", "C"] {
-        run(&mut doc, "particles.add", json!({ "object": "Cube", "kind": "hair", "name": name, "count": 20 }));
+        run(&mut doc, "particle.add", json!({ "object": "Cube", "kind": "hair", "name": name, "count": 20 }));
     }
     run(&mut doc, "mode.particleEdit", json!({ "object": "Cube", "system": "B" }));
     let edited = |doc: &SceneDocument| doc.session().particle_edit.as_ref().map(|session| session.system);
     assert_eq!(edited(&doc), Some(1));
-    run(&mut doc, "particles.remove", json!({ "object": "Cube", "system": "A" }));
+    run(&mut doc, "particle.remove", json!({ "object": "Cube", "system": "A" }));
     let systems: Vec<String> = doc.scene().object_named("Cube").unwrap().particles.iter().map(|system| system.name.clone()).collect();
     assert_eq!(systems, ["B", "C"]);
     assert_eq!(edited(&doc), Some(0), "Particle Edit still grooms B");
     // Removing the groomed system ends Particle Edit.
-    run(&mut doc, "particles.remove", json!({ "object": "Cube", "system": "B" }));
+    run(&mut doc, "particle.remove", json!({ "object": "Cube", "system": "B" }));
     assert_eq!(edited(&doc), None, "B is gone: Particle Edit ends rather than grooming C");
 }
 
 fn keyed(doc: &mut SceneDocument, name: &str, top: f32) {
     run(doc, "frame.set", json!({ "frame": 1 }));
     run(doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, 0] }));
-    run(doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(doc, "frame.set", json!({ "frame": 11 }));
     run(doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, top] }));
-    run(doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(doc, "nla.pushDown", json!({ "object": "Cube", "name": name }));
 }
 

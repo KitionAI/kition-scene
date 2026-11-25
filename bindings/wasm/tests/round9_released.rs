@@ -45,7 +45,7 @@ fn framing_a_released_emitter_preserves_boid_motion_and_independent_undo() {
 
     run(
         &mut doc,
-        "particles.set",
+        "particle.set",
         json!({"object":"Cube", "system":"Flight", "physics":"boids",
             "boids":{"rules":[{"kind":"goal", "target":"Target"}]}}),
     );

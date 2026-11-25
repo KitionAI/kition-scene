@@ -49,7 +49,7 @@ fn dissolve_bisect_symmetrize_spin_and_bevel() {
     assert_eq!(mesh_counts(&doc, "Cube"), (6, 5));
     run(&mut doc, "edit.undo", json!({}));
 
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "mesh.bisect", json!({ "point": [0, 0, 0.3], "normal": [0, 0, 1], "clearOuter": true, "fill": true }));
     assert_eq!(mesh_counts(&doc, "Cube"), (8, 6));
     assert_eq!(doc.inspect().unwrap()["selection"]["vertices"].as_array().unwrap().len(), 4, "the cut is selected");
@@ -59,7 +59,7 @@ fn dissolve_bisect_symmetrize_spin_and_bevel() {
     assert_eq!(mesh_counts(&doc, "Cube"), (12, 10));
     run(&mut doc, "edit.undo", json!({}));
 
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "mesh.bevelVertices", json!({ "width": 0.2 }));
     assert_eq!(mesh_counts(&doc, "Cube"), (24, 14));
     run(&mut doc, "edit.undo", json!({}));
@@ -98,7 +98,7 @@ fn separate_makes_a_new_object_and_bridge_joins_loops() {
 #[test]
 fn proportional_editing_pulls_neighbours() {
     let mut doc = doc();
-    run(&mut doc, "add.grid", json!({ "xSubdivisions": 4, "ySubdivisions": 1, "size": 4 }));
+    run(&mut doc, "object.addGrid", json!({ "xSubdivisions": 4, "ySubdivisions": 1, "size": 4 }));
     run(&mut doc, "mode.set", json!({ "mode": "edit" }));
     let state = run(&mut doc, "mesh.proportional", json!({ "on": true, "radius": 2, "falloff": "linear" }));
     assert_eq!(state["proportional"]["falloff"], "linear");

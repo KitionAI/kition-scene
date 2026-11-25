@@ -9,7 +9,10 @@ fn main() -> Result<(), String> {
     let mut doc = SceneDocument::create("Bench.kscene", 1280, 720)?;
     doc.execute("modifier.add", json!({ "objects": "Cube", "type": "subdivision", "levels": 3 }))?;
     for index in 0..20 {
-        doc.execute("add.uvSphere", json!({ "location": [(index % 5) as f32 * 2.5 - 5.0, (index / 5) as f32 * 2.5 - 4.0, 0.5], "radius": 0.8 }))?;
+        doc.execute(
+            "object.addUvSphere",
+            json!({ "location": [(index % 5) as f32 * 2.5 - 5.0, (index / 5) as f32 * 2.5 - 4.0, 0.5], "radius": 0.8 }),
+        )?;
     }
     let faces: u64 = doc.inspect()?["objects"]
         .as_array()
@@ -27,13 +30,13 @@ fn main() -> Result<(), String> {
     time(&mut doc, "solid, grid, selection")?;
     doc.execute("view.grid", json!({ "on": false }))?;
     time(&mut doc, "no grid")?;
-    doc.execute("select.none", json!({}))?;
+    doc.execute("edit.deselectAll", json!({}))?;
     time(&mut doc, "no grid, no selection")?;
     doc.execute("view.zoom", json!({ "factor": 20 }))?;
     time(&mut doc, "far away (few pixels)")?;
     doc.execute("view.zoom", json!({ "factor": 0.05 }))?;
     let mut empty = SceneDocument::create("Empty.kscene", 1280, 720)?;
-    empty.execute("select.all", json!({}))?;
+    empty.execute("edit.selectAll", json!({}))?;
     empty.execute("edit.delete", json!({}))?;
     empty.execute("view.grid", json!({ "on": false }))?;
     time(&mut empty, "empty scene, no grid")?;

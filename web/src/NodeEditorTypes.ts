@@ -42,5 +42,5 @@ export type NodeGroupInfo = {
   links: LinkInfo[]
 }
 
-/** A node kind as `nodes.describe` lists it. */
+/** A node kind as `node.describe` lists it. */
 export type NodeKindInfo = { id: string; title: string; category: string }

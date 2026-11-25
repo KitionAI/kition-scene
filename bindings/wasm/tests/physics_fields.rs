@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 
 fn empty() -> SceneDocument {
     let mut doc = SceneDocument::create("Untitled.kscene", 640, 360).unwrap();
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.delete", json!({}));
     doc
 }
@@ -34,11 +34,11 @@ fn physics_of(doc: &SceneDocument, name: &str) -> Value {
 /// A passive anchor at the origin and a box 2 m along X joined by a hinge about Y.
 fn pendulum() -> SceneDocument {
     let mut doc = empty();
-    run(&mut doc, "add.cube", json!({ "size": 0.2, "name": "Anchor" }));
+    run(&mut doc, "object.addCube", json!({ "size": 0.2, "name": "Anchor" }));
     run(&mut doc, "physics.rigidBody.add", json!({ "type": "passive" }));
-    run(&mut doc, "add.cube", json!({ "size": 0.5, "location": [2, 0, 0], "name": "Bob" }));
+    run(&mut doc, "object.addCube", json!({ "size": 0.5, "location": [2, 0, 0], "name": "Bob" }));
     run(&mut doc, "physics.rigidBody.add", json!({}));
-    run(&mut doc, "add.empty", json!({ "name": "Hinge", "rotation": [90, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Hinge", "rotation": [90, 0, 0] }));
     run(&mut doc, "physics.constraint.add", json!({ "type": "hinge", "object1": "Anchor", "object2": "Bob" }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 40 }));
     doc
@@ -73,7 +73,7 @@ fn a_hinge_swings_the_bob_and_lets_go_of_deleted_bodies() {
 fn connect_joins_bodies_one_to_the_next() {
     let mut doc = empty();
     for (index, name) in ["A", "B", "C"].iter().enumerate() {
-        run(&mut doc, "add.cube", json!({ "size": 1, "location": [index as f64 * 1.0, 0, 3], "name": name }));
+        run(&mut doc, "object.addCube", json!({ "size": 1, "location": [index as f64 * 1.0, 0, 3], "name": name }));
         run(&mut doc, "physics.rigidBody.add", json!({}));
     }
     let made = run(&mut doc, "physics.constraint.connect", json!({ "objects": ["A", "B", "C"], "type": "fixed" }));
@@ -91,39 +91,39 @@ fn connect_joins_bodies_one_to_the_next() {
 #[test]
 fn a_force_field_pushes_particles_and_bodies() {
     let mut doc = empty();
-    run(&mut doc, "add.plane", json!({ "size": 2, "name": "Emitter" }));
-    run(&mut doc, "particles.add", json!({ "count": 100, "frameEnd": 1, "lifetime": 100, "normalVelocity": 0, "gravity": 0 }));
-    let still = run(&mut doc, "particles.stats", json!({ "frame": 30 }))["meanPosition"].clone();
+    run(&mut doc, "object.addPlane", json!({ "size": 2, "name": "Emitter" }));
+    run(&mut doc, "particle.add", json!({ "count": 100, "frameEnd": 1, "lifetime": 100, "normalVelocity": 0, "gravity": 0 }));
+    let still = run(&mut doc, "particle.stats", json!({ "frame": 30 }))["meanPosition"].clone();
     let field =
         run(&mut doc, "physics.field.new", json!({ "type": "wind", "location": [-3, 0, 0], "rotation": [0, 90, 0], "strength": 5, "flow": 0 }));
     assert_eq!(field["objects"][0]["field"]["kind"], "wind");
-    let blown = run(&mut doc, "particles.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"].clone();
+    let blown = run(&mut doc, "particle.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"].clone();
     // 5 m/s² for 1.16 s: 3.36 m along X, as the reference.
     let moved = blown[0].as_f64().unwrap() - still[0].as_f64().unwrap();
     assert!((moved - 3.364).abs() < 0.02, "{moved}");
     // Undo takes the field back; the particles are as before.
     run(&mut doc, "edit.undo", json!({}));
-    assert_eq!(run(&mut doc, "particles.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"], still);
+    assert_eq!(run(&mut doc, "particle.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"], still);
     assert!(doc.execute("physics.field.set", json!({ "objects": "Emitter", "strength": 1 })).is_err(), "no field to set");
     run(&mut doc, "physics.field.add", json!({ "objects": "Emitter", "type": "force" }));
     assert!(doc.execute("physics.field.set", json!({ "objects": "Emitter", "falloffPower": -1 })).is_err(), "out of range");
     // The emitter's own field leaves its own particles alone.
-    assert_eq!(run(&mut doc, "particles.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"], still);
+    assert_eq!(run(&mut doc, "particle.stats", json!({ "object": "Emitter", "frame": 30 }))["meanPosition"], still);
 }
 
 #[test]
 fn a_body_that_starts_asleep_hangs_until_it_is_hit() {
     let mut doc = empty();
-    run(&mut doc, "add.plane", json!({ "size": 20, "name": "Ground" }));
+    run(&mut doc, "object.addPlane", json!({ "size": 20, "name": "Ground" }));
     run(&mut doc, "physics.rigidBody.add", json!({ "type": "passive" }));
-    run(&mut doc, "add.cube", json!({ "size": 1, "location": [0, 0, 3], "name": "Sleeper" }));
+    run(&mut doc, "object.addCube", json!({ "size": 1, "location": [0, 0, 3], "name": "Sleeper" }));
     run(&mut doc, "physics.rigidBody.add", json!({ "deactivation": true, "startDeactivated": true }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 60 }));
     run(&mut doc, "physics.bake", json!({}));
     run(&mut doc, "frame.set", json!({ "frame": 60 }));
     assert_eq!(location(&doc, "Sleeper")[2], 3.0, "it hangs");
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
-    run(&mut doc, "add.cube", json!({ "size": 1, "location": [0.2, 0, 6], "name": "Knock" }));
+    run(&mut doc, "object.addCube", json!({ "size": 1, "location": [0.2, 0, 6], "name": "Knock" }));
     run(&mut doc, "physics.rigidBody.add", json!({}));
     run(&mut doc, "physics.bake", json!({}));
     run(&mut doc, "frame.set", json!({ "frame": 60 }));
@@ -133,7 +133,7 @@ fn a_body_that_starts_asleep_hangs_until_it_is_hit() {
 #[test]
 fn cloth_self_collision_and_density_groups_are_settings() {
     let mut doc = empty();
-    run(&mut doc, "add.grid", json!({ "xSubdivisions": 4, "ySubdivisions": 4, "size": 2, "name": "Sheet" }));
+    run(&mut doc, "object.addGrid", json!({ "xSubdivisions": 4, "ySubdivisions": 4, "size": 2, "name": "Sheet" }));
     run(&mut doc, "physics.cloth.add", json!({ "selfCollision": true, "selfDistance": 0.02 }));
     let cloth = physics_of(&doc, "Sheet")["cloth"].clone();
     assert_eq!((cloth["selfCollision"].as_bool(), cloth["selfDistance"].as_f64().map(|value| (value * 1000.0).round())), (Some(true), Some(20.0)));
@@ -143,8 +143,8 @@ fn cloth_self_collision_and_density_groups_are_settings() {
     let sheet = inspected["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Sheet").unwrap().clone();
     let right: Vec<u32> = (0..sheet["mesh"]["vertices"].as_u64().unwrap() as u32).filter(|index| index % 5 >= 3).collect();
     run(&mut doc, "vertexGroup.assign", json!({ "name": "Dense", "vertices": right, "weight": 1 }));
-    run(&mut doc, "particles.add", json!({ "count": 200, "frameEnd": 1, "normalVelocity": 0, "gravity": 0, "densityGroup": "Dense" }));
-    let stats = run(&mut doc, "particles.stats", json!({ "frame": 2 }));
+    run(&mut doc, "particle.add", json!({ "count": 200, "frameEnd": 1, "normalVelocity": 0, "gravity": 0, "densityGroup": "Dense" }));
+    let stats = run(&mut doc, "particle.stats", json!({ "frame": 2 }));
     assert_eq!(stats["alive"], 200);
     assert!(stats["meanPosition"][0].as_f64().unwrap() > 0.4, "{stats}");
     let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();

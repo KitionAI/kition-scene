@@ -19,7 +19,7 @@ try {
   const kit = page.frameLocator('#kit')
   const open = async () => { const section = kit.getByTestId('scene-particles'); await section.waitFor(); if ((await section.getAttribute('data-open')) !== 'true') await section.locator('.kui-panel-section-toggle').first().click() }
   const number = async (id, value, check) => { const input = kit.getByTestId(id).locator('input'); await input.fill(String(value)); await input.press('Enter'); await until(check) }
-  await run('add.empty', { name: 'Goal', location: [8, 0, 8] })
+  await run('object.addEmpty', { name: 'Goal', location: [8, 0, 8] })
   const goal = (await inspect()).objects.find(object => object.name === 'Goal').id
   await run('select.objects', { objects: 'Cube' })
   await open()
@@ -54,14 +54,14 @@ try {
   await kit.getByTestId('scene-boid-kind-1').selectOption('separate')
   await until(async () => (await settings()).boids.rules[1].kind === 'separate')
   await run('frame.set', { frame: 31 })
-  const at31 = await run('particles.stats', { object: 'Cube' })
+  const at31 = await run('particle.stats', { object: 'Cube' })
   assert.equal(at31.alive, 8)
   assert(at31.meanPosition[0] > 1 && at31.meanPosition[2] > 1)
   const saved = await settings()
   await page.evaluate(() => window.devHost.connection().save())
   await page.evaluate(async () => { const file = window.devHost.files.get('Sample.kscene'); await window.devHost.open('Sample.kscene', file.bytes) })
   assert.deepEqual(await settings(), saved)
-  assert.deepEqual(await run('particles.stats', { object: 'Cube', frame: 31 }), at31)
+  assert.deepEqual(await run('particle.stats', { object: 'Cube', frame: 31 }), at31)
   await open()
   if (process.env.KITION_BOIDS_SCREENSHOT) {
     await kit.getByTestId('scene-boids').scrollIntoViewIfNeeded()

@@ -1,6 +1,6 @@
 # Airborne boid particles
 
-The Particles panel's Physics control selects Newtonian or Boids for an emitter. `particles.add` and `particles.set` expose the same `physics` and `boids` settings. Boids use Average evaluation across up to eight Goal, Avoid, Separate and Flock rules. Goal and Avoid target an object's current world-space origin, including parenting; an absent target contributes no response. Deleting a target clears its reference, including after a collaborative merge.
+The Particles panel's Physics control selects Newtonian or Boids for an emitter. `particle.add` and `particle.set` expose the same `physics` and `boids` settings. Boids use Average evaluation across up to eight Goal, Avoid, Separate and Flock rules. Goal and Avoid target an object's current world-space origin, including parenting; an absent target contributes no response. Deleting a target clears its reference, including after a collaborative merge.
 
 Maximum air speed defaults to 10 m/s, acceleration fraction to 0.5, turning-angle fraction to 0.5, personal space to 1, and the rule list to Separate and Flock. Rules are averaged, so list order does not express priority. Kition Scene does not implement Blender's default Fuzzy evaluation.
 

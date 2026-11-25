@@ -45,8 +45,8 @@ fn sha256(bytes: &[u8]) -> String {
 /// deleted; then a stray blob added to the file.
 fn scene() -> Vec<u8> {
     let mut doc = SceneDocument::create("Plan.kscene", 320, 180).unwrap();
-    doc.execute("add.cube", json!({ "name": "Kept", "location": [3, 0, 0] })).unwrap();
-    doc.execute("add.uvSphere", json!({ "name": SECRET, "location": [6, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "Kept", "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addUvSphere", json!({ "name": SECRET, "location": [6, 0, 0] })).unwrap();
     let first = doc.save_file(None).unwrap();
     let mut doc = SceneDocument::open("Plan.kscene", &first).unwrap();
     doc.execute("edit.delete", json!({ "objects": [SECRET] })).unwrap();
@@ -140,7 +140,7 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     let mut opened = SceneDocument::open("Fork.kscene", &fork_bytes).unwrap();
     assert_eq!(opened.doc_id(), fork_id);
     let count = opened.scene().objects.len();
-    opened.execute("add.cube", json!({ "name": "New", "location": [0, 6, 0] })).unwrap();
+    opened.execute("object.addCube", json!({ "name": "New", "location": [0, 6, 0] })).unwrap();
     let edited = opened.save_file(None).unwrap();
     let reopened = SceneDocument::open("Fork.kscene", &edited).unwrap();
     assert_eq!((reopened.doc_id(), reopened.scene().objects.len()), (fork_id.clone(), count + 1));

@@ -13,7 +13,7 @@ async fn outliner_insertion_gap_refuses_a_stale_move_but_allows_later_edits() {
             let (details, basis) = f.inspect().await;
             let names = ids_by_name(&details);
             // The source stays before both gaps: only the destination is stale.
-            let mut steps = vec![("add.cube", json!({"name":"Inserted"}))];
+            let mut steps = vec![("object.addCube", json!({"name":"Inserted"}))];
             if before {
                 steps.push(("object.order", json!({"object":"Inserted","index":2})));
             }
@@ -43,7 +43,7 @@ async fn outliner_move_by_id_allows_an_insert_after_the_gap_even_before_its_sour
     let f = Fixture::new(5);
     let (details, basis) = f.inspect().await;
     let ids = ids_by_name(&details);
-    f.colleague(&[("add.cube", json!({"name":"Inserted"})), ("object.order", json!({"object":"Inserted","index":6}))]);
+    f.colleague(&[("object.addCube", json!({"name":"Inserted"})), ("object.order", json!({"object":"Inserted","index":6}))]);
     f.ok("run", json!({"basis":basis,"steps":[{"command":"object.order","params":{"object":ids["C4"],"index":4}}]})).await;
     assert_eq!(on_disk(&f.file()).scene().objects[4].id as u64, ids["C4"]);
     f.shutdown().await;
@@ -67,7 +67,7 @@ async fn outliner_gap_control_and_sdk_compound_place_diagnostic() {
     for by_pick in [false, true] {
         let f = Fixture::new(5);
         let (_, basis) = f.inspect().await;
-        f.colleague(&[("add.cube", json!({"name":"Inserted","location":[100,0,0]})), ("object.order", json!({"object":"Inserted","index":2}))]);
+        f.colleague(&[("object.addCube", json!({"name":"Inserted","location":[100,0,0]})), ("object.order", json!({"object":"Inserted","index":2}))]);
         let params = if by_pick { json!({"pick":[0,0,0],"index":4}) } else { json!({"object":2,"index":4}) };
         let write = json!({"basis":basis,"steps":[{"command":"object.order","params":params}]});
         if by_pick {
@@ -136,9 +136,9 @@ async fn constraint_destination_refuses_an_insert_before() {
 #[tokio::test(flavor = "multi_thread")]
 async fn keyframe_insertion_refuses_an_insert_before() {
     stale_family(
-        &[("anim.insertKey", json!({"objects":["Cube"],"frame":1}))],
-        &[("anim.insertKey", json!({"objects":["Cube"],"frame":5}))],
-        "anim.insertKey",
+        &[("animation.insertKey", json!({"objects":["Cube"],"frame":1}))],
+        &[("animation.insertKey", json!({"objects":["Cube"],"frame":5}))],
+        "animation.insertKey",
         json!({"objects":["Cube"],"frame":10}),
     )
     .await;
@@ -170,8 +170,8 @@ async fn nla_track_move_refuses_an_insert_before() {
 async fn nla_strip_insertion_refuses_an_insert_before() {
     stale_family(
         &[
-            ("anim.insertKey", json!({"objects":["Cube"],"frame":1})),
-            ("anim.insertKey", json!({"objects":["Cube"],"frame":3})),
+            ("animation.insertKey", json!({"objects":["Cube"],"frame":1})),
+            ("animation.insertKey", json!({"objects":["Cube"],"frame":3})),
             ("nla.pushDown", json!({"object":"Cube","name":"A"})),
         ],
         &[("nla.addStrip", json!({"object":"Cube","action":"A","track":0,"start":10}))],
@@ -185,7 +185,7 @@ async fn nla_strip_insertion_refuses_an_insert_before() {
 async fn graph_modifier_destination_refuses_an_insert_before() {
     stale_family(
         &[
-            ("anim.insertKey", json!({"objects":["Cube"],"properties":["location"],"frame":1})),
+            ("animation.insertKey", json!({"objects":["Cube"],"properties":["location"],"frame":1})),
             ("graph.addModifier", json!({"target":2,"property":"location","type":"noise"})),
             ("graph.addModifier", json!({"target":2,"property":"location","type":"cycles"})),
         ],
@@ -202,7 +202,7 @@ async fn graph_modifier_destination_refuses_an_insert_before() {
 #[tokio::test(flavor = "multi_thread")]
 async fn text_insertion_refuses_an_insert_before() {
     stale_family(
-        &[("add.text", json!({"name":"T","body":"abc"}))],
+        &[("object.addText", json!({"name":"T","body":"abc"}))],
         &[("text.insert", json!({"object":"T","text":"before"}))],
         "text.insert",
         json!({"object":"T","text":"mine"}),
@@ -213,8 +213,8 @@ async fn text_insertion_refuses_an_insert_before() {
 #[tokio::test(flavor = "multi_thread")]
 async fn curve_and_bone_insertions_hold_the_edited_objects_data() {
     for (add, mode, select, insert, selection) in [
-        ("add.curveBezier", "mode.shape", "curve.select", "curve.extrude", json!({"points":[0]})),
-        ("add.armature", "mode.armature", "bone.select", "bone.extrude", json!({"bones":"Bone"})),
+        ("object.addCurveBezier", "mode.shape", "curve.select", "curve.extrude", json!({"points":[0]})),
+        ("object.addArmature", "mode.armature", "bone.select", "bone.extrude", json!({"bones":"Bone"})),
     ] {
         let mut doc = scene_doc(1);
         doc.execute(add, json!({"name":"Edited"})).unwrap();

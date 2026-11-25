@@ -75,21 +75,21 @@ pub fn fixture() -> (SceneDocument, Vec<(&'static str, u64)>) {
     let light = named(&doc, "Light");
     let camera = named(&doc, "Camera");
     let mut ex = |c: &str, p: Value| doc.execute(c, p.clone()).unwrap_or_else(|e| panic!("{c} {p}: {e}"));
-    let ball = id(&ex("add.uvSphere", json!({ "name": "Ball", "location": [3, 0, 0] })), "object");
-    let rig = id(&ex("add.empty", json!({ "name": "Rig", "location": [0, 0, 2] })), "object");
-    let child = id(&ex("add.cube", json!({ "name": "Child", "location": [0, 0, 3], "size": 0.5 })), "object");
+    let ball = id(&ex("object.addUvSphere", json!({ "name": "Ball", "location": [3, 0, 0] })), "object");
+    let rig = id(&ex("object.addEmpty", json!({ "name": "Rig", "location": [0, 0, 2] })), "object");
+    let child = id(&ex("object.addCube", json!({ "name": "Child", "location": [0, 0, 3], "size": 0.5 })), "object");
     ex("object.parent", json!({ "objects": [child], "parent": rig }));
-    let arm = id(&ex("add.armature", json!({ "name": "Arm", "location": [-3, 0, 0] })), "object");
-    let path = id(&ex("add.curveBezier", json!({ "name": "Path", "location": [0, 3, 0] })), "object");
-    let label = id(&ex("add.text", json!({ "name": "Label", "location": [0, -3, 0] })), "object");
-    let cage = id(&ex("add.lattice", json!({ "name": "Cage", "location": [0, 0, -3] })), "object");
+    let arm = id(&ex("object.addArmature", json!({ "name": "Arm", "location": [-3, 0, 0] })), "object");
+    let path = id(&ex("object.addCurveBezier", json!({ "name": "Path", "location": [0, 3, 0] })), "object");
+    let label = id(&ex("object.addText", json!({ "name": "Label", "location": [0, -3, 0] })), "object");
+    let cage = id(&ex("object.addLattice", json!({ "name": "Cage", "location": [0, 0, -3] })), "object");
     let mat = id(&ex("material.new", json!({ "name": "Mat", "assign": false })), "material");
     let glass = id(&ex("material.new", json!({ "name": "Glass", "assign": false })), "material");
     ex("material.assign", json!({ "material": mat, "objects": [cube] }));
     ex("material.assign", json!({ "material": glass, "objects": [ball] }));
     ex("modifier.add", json!({ "object": cube, "type": "bevel" }));
     ex("modifier.add", json!({ "object": cube, "type": "solidify" }));
-    let made = ex("nodes.newGroup", json!({ "name": "G" }));
+    let made = ex("node.newGroup", json!({ "name": "G" }));
     let (g, g_in, g_out) = (id(&made, "group"), id(&made, "input"), id(&made, "output"));
     let made = ex("compositor.new", json!({}));
     let (comp, comp_in) = (id(&made, "group"), id(&made, "renderLayers"));
@@ -122,7 +122,7 @@ fn driven() -> (SceneDocument, Vec<(&'static str, u64)>) {
     let (mut doc, roles) = fixture();
     let ball = roles.iter().find(|(role, _)| *role == "$Ball").unwrap().1;
     for (command, params) in [
-        ("anim.insertKey", json!({ "objects": [ball], "properties": ["location"], "frame": 1 })),
+        ("animation.insertKey", json!({ "objects": [ball], "properties": ["location"], "frame": 1 })),
         (
             "driver.add",
             json!({ "object": "Child", "property": "location", "index": 2, "expression": "b",
@@ -212,7 +212,7 @@ fn lattice_edit() -> (SceneDocument, Vec<(&'static str, u64)>) {
 
 /// `$Cube`'s hair system 0 in Particle Edit.
 fn particle_edit() -> (SceneDocument, Vec<(&'static str, u64)>) {
-    session(&[("particles.add", json!({ "object": "$Cube", "kind": "hair", "count": 20 })), ("mode.particleEdit", json!({ "object": "$Cube" }))])
+    session(&[("particle.add", json!({ "object": "$Cube", "kind": "hair", "count": 20 })), ("mode.particleEdit", json!({ "object": "$Cube" }))])
 }
 
 /// `$Cube` in sculpt mode.
@@ -280,7 +280,7 @@ const EDIT_MODE: &[Row] = &[
     r("vertexGroup.unassign", r##"{"name": "G1"}"##, "mode", &[("$Cube", "~topology", "-")]),
     r("shapeKey.offset", r##"{"name": "K", "offset": [0, 0, 1]}"##, "mode", &[("$Cube", "mesh", "-")]),
     // A primitive joins the edited mesh, placed through its world transform.
-    r("add.plane", r##"{"size": 2}"##, "mode", &[("$Cube", "constraints,mesh", "*")]),
+    r("object.addPlane", r##"{"size": 2}"##, "mode", &[("$Cube", "constraints,mesh", "*")]),
     // material.new assigns the new material to the edited mesh.
     r("material.new", r##"{"name": "M2"}"##, "mode", &[("$Cube", "material", "-")]),
     // delete and duplicate the selected elements (pinned after review: `mesh` -> `~topology`, as
@@ -441,11 +441,11 @@ const SCANNED: &[(&str, &str)] = &[
     ("driver.add", "time"),
     ("driver.set", "time"),
     ("camera.handheld", "time"),
-    ("add.curveBezier", "mode"),
-    ("add.curveCircle", "mode"),
-    ("add.curvePath", "mode"),
-    ("add.text", "mode"),
-    ("add.lattice", "mode"),
+    ("object.addCurveBezier", "mode"),
+    ("object.addCurveCircle", "mode"),
+    ("object.addCurvePath", "mode"),
+    ("object.addText", "mode"),
+    ("object.addLattice", "mode"),
     ("object.convertToMesh", "mode"),
     ("sculpt.stroke", "selection"),
     ("sculpt.gesture", "selection"),
@@ -732,36 +732,36 @@ const ROWS: &[Row] = &[
     // `scope`) and the person's redo have none on this fixture (bindings/wasm/src/rests.rs:727,
     // bindings/wasm/src/lib.rs:290)
     r("edit.redo", r##"{"scope": "person"}"##, "", &[]),
-    // add.plane: builds the primitive from params; the mode decides whether it becomes a new object (object mode,
+    // object.addPlane: builds the primitive from params; the mode decides whether it becomes a new object (object mode,
     // placed by params else the origin) or joins the edited mesh (edit mode: reads the edited mesh's world transform
     // and mesh; not set up by the fixture, no row). New name only deduped, appended object holds nothing. (C8-scene-engine 4c: the session rows run on its fixture: [`FIXTURES`].)
-    r("add.plane", r##"{"size": 2, "location": [1, 0, 0]}"##, "mode", &[]),
-    r("add.plane", r##"{"name": "Floor"}"##, "mode", &[]),
-    // add.backdrop: object mode only (gate); mesh from params, placement from params.
-    r("add.backdrop", r##"{"width": 20, "height": 8}"##, "", &[]),
-    // add.cube: shares the primitive branch with add.plane (edit-mode path: no row).
-    r("add.cube", r##"{"size": 1, "location": [0, 0, 1]}"##, "mode", &[]),
-    // add.circle: shares the primitive branch with add.plane.
-    r("add.circle", r##"{"vertices": 16, "radius": 1, "fill": "ngon"}"##, "mode", &[]),
-    // add.uvSphere: shares the primitive branch with add.plane.
-    r("add.uvSphere", r##"{"segments": 16, "rings": 8}"##, "mode", &[]),
-    // add.icoSphere: shares the primitive branch with add.plane.
-    r("add.icoSphere", r##"{"subdivisions": 2}"##, "mode", &[]),
-    // add.cylinder: shares the primitive branch with add.plane.
-    r("add.cylinder", r##"{"vertices": 12, "depth": 2}"##, "mode", &[]),
-    // add.cone: shares the primitive branch with add.plane.
-    r("add.cone", r##"{"radius1": 1, "radius2": 0}"##, "mode", &[]),
-    // add.torus: shares the primitive branch with add.plane.
-    r("add.torus", r##"{"majorRadius": 1, "minorRadius": 0.25}"##, "mode", &[]),
-    // add.grid: shares the primitive branch with add.plane.
-    r("add.grid", r##"{"xSubdivisions": 4, "ySubdivisions": 4}"##, "mode", &[]),
-    // add.light: object mode only (gate); light data from params.
-    r("add.light", r##"{"kind": "sun", "power": 3}"##, "", &[]),
-    // add.empty: object mode only (gate); size from params.
-    r("add.empty", r##"{"size": 1, "location": [0, 0, 1]}"##, "", &[]),
-    // add.camera: object mode only; reads scene.camera (none -> the new camera becomes the scene camera).
+    r("object.addPlane", r##"{"size": 2, "location": [1, 0, 0]}"##, "mode", &[]),
+    r("object.addPlane", r##"{"name": "Floor"}"##, "mode", &[]),
+    // object.addBackdrop: object mode only (gate); mesh from params, placement from params.
+    r("object.addBackdrop", r##"{"width": 20, "height": 8}"##, "", &[]),
+    // object.addCube: shares the primitive branch with object.addPlane (edit-mode path: no row).
+    r("object.addCube", r##"{"size": 1, "location": [0, 0, 1]}"##, "mode", &[]),
+    // object.addCircle: shares the primitive branch with object.addPlane.
+    r("object.addCircle", r##"{"vertices": 16, "radius": 1, "fill": "ngon"}"##, "mode", &[]),
+    // object.addUvSphere: shares the primitive branch with object.addPlane.
+    r("object.addUvSphere", r##"{"segments": 16, "rings": 8}"##, "mode", &[]),
+    // object.addIcoSphere: shares the primitive branch with object.addPlane.
+    r("object.addIcoSphere", r##"{"subdivisions": 2}"##, "mode", &[]),
+    // object.addCylinder: shares the primitive branch with object.addPlane.
+    r("object.addCylinder", r##"{"vertices": 12, "depth": 2}"##, "mode", &[]),
+    // object.addCone: shares the primitive branch with object.addPlane.
+    r("object.addCone", r##"{"radius1": 1, "radius2": 0}"##, "mode", &[]),
+    // object.addTorus: shares the primitive branch with object.addPlane.
+    r("object.addTorus", r##"{"majorRadius": 1, "minorRadius": 0.25}"##, "mode", &[]),
+    // object.addGrid: shares the primitive branch with object.addPlane.
+    r("object.addGrid", r##"{"xSubdivisions": 4, "ySubdivisions": 4}"##, "mode", &[]),
+    // object.addLight: object mode only (gate); light data from params.
+    r("object.addLight", r##"{"kind": "sun", "power": 3}"##, "", &[]),
+    // object.addEmpty: object mode only (gate); size from params.
+    r("object.addEmpty", r##"{"size": 1, "location": [0, 0, 1]}"##, "", &[]),
+    // object.addCamera: object mode only; reads scene.camera (none -> the new camera becomes the scene camera).
     // was: {}
-    r("add.camera", r##"{"lens": 35, "location": [7, -7, 5]}"##, "", &[("scene", "camera", "-")]),
+    r("object.addCamera", r##"{"lens": 35, "location": [7, -7, 5]}"##, "", &[("scene", "camera", "-")]),
     // object.transform: objects else the selection; sets the given local location/rotation/scale (replaced, not read).
     r("object.transform", r##"{"objects": ["$Cube"], "location": [1, 2, 3]}"##, "", &[("$Cube", "-", "*")]),
     // was: {}
@@ -1447,78 +1447,93 @@ const ROWS: &[Row] = &[
     // same inside its handler (only to apply the keys it just wrote); also not counted.
     // anim.*: gate needs object mode, no rig session and a non-empty selection unless `objects` is named (gate only).
 
-    // anim.insertKey: objects=id-or-name else selection; frame else current frame; with properties given (no
+    // animation.insertKey: objects=id-or-name else selection; frame else current frame; with properties given (no
     // keyingSet) keys each property's CURRENT value (location/rotation/scale: positions) into the object's
     // animation at the tweak-mapped frame (nla + tweak).
-    r("anim.insertKey", r##"{"objects": ["$Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "*")]),
-    r("anim.insertKey", r##"{"objects": ["Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,name,nla,tweak", "*")]),
+    r("animation.insertKey", r##"{"objects": ["$Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "*")]),
+    r("animation.insertKey", r##"{"objects": ["Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,name,nla,tweak", "*")]),
     // properties absent: the scene's active keying set decides what is keyed (none -> location, rotation, scale).
     // was: {$Cube animation,nla,tweak/*}
-    r("anim.insertKey", r##"{"objects": ["$Cube"]}"##, "time", &[("$Cube", "animation,nla,tweak", "*"), ("scene", "keyingSets", "-")]),
+    r("animation.insertKey", r##"{"objects": ["$Cube"]}"##, "time", &[("$Cube", "animation,nla,tweak", "*"), ("scene", "keyingSets", "-")]),
     // was: {}
-    r("anim.insertKey", r##"{}"##, "selection,time", &[("$Cube", "animation,nla,tweak", "*"), ("scene", "keyingSets", "-")]),
+    r("animation.insertKey", r##"{}"##, "selection,time", &[("$Cube", "animation,nla,tweak", "*"), ("scene", "keyingSets", "-")]),
     // baseColor: keyed on the object's material (slot read), at the scene frame (no tweak map); value from the material's data.
     // was: {}
     r(
-        "anim.insertKey",
+        "animation.insertKey",
         r##"{"objects": ["$Cube"], "properties": ["baseColor"], "frame": 1}"##,
         "",
         &[("$Cube", "material", "-"), ("$Mat", "animation,data", "-")],
     ),
     // power of a light: value from the light's data.
     // was: {}
-    r("anim.insertKey", r##"{"objects": ["$Light"], "properties": ["power"], "frame": 1}"##, "", &[("$Light", "animation,data,nla,tweak", "-")]),
+    r("animation.insertKey", r##"{"objects": ["$Light"], "properties": ["power"], "frame": 1}"##, "", &[("$Light", "animation,data,nla,tweak", "-")]),
     // builtin keying set named (builtin names resolve without reading the scene's own sets).
     // was: {}
-    r("anim.insertKey", r##"{"objects": ["$Cube"], "keyingSet": "location", "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "*")]),
+    r("animation.insertKey", r##"{"objects": ["$Cube"], "keyingSet": "location", "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "*")]),
     // wholeCharacter: every bone of the armature (bone names and poses in data).
     // was: {}
-    r("anim.insertKey", r##"{"objects": ["$Arm"], "keyingSet": "wholeCharacter", "frame": 1}"##, "", &[("$Arm", "animation,data,nla,tweak", "-")]),
-    // anim.deleteKey: objects else selection; frame else current; default properties include baseColor, so the
+    r(
+        "animation.insertKey",
+        r##"{"objects": ["$Arm"], "keyingSet": "wholeCharacter", "frame": 1}"##,
+        "",
+        &[("$Arm", "animation,data,nla,tweak", "-")],
+    ),
+    // animation.deleteKey: objects else selection; frame else current; default properties include baseColor, so the
     // material's keys on that frame go too; frame tweak-mapped for object properties. Values are not read.
     // was: {}
-    r("anim.deleteKey", r##"{"objects": ["$Cube"], "frame": 1}"##, "", &[("$Cube", "animation,material,nla,tweak", "-"), ("$Mat", "animation", "-")]),
+    r(
+        "animation.deleteKey",
+        r##"{"objects": ["$Cube"], "frame": 1}"##,
+        "",
+        &[("$Cube", "animation,material,nla,tweak", "-"), ("$Mat", "animation", "-")],
+    ),
     // was: {$Cube */*}
     r(
-        "anim.deleteKey",
+        "animation.deleteKey",
         r##"{"objects": ["Cube"], "frame": 1}"##,
         "",
         &[("$Cube", "animation,material,name,nla,tweak", "-"), ("$Mat", "animation", "-")],
     ),
     // was: {}
-    r("anim.deleteKey", r##"{}"##, "selection,time", &[("$Cube", "animation,material,nla,tweak", "-"), ("$Mat", "animation", "-")]),
+    r("animation.deleteKey", r##"{}"##, "selection,time", &[("$Cube", "animation,material,nla,tweak", "-"), ("$Mat", "animation", "-")]),
     // was: {}
-    r("anim.deleteKey", r##"{"objects": ["$Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "-")]),
-    // anim.clear: without properties every keyed channel of the object and its material's baseColor channels.
+    r("animation.deleteKey", r##"{"objects": ["$Cube"], "properties": ["location"], "frame": 1}"##, "", &[("$Cube", "animation,nla,tweak", "-")]),
+    // animation.clear: without properties every keyed channel of the object and its material's baseColor channels.
     // was: {}
-    r("anim.clear", r##"{"objects": ["$Cube"]}"##, "", &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")]),
+    r("animation.clear", r##"{"objects": ["$Cube"]}"##, "", &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")]),
     // was: {$Cube */*}
-    r("anim.clear", r##"{"objects": ["Cube"]}"##, "", &[("$Cube", "animation,material,name", "-"), ("$Mat", "animation", "-")]),
+    r("animation.clear", r##"{"objects": ["Cube"]}"##, "", &[("$Cube", "animation,material,name", "-"), ("$Mat", "animation", "-")]),
     // was: {}
-    r("anim.clear", r##"{}"##, "selection", &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")]),
+    r("animation.clear", r##"{}"##, "selection", &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")]),
     // was: {}
-    r("anim.clear", r##"{"objects": ["$Cube"], "properties": ["location"]}"##, "", &[("$Cube", "animation", "-")]),
-    // anim.setInterpolation: keys of the named properties (default all 8, baseColor on the material); frame only
+    r("animation.clear", r##"{"objects": ["$Cube"], "properties": ["location"]}"##, "", &[("$Cube", "animation", "-")]),
+    // animation.setInterpolation: keys of the named properties (default all 8, baseColor on the material); frame only
     // filters (absent = every key, not the current frame); no tweak map.
     // was: {}
     r(
-        "anim.setInterpolation",
+        "animation.setInterpolation",
         r##"{"objects": ["$Cube"], "interpolation": "linear"}"##,
         "",
         &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")],
     ),
     // was: {$Cube */*}
     r(
-        "anim.setInterpolation",
+        "animation.setInterpolation",
         r##"{"objects": ["Cube"], "interpolation": "linear"}"##,
         "",
         &[("$Cube", "animation,material,name", "-"), ("$Mat", "animation", "-")],
     ),
     // was: {}
-    r("anim.setInterpolation", r##"{"interpolation": "linear"}"##, "selection", &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")]),
+    r(
+        "animation.setInterpolation",
+        r##"{"interpolation": "linear"}"##,
+        "selection",
+        &[("$Cube", "animation,material", "-"), ("$Mat", "animation", "-")],
+    ),
     // was: {}
     r(
-        "anim.setInterpolation",
+        "animation.setInterpolation",
         r##"{"objects": ["$Cube"], "properties": ["location"], "frame": 1, "interpolation": "constant"}"##,
         "",
         // corrected by C8-scene-engine: `frame` is tweak-mapped as insertKey/deleteKey map it (bindings/wasm/src/commands_anim.rs:383)
@@ -1757,8 +1772,8 @@ const ROWS: &[Row] = &[
     r("edit.duplicate", r##"{}"##, "mode,selection", &[("$Cube", "*", "*")]),
     // edit.duplicate in mesh edit mode (edited mesh + edit-selection) and in armature edit mode (selected bones): not set up by the fixture, no row. (C8-scene-engine 4c: the session rows run on its fixture: [`FIXTURES`].)
 
-    // add.armature: a new armature at `location` (default origin, not the cursor); the object-mode gate only refuses
-    r("add.armature", r##"{"name": "Arm2", "location": [1, 0, 0]}"##, "", &[]),
+    // object.addArmature: a new armature at `location` (default origin, not the cursor); the object-mode gate only refuses
+    r("object.addArmature", r##"{"name": "Arm2", "location": [1, 0, 0]}"##, "", &[]),
     // bone.add: armature EDIT session only; the armature is the session's, bones added in armature space (reads parent bone tail)
     r("bone.add", r##"{"name": "B2", "head": [0, 0, 1], "tail": [0, 0, 2], "parent": "Bone", "connected": true}"##, "mode", &[]),
     // bone.extrude: armature EDIT session only; extrudes the session's selected bones
@@ -2070,51 +2085,51 @@ const ROWS: &[Row] = &[
     r("edit.delete", r##"{"objects": ["$Camera"]}"##, "", &[("$Camera", "-", "-"), ("scene", "camera,objects", "-")]),
     // `elements`: edit mode on the faces' corners; the editor's select mode decides deleteFaces vs deleteVertices.
     r("edit.delete", r##"{"elements": {"object": "$Cube", "faces": [0]}}"##, "mode", &[("$Cube", "~topology", "-")]),
-    // particles.add: `object` id-or-name (a mesh), else the active mesh; appends a new system (its name only made unique);
+    // particle.add: `object` id-or-name (a mesh), else the active mesh; appends a new system (its name only made unique);
     // colliders / instanceObject / boid targets are id-or-name and only stored (they must exist and not be the emitter).
     // was: {$Cube */*}
-    r("particles.add", r##"{"object": "$Cube", "kind": "hair"}"##, "", &[("$Cube", "-", "-")]),
+    r("particle.add", r##"{"object": "$Cube", "kind": "hair"}"##, "", &[("$Cube", "-", "-")]),
     // was: {}
-    r("particles.add", r##"{"kind": "emitter"}"##, "selection", &[("$Cube", "-", "-")]),
+    r("particle.add", r##"{"kind": "emitter"}"##, "selection", &[("$Cube", "-", "-")]),
     // was: {$Cube */*}
-    r("particles.add", r##"{"object": "Cube"}"##, "", &[("$Cube", "name", "-")]),
+    r("particle.add", r##"{"object": "Cube"}"##, "", &[("$Cube", "name", "-")]),
     // was: {$Ball */*, $Child */*, $Cube */*}
     r(
-        "particles.add",
+        "particle.add",
         r##"{"object": "$Cube", "renderAs": "object", "instanceObject": "$Ball", "colliders": ["$Child"]}"##,
         "",
         &[("$Cube", "-", "-"), ("$Ball", "-", "-"), ("$Child", "-", "-")],
     ),
-    // particles.set: object as above; `system` index (default 0) or name into target.particles; merges the given settings
+    // particle.set: object as above; `system` index (default 0) or name into target.particles; merges the given settings
     // into that system's current ones; a change of kind/seed/count/emitFrom/distribution/segments/densityGroup drops the groom.
     // was: {$Cube */*}
-    r("particles.set", r##"{"object": "$Cube", "system": 0, "size": 0.1}"##, "", &[("$Cube", "particles.0", "-")]),
+    r("particle.set", r##"{"object": "$Cube", "system": 0, "size": 0.1}"##, "", &[("$Cube", "particles.0", "-")]),
     // was: {$Cube */*}
-    r("particles.set", r##"{"object": "$Cube", "system": 0, "count": 10}"##, "", &[("$Cube", "hair,particles.0", "-")]),
+    r("particle.set", r##"{"object": "$Cube", "system": 0, "count": 10}"##, "", &[("$Cube", "hair,particles.0", "-")]),
     // was: {}
-    r("particles.set", r##"{"size": 0.1}"##, "selection", &[("$Cube", "particles.0", "-")]),
+    r("particle.set", r##"{"size": 0.1}"##, "selection", &[("$Cube", "particles.0", "-")]),
     // was: {$Cube */*}
-    r("particles.set", r##"{"object": "Cube", "size": 0.1}"##, "", &[("$Cube", "name,particles.0", "-")]),
+    r("particle.set", r##"{"object": "Cube", "size": 0.1}"##, "", &[("$Cube", "name,particles.0", "-")]),
     // was: {$Cube */*}
-    r("particles.set", r##"{"object": "$Cube", "system": "ParticleSystem", "size": 0.1}"##, "", &[("$Cube", "particles", "-")]),
+    r("particle.set", r##"{"object": "$Cube", "system": "ParticleSystem", "size": 0.1}"##, "", &[("$Cube", "particles", "-")]),
     // was: {$Ball */*, $Cube */*}
-    r("particles.set", r##"{"object": "$Cube", "colliders": ["$Ball"]}"##, "", &[("$Cube", "particles.0", "-"), ("$Ball", "-", "-")]),
-    // particles.remove: object as above; removes system <i> (and its groom); later indexes shift.
+    r("particle.set", r##"{"object": "$Cube", "colliders": ["$Ball"]}"##, "", &[("$Cube", "particles.0", "-"), ("$Ball", "-", "-")]),
+    // particle.remove: object as above; removes system <i> (and its groom); later indexes shift.
     // was: {$Cube */*}
-    r("particles.remove", r##"{"object": "$Cube", "system": 0}"##, "", &[("$Cube", "particles.0", "-")]),
+    r("particle.remove", r##"{"object": "$Cube", "system": 0}"##, "", &[("$Cube", "particles.0", "-")]),
     // was: {}
     // corrected by C8-scene-engine: removing a system moves Particle Edit's index past it (or ends it), so it reads the mode (bindings/wasm/src/commands_particles.rs:641)
-    r("particles.remove", r##"{}"##, "mode,selection", &[("$Cube", "particles.0", "-")]),
+    r("particle.remove", r##"{}"##, "mode,selection", &[("$Cube", "particles.0", "-")]),
     // was: {$Cube */*}
-    r("particles.remove", r##"{"object": "Cube"}"##, "", &[("$Cube", "name,particles.0", "-")]),
+    r("particle.remove", r##"{"object": "Cube"}"##, "", &[("$Cube", "name,particles.0", "-")]),
     // was: {$Cube */*}
-    r("particles.remove", r##"{"object": "$Cube", "system": "ParticleSystem"}"##, "", &[("$Cube", "particles", "-")]),
-    // particles.convert: bakes system <i> at the CURRENT frame into a new world-space mesh object: the emitter's evaluated mesh
+    r("particle.remove", r##"{"object": "$Cube", "system": "ParticleSystem"}"##, "", &[("$Cube", "particles", "-")]),
+    // particle.convert: bakes system <i> at the CURRENT frame into a new world-space mesh object: the emitter's evaluated mesh
     // (modifiers), world transform, hidden flag, material, the system and its groom, the emitter's name (new object's name);
     // every other non-hidden object with collision physics or a force field acts on emitter particles.
     // was: {$Cube */*}
     r(
-        "particles.convert",
+        "particle.convert",
         r##"{"object": "$Cube", "system": 0}"##,
         "time",
         &[
@@ -2132,7 +2147,7 @@ const ROWS: &[Row] = &[
     ),
     // was: {}
     r(
-        "particles.convert",
+        "particle.convert",
         r##"{}"##,
         "selection,time",
         &[
@@ -2150,7 +2165,7 @@ const ROWS: &[Row] = &[
     ),
     // was: {$Cube */*}
     r(
-        "particles.convert",
+        "particle.convert",
         r##"{"object": "Cube"}"##,
         "time",
         &[
@@ -2172,13 +2187,13 @@ const ROWS: &[Row] = &[
     r("particleEdit.stroke", r##"{"points": [[100, 100], [120, 100]]}"##, "mode", &[]),
     // particleEdit.reset: Particle Edit only; clears the session system's groom (session emitter: hair). Not set up here. (C8-scene-engine 4c: the session rows run on its fixture: [`FIXTURES`].)
     r("particleEdit.reset", r##"{}"##, "mode", &[]),
-    // add.curveBezier / add.curveCircle / add.curvePath / add.text / add.lattice: no object params; location defaults to the
+    // object.addCurveBezier / object.addCurveCircle / object.addCurvePath / object.addText / object.addLattice: no object params; location defaults to the
     // world origin; the new object is appended and its name only made unique.
-    r("add.curveBezier", r##"{"radius": 1, "location": [1, 0, 0]}"##, "", &[]),
-    r("add.curveCircle", r##"{"radius": 1}"##, "", &[]),
-    r("add.curvePath", r##"{"radius": 1}"##, "", &[]),
-    r("add.text", r##"{"body": "Hi", "size": 1}"##, "", &[]),
-    r("add.lattice", r##"{"resolution": 3}"##, "", &[]),
+    r("object.addCurveBezier", r##"{"radius": 1, "location": [1, 0, 0]}"##, "", &[]),
+    r("object.addCurveCircle", r##"{"radius": 1}"##, "", &[]),
+    r("object.addCurvePath", r##"{"radius": 1}"##, "", &[]),
+    r("object.addText", r##"{"body": "Hi", "size": 1}"##, "", &[]),
+    r("object.addLattice", r##"{"resolution": 3}"##, "", &[]),
     // curve.set: `object` id-or-name, else the edited curve, else the active curve; merges settings into the curve's data
     // (resolution goes to every spline, cyclic to every spline).
     // was: {$Path */*}
@@ -2333,80 +2348,80 @@ const ROWS: &[Row] = &[
     r("world.setImage", r##"{"clear": true}"##, "", &[("scene", "world", "-")]),
     // was: {}
     r("world.setImage", r##"{"rotation": 90, "strength": 2}"##, "", &[("scene", "world", "-")]),
-    // nodes.newGroup: appends a group; geometry: may add a Geometry Nodes modifier to `object` (id-or-name) or set modifiers.<modifier>; shader: sets the material's (id-or-name) shader or world.volume
-    r("nodes.newGroup", r##"{"name": "H"}"##, "", &[]),
+    // node.newGroup: appends a group; geometry: may add a Geometry Nodes modifier to `object` (id-or-name) or set modifiers.<modifier>; shader: sets the material's (id-or-name) shader or world.volume
+    r("node.newGroup", r##"{"name": "H"}"##, "", &[]),
     // was: {$Cube */*}
-    r("nodes.newGroup", r##"{"name": "H", "object": "$Cube"}"##, "", &[("$Cube", "-", "-")]),
+    r("node.newGroup", r##"{"name": "H", "object": "$Cube"}"##, "", &[("$Cube", "-", "-")]),
     // was: {$Cube */*}
-    r("nodes.newGroup", r##"{"name": "H", "object": "Cube"}"##, "", &[("$Cube", "name", "-")]),
+    r("node.newGroup", r##"{"name": "H", "object": "Cube"}"##, "", &[("$Cube", "name", "-")]),
     // was: {$Cube */*}
-    r("nodes.newGroup", r##"{"name": "H", "object": "$Cube", "modifier": 0}"##, "", &[("$Cube", "modifiers.0", "-")]),
+    r("node.newGroup", r##"{"name": "H", "object": "$Cube", "modifier": 0}"##, "", &[("$Cube", "modifiers.0", "-")]),
     // was: {$Mat */*}
-    r("nodes.newGroup", r##"{"tree": "shader", "material": "$Mat"}"##, "", &[("$Mat", "data", "-")]),
+    r("node.newGroup", r##"{"tree": "shader", "material": "$Mat"}"##, "", &[("$Mat", "data", "-")]),
     // was: {$Mat */*}
-    r("nodes.newGroup", r##"{"tree": "shader", "material": "Mat"}"##, "", &[("$Mat", "data,name", "-")]),
+    r("node.newGroup", r##"{"tree": "shader", "material": "Mat"}"##, "", &[("$Mat", "data,name", "-")]),
     // was: {}
-    r("nodes.newGroup", r##"{"tree": "shader", "world": true}"##, "", &[("scene", "world", "-")]),
+    r("node.newGroup", r##"{"tree": "shader", "world": true}"##, "", &[("scene", "world", "-")]),
     // nodes.* below: group = id, or a name among all groups, or the only group when absent (the fixture has two groups, so the absent path only refuses: no row).
-    // nodes.removeGroup: removes the group; the references to it (Group nodes, render.compositor, materials, world, modifiers) are cleared as they are at write time
+    // node.removeGroup: removes the group; the references to it (Group nodes, render.compositor, materials, world, modifiers) are cleared as they are at write time
     // was: {$G */*}
-    r("nodes.removeGroup", r##"{"group": "$G"}"##, "", &[("$G", "-", "-")]),
+    r("node.removeGroup", r##"{"group": "$G"}"##, "", &[("$G", "-", "-")]),
     // was: {$G */*}
-    r("nodes.removeGroup", r##"{"group": "G"}"##, "", &[("$G", "name", "-")]),
-    // nodes.renameGroup: replaces the name
+    r("node.removeGroup", r##"{"group": "G"}"##, "", &[("$G", "name", "-")]),
+    // node.renameGroup: replaces the name
     // was: {$G */*}
-    r("nodes.renameGroup", r##"{"group": "$G", "name": "H"}"##, "", &[("$G", "name", "-")]),
+    r("node.renameGroup", r##"{"group": "$G", "name": "H"}"##, "", &[("$G", "name", "-")]),
     // was: {$G */*}
-    r("nodes.renameGroup", r##"{"group": "G", "name": "H"}"##, "", &[("$G", "name", "-")]),
-    // nodes.addNode: appends a node of `kind`; the values are checked against the kind (tree and count checks only refuse)
+    r("node.renameGroup", r##"{"group": "G", "name": "H"}"##, "", &[("$G", "name", "-")]),
+    // node.addNode: appends a node of `kind`; the values are checked against the kind (tree and count checks only refuse)
     // was: {$G */*}
-    r("nodes.addNode", r##"{"group": "$G", "kind": "setPosition", "location": [0, 0]}"##, "", &[("$G", "-", "-")]),
+    r("node.addNode", r##"{"group": "$G", "kind": "setPosition", "location": [0, 0]}"##, "", &[("$G", "-", "-")]),
     // was: {$G */*}
-    r("nodes.addNode", r##"{"group": "G", "kind": "setPosition"}"##, "", &[("$G", "name", "-")]),
-    // nodes.removeNodes: removes the nodes by id (and their zone partners) and their links
+    r("node.addNode", r##"{"group": "G", "kind": "setPosition"}"##, "", &[("$G", "name", "-")]),
+    // node.removeNodes: removes the nodes by id (and their zone partners) and their links
     // was: {$G */*, $GOut */*}
-    r("nodes.removeNodes", r##"{"group": "$G", "nodes": ["$GOut"]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
-    // nodes.moveNodes: offset moves from each node's location; location replaces it
+    r("node.removeNodes", r##"{"group": "$G", "nodes": ["$GOut"]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    // node.moveNodes: offset moves from each node's location; location replaces it
     // was: {$G */*, $GOut */*}
-    r("nodes.moveNodes", r##"{"group": "$G", "nodes": ["$GOut"], "offset": [10, 0]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    r("node.moveNodes", r##"{"group": "$G", "nodes": ["$GOut"], "offset": [10, 0]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
     // was: {$G */*, $GOut */*}
-    r("nodes.moveNodes", r##"{"group": "$G", "nodes": ["$GOut"], "location": [10, 0]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
-    // nodes.setValue: sets one value of a node, checked against its kind (and the group interface for dynamic sockets)
+    r("node.moveNodes", r##"{"group": "$G", "nodes": ["$GOut"], "location": [10, 0]}"##, "", &[("$G", "-", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    // node.setValue: sets one value of a node, checked against its kind (and the group interface for dynamic sockets)
     // was: {$G */*, $GOut */*}
     r(
-        "nodes.setValue",
+        "node.setValue",
         r##"{"group": "$G", "node": "$GOut", "id": "Offset", "value": [0, 0, 1]}"##,
         "",
         &[("$G", "inputs", "-"), ("$GOut", "*", "-")],
     ), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
-    // nodes.link: socket types from the nodes (and the group interface), a cycle check on the links, and a single input's old link replaced
+    // node.link: socket types from the nodes (and the group interface), a cycle check on the links, and a single input's old link replaced
     // was: {$G */*, $GIn */*, $GOut */*}
     r(
-        "nodes.link",
+        "node.link",
         r##"{"group": "$G", "from": "$GIn", "fromSocket": "Geometry", "to": "$GOut", "toSocket": "Geometry"}"##,
         "",
         &[("$G", "inputs,links,outputs", "-"), ("$GOut", "*", "-"), ("$GIn", "*", "-")],
     ), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
-    // nodes.unlink: removes the matching links
+    // node.unlink: removes the matching links
     // was: {$G */*, $GOut */*}
-    r("nodes.unlink", r##"{"group": "$G", "to": "$GOut", "toSocket": "Geometry"}"##, "", &[("$G", "links", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
-    // nodes.addInput / addOutput: append an interface socket (the duplicate check only refuses); the default is stored as given
+    r("node.unlink", r##"{"group": "$G", "to": "$GOut", "toSocket": "Geometry"}"##, "", &[("$G", "links", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    // node.addInput / addOutput: append an interface socket (the duplicate check only refuses); the default is stored as given
     // was: {$G */*}
-    r("nodes.addInput", r##"{"group": "$G", "name": "Size", "type": "float", "default": 1}"##, "", &[("$G", "-", "-")]),
+    r("node.addInput", r##"{"group": "$G", "name": "Size", "type": "float", "default": 1}"##, "", &[("$G", "-", "-")]),
     // was: {$Ball */*, $G */*}
-    r("nodes.addInput", r##"{"group": "$G", "name": "Target", "type": "object", "default": "$Ball"}"##, "", &[("$G", "-", "-"), ("$Ball", "-", "-")]),
+    r("node.addInput", r##"{"group": "$G", "name": "Target", "type": "object", "default": "$Ball"}"##, "", &[("$G", "-", "-"), ("$Ball", "-", "-")]),
     // was: {$G */*}
-    r("nodes.addOutput", r##"{"group": "$G", "name": "Mask", "type": "float"}"##, "", &[("$G", "-", "-")]),
-    // nodes.removeInput / removeOutput: remove the socket by name; the links that no longer fit go (as they are at write time)
+    r("node.addOutput", r##"{"group": "$G", "name": "Mask", "type": "float"}"##, "", &[("$G", "-", "-")]),
+    // node.removeInput / removeOutput: remove the socket by name; the links that no longer fit go (as they are at write time)
     // was: {$G */*}
-    r("nodes.removeInput", r##"{"group": "$G", "name": "Size"}"##, "", &[("$G", "inputs", "-")]),
+    r("node.removeInput", r##"{"group": "$G", "name": "Size"}"##, "", &[("$G", "inputs", "-")]),
     // was: {$G */*}
-    r("nodes.removeOutput", r##"{"group": "$G", "name": "Mask"}"##, "", &[("$G", "outputs", "-")]),
-    // nodes.addZoneItem / removeZoneItem: the zone's output node (from either zone node) gets or loses an item
+    r("node.removeOutput", r##"{"group": "$G", "name": "Mask"}"##, "", &[("$G", "outputs", "-")]),
+    // node.addZoneItem / removeZoneItem: the zone's output node (from either zone node) gets or loses an item
     // was: {$G */*, $GOut */*}
-    r("nodes.addZoneItem", r##"{"group": "$G", "node": "$GOut", "name": "V", "type": "float"}"##, "", &[("$G", "nodes", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    r("node.addZoneItem", r##"{"group": "$G", "node": "$GOut", "name": "V", "type": "float"}"##, "", &[("$G", "nodes", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
     // was: {$G */*, $GOut */*}
-    r("nodes.removeZoneItem", r##"{"group": "$G", "node": "$GOut", "name": "V"}"##, "", &[("$G", "nodes", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
+    r("node.removeZoneItem", r##"{"group": "$G", "node": "$GOut", "name": "V"}"##, "", &[("$G", "nodes", "-"), ("$GOut", "*", "-")]), // node roles put in after review (the reading used a placeholder id and held the group's `nodes` for it): the node named by id
     // compositor.new: appends a compositing group; with use (default), sets render.compositor and compositing
     // was: {}
     r("compositor.new", r##"{}"##, "", &[("scene", "render", "-")]),

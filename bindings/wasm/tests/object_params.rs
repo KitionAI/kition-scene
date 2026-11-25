@@ -28,7 +28,7 @@ const NOT_IDS: [(&str, &str); 6] = [
 
 /// Also not ids, by command: an index into a list the object holds.
 const INDEXES: [(&str, &str, &str); 3] = [
-    ("nodes.newGroup", "modifier", "the Geometry Nodes modifier's index in the object's stack"),
+    ("node.newGroup", "modifier", "the Geometry Nodes modifier's index in the object's stack"),
     ("nla.makeMeta", "first", "a strip's index in its NLA track"),
     ("nla.makeMeta", "last", "a strip's index in its NLA track"),
 ];
@@ -47,10 +47,10 @@ const CONDITIONAL_OBJECTS: [(&str, &str); 6] = [
 // commands_particles::system_of resolves these inside an Object's JSON particles array,
 // not among model records. Their integer form is a local index, not a tool id.
 const LOCAL_NAMES: [(&str, &str); 5] = [
-    ("particles.set", "system"),
-    ("particles.remove", "system"),
-    ("particles.convert", "system"),
-    ("particles.stats", "system"),
+    ("particle.set", "system"),
+    ("particle.remove", "system"),
+    ("particle.convert", "system"),
+    ("particle.stats", "system"),
     ("mode.particleEdit", "system"),
 ];
 
@@ -166,11 +166,11 @@ fn nested_object_members_are_marked_at_the_member() {
     let commands = doc.commands();
     for (id, path) in [
         ("mesh.extrude", "elements.object"),
-        ("particles.set", "boids.rules[].target"),
+        ("particle.set", "boids.rules[].target"),
         ("constraint.add", "targets[].object"),
-        ("nodes.link", "from"),
-        ("nodes.link", "to"),
-        ("nodes.link", "group"),
+        ("node.link", "from"),
+        ("node.link", "to"),
+        ("node.link", "group"),
     ] {
         let command = commands.iter().find(|command| command.id == id).unwrap_or_else(|| panic!("no {id}"));
         assert!(command.objects.contains(&path), "{id} misses {path}: {:?}", command.objects);

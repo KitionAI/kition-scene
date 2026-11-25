@@ -87,7 +87,7 @@ fn moving_turning_and_scaling_coordinates() {
 fn the_knife_cuts_across_the_top() {
     let mut doc = editing_cube();
     run(&mut doc, "view.top", json!({}));
-    run(&mut doc, "select.all", json!({ "action": "deselect" }));
+    run(&mut doc, "edit.selectAll", json!({ "action": "deselect" }));
     let cut = run(&mut doc, "mesh.knife", json!({ "points": [[-2, 0, 1], [2, 0, 1]] }));
     assert_eq!(cut["vertices"].as_array().unwrap().len(), 2);
     let after = mesh(&doc);
@@ -122,7 +122,7 @@ fn the_knife_and_slide_tools() {
     let mut doc = editing_cube();
     run(&mut doc, "view.resize", json!({ "width": 400, "height": 300 }));
     run(&mut doc, "view.top", json!({}));
-    run(&mut doc, "select.all", json!({ "action": "deselect" }));
+    run(&mut doc, "edit.selectAll", json!({ "action": "deselect" }));
     assert!(doc.tools().iter().any(|tool| tool.id == "knife"));
     doc.select_tool("knife", 1.0).unwrap();
     // Across the whole view through its middle: the top face's two side edges.

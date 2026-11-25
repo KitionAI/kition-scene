@@ -64,7 +64,7 @@ try {
   await until(async () => Number(await progress.getAttribute('data-generation')) > generation && Number(await progress.getAttribute('data-samples')) >= 1, 'an edit kept old samples')
   await run('edit.undo')
   await run('view.front')
-  await run('select.none')
+  await run('edit.deselectAll')
   const selection = await kit.getByTestId('scene-viewport').boundingBox()
   await page.mouse.click(selection.x + selection.width / 2, selection.y + selection.height / 2)
   await until(async () => (await inspect()).selection.objects.length === 1, 'rendered viewport did not pick the cube')

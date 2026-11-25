@@ -50,7 +50,7 @@ solution:
       steps:
         - { command: material.new, params: { name: Blue, baseColor: [0, 0, 1], assign: false } }
         - { command: material.assign, on: [Cube, Left, Right], params: { material: Blue } }
-        - { command: anim.insertKey, at: { time: 2 }, params: { objects: Right, properties: [location] } }
+        - { command: animation.insertKey, at: { time: 2 }, params: { objects: Right, properties: [location] } }
         - { command: mesh.extrude, params: { elements: { object: Left, faces: [0] }, distance: 0.5 } }
 since: "2026-11-17"
 timeout_s: 600

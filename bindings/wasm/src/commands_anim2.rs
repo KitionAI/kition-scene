@@ -7,7 +7,7 @@
 //!
 //! Keying sets name what Insert Keyframe keys: the built-in ones (location, rotation, scale, and
 //! their mixes, every property already keyed, a whole character) or the scene's own, which list
-//! properties of named objects and bones. The active one is what `anim.insertKey` and
+//! properties of named objects and bones. The active one is what `animation.insertKey` and
 //! `pose.insertKey` key when they are given no properties.
 //!
 //! Actions are named sets of keys no object owns: `action.new` stashes an object's keys in one,
@@ -711,7 +711,7 @@ fn clear_action(kind: &ConstraintKind) -> ConstraintKind {
     kind
 }
 
-/// The keying set `anim.insertKey` or `pose.insertKey` uses: the one named, or with no
+/// The keying set `animation.insertKey` or `pose.insertKey` uses: the one named, or with no
 /// properties given the active one.
 pub fn keying_set_for(doc: &SceneDocument, params: &Value) -> Result<Option<KeyingSetRef>, String> {
     if let Some(name) = params::string(params, "keyingSet")? {

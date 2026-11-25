@@ -23,9 +23,9 @@ try {
   const kit = page.frameLocator('#kit')
   const open = async id => { const section = kit.getByTestId(id); await section.waitFor(); if ((await section.getAttribute('data-open')) !== 'true') await section.locator('.kui-panel-section-toggle').first().click() }
   const number = async (system, key, value, check) => { const input = kit.getByTestId(`scene-${system}-weight-${key}`).locator('input'); await input.fill(String(value)); await input.press('Enter'); await until(check) }
-  await run('select.all')
+  await run('edit.selectAll')
   await run('edit.delete')
-  await run('add.plane', { name: 'Cloth', size: 1 })
+  await run('object.addPlane', { name: 'Cloth', size: 1 })
   await open('scene-physics')
   await kit.getByTestId('scene-physics-add-cloth').click()
   await until(async () => Boolean(await weights('Cloth', 'cloth')))
@@ -37,7 +37,7 @@ try {
   await until(async () => (await weights('Cloth', 'cloth')).gravity === 1)
   await kit.getByTestId('scene-redo').click()
   await until(async () => (await weights('Cloth', 'cloth')).gravity === 0)
-  await run('add.plane', { name: 'Soft', size: 1, location: [3, 0, 0] })
+  await run('object.addPlane', { name: 'Soft', size: 1, location: [3, 0, 0] })
   await open('scene-physics')
   await kit.getByTestId('scene-physics-add-soft').click()
   await until(async () => Boolean(await weights('Soft', 'softBody')))

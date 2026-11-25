@@ -159,14 +159,16 @@ const CURVE: &[&str] = &["Curve"];
 const TEXT: &[&str] = &["Text"];
 
 static SPECS: &[Spec] = &[
-    spec("add.curveBezier", "Bezier", ADD_CURVE, None, true, Needs::ObjectMode, || {
+    spec("object.addCurveBezier", "Bezier", ADD_CURVE, None, true, Needs::ObjectMode, || {
         placement(vec![("radius", s::number("Size: the curve spans twice this (1)"))])
     }),
-    spec("add.curveCircle", "Circle", ADD_CURVE, None, true, Needs::ObjectMode, || placement(vec![("radius", s::number("Radius in metres (1)"))])),
-    spec("add.curvePath", "Path", ADD_CURVE, None, true, Needs::ObjectMode, || {
+    spec("object.addCurveCircle", "Circle", ADD_CURVE, None, true, Needs::ObjectMode, || {
+        placement(vec![("radius", s::number("Radius in metres (1)"))])
+    }),
+    spec("object.addCurvePath", "Path", ADD_CURVE, None, true, Needs::ObjectMode, || {
         placement(vec![("radius", s::number("Size: the path spans four times this (1)"))])
     }),
-    spec("add.text", "Text", &["Add"], None, true, Needs::ObjectMode, || {
+    spec("object.addText", "Text", &["Add"], None, true, Needs::ObjectMode, || {
         placement(vec![("body", s::string("The text (\"Text\")")), ("size", s::number("The text's size (1)"))])
     }),
     spec("mode.shape", "Toggle Edit Mode", &["Curve"], Some("Tab"), false, Needs::Shape, none),
@@ -221,7 +223,7 @@ static SPECS: &[Spec] = &[
 ];
 
 /// Commands the edit modes take over from object mode.
-const TAKEN_OVER: &[&str] = &["select.all", "select.none", "edit.delete"];
+const TAKEN_OVER: &[&str] = &["edit.selectAll", "edit.deselectAll", "edit.delete"];
 
 fn spec_of(id: &str) -> Option<&'static Spec> {
     SPECS.iter().find(|spec| spec.id == id)
@@ -322,15 +324,17 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
         && TAKEN_OVER.contains(&command)
     {
         return Some(match (session, command) {
-            (ShapeSession::Curve(edit), "select.all") => select_all(doc, &edit, params::string(params, "action").ok().flatten().unwrap_or("select")),
-            (ShapeSession::Curve(edit), "select.none") => select_all(doc, &edit, "deselect"),
+            (ShapeSession::Curve(edit), "edit.selectAll") => {
+                select_all(doc, &edit, params::string(params, "action").ok().flatten().unwrap_or("select"))
+            }
+            (ShapeSession::Curve(edit), "edit.deselectAll") => select_all(doc, &edit, "deselect"),
             (ShapeSession::Curve(_), _) => change(doc, "Delete Points", delete_points),
             (ShapeSession::Text(_), "edit.delete") => change(doc, "Delete Characters", |doc| delete_characters(doc, 1, true)),
             (ShapeSession::Text(_), _) => Ok(json!({ "changed": false })),
-            (ShapeSession::Lattice(_), "select.all") => {
+            (ShapeSession::Lattice(_), "edit.selectAll") => {
                 crate::commands_lattice::select_all(doc, params::string(params, "action").ok().flatten().unwrap_or("select"))
             }
-            (ShapeSession::Lattice(_), "select.none") => crate::commands_lattice::select_all(doc, "deselect"),
+            (ShapeSession::Lattice(_), "edit.deselectAll") => crate::commands_lattice::select_all(doc, "deselect"),
             (ShapeSession::Lattice(_), _) => Ok(json!({ "changed": false })),
         });
     }
@@ -920,10 +924,10 @@ fn apply_text_settings(text: &mut Text, params: &Value) -> Result<(), String> {
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "add.curveBezier" | "add.curveCircle" | "add.curvePath" => {
+        "object.addCurveBezier" | "object.addCurveCircle" | "object.addCurvePath" => {
             let primitive = match command {
-                "add.curveBezier" => CurvePrimitive::Bezier,
-                "add.curveCircle" => CurvePrimitive::Circle,
+                "object.addCurveBezier" => CurvePrimitive::Bezier,
+                "object.addCurveCircle" => CurvePrimitive::Circle,
                 _ => CurvePrimitive::Path,
             };
             let radius = params::number(params, "radius")?.unwrap_or(1.0);
@@ -932,7 +936,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             add(doc, primitive.display_name(), ObjectData::Curve(primitive.build(radius)), params)
         }
-        "add.text" => {
+        "object.addText" => {
             let mut text = Text::default();
             apply_text_settings(&mut text, params)?;
             add(doc, "Text", ObjectData::Text(text), params)

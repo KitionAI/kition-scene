@@ -67,10 +67,9 @@ fn mean(rgba: &[u8]) -> f64 {
 fn with_exposure(doc: &mut SceneDocument, stops: f64) -> (u64, u64) {
     let made = run(doc, "compositor.new", json!({}));
     let group = made["group"].as_u64().unwrap();
-    let exposure =
-        run(doc, "nodes.addNode", json!({ "group": group, "kind": "exposure", "values": { "Exposure": stops } }))["node"].as_u64().unwrap();
-    run(doc, "nodes.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": exposure, "toSocket": "Image" }));
-    run(doc, "nodes.link", json!({ "group": group, "from": exposure, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
+    let exposure = run(doc, "node.addNode", json!({ "group": group, "kind": "exposure", "values": { "Exposure": stops } }))["node"].as_u64().unwrap();
+    run(doc, "node.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": exposure, "toSocket": "Image" }));
+    run(doc, "node.link", json!({ "group": group, "from": exposure, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
     (group, exposure)
 }
 
@@ -105,24 +104,24 @@ fn a_pass_through_group_changes_nothing_but_light_past_white() {
 fn compositing_and_geometry_groups_keep_to_their_own_nodes() {
     let mut doc = starter();
     let group = run(&mut doc, "compositor.new", json!({}))["group"].clone();
-    assert!(doc.execute("nodes.addNode", json!({ "group": group, "kind": "meshCube" })).is_err());
-    assert!(doc.execute("nodes.addInput", json!({ "group": group, "name": "Size", "type": "float" })).is_err());
-    let geometry = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube" }))["group"].clone();
-    assert!(doc.execute("nodes.addNode", json!({ "group": geometry, "kind": "glare" })).is_err());
+    assert!(doc.execute("node.addNode", json!({ "group": group, "kind": "meshCube" })).is_err());
+    assert!(doc.execute("node.addInput", json!({ "group": group, "name": "Size", "type": "float" })).is_err());
+    let geometry = run(&mut doc, "node.newGroup", json!({ "object": "Cube" }))["group"].clone();
+    assert!(doc.execute("node.addNode", json!({ "group": geometry, "kind": "glare" })).is_err());
     // A Geometry Nodes modifier cannot run a compositing group, nor renders a geometry group.
     assert!(doc.execute("modifier.set", json!({ "object": "Cube", "index": 0, "group": group })).is_err());
     assert!(doc.execute("compositor.set", json!({ "group": geometry })).is_err());
-    let described = run(&mut doc, "nodes.describe", json!({ "tree": "compositor" }));
+    let described = run(&mut doc, "node.describe", json!({ "tree": "compositor" }));
     let kinds: Vec<&str> = described["kinds"].as_array().unwrap().iter().map(|kind| kind["id"].as_str().unwrap()).collect();
     assert!(kinds.contains(&"glare") && kinds.contains(&"value") && !kinds.contains(&"meshCube"), "{kinds:?}");
     // A colour takes three or four channels, none below zero; curves take sorted points.
-    let rgb = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "rgb" }))["node"].clone();
-    run(&mut doc, "nodes.setValue", json!({ "group": group, "node": rgb, "id": "Color", "value": [1, 0.5, 0] }));
-    assert!(doc.execute("nodes.setValue", json!({ "group": group, "node": rgb, "id": "Color", "value": [-1, 0, 0] })).is_err());
-    let curves = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "rgbCurves" }))["node"].clone();
-    run(&mut doc, "nodes.setValue", json!({ "group": group, "node": curves, "id": "curves", "value": { "c": [[1, 1], [0, 0], [0.4, 0.6]] } }));
-    assert!(doc.execute("nodes.setValue", json!({ "group": group, "node": curves, "id": "curves", "value": { "c": [[0, 0]] } })).is_err());
-    assert!(doc.execute("nodes.link", json!({ "group": group, "from": rgb, "fromSocket": "Color", "to": curves, "toSocket": "curves" })).is_err());
+    let rgb = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "rgb" }))["node"].clone();
+    run(&mut doc, "node.setValue", json!({ "group": group, "node": rgb, "id": "Color", "value": [1, 0.5, 0] }));
+    assert!(doc.execute("node.setValue", json!({ "group": group, "node": rgb, "id": "Color", "value": [-1, 0, 0] })).is_err());
+    let curves = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "rgbCurves" }))["node"].clone();
+    run(&mut doc, "node.setValue", json!({ "group": group, "node": curves, "id": "curves", "value": { "c": [[1, 1], [0, 0], [0.4, 0.6]] } }));
+    assert!(doc.execute("node.setValue", json!({ "group": group, "node": curves, "id": "curves", "value": { "c": [[0, 0]] } })).is_err());
+    assert!(doc.execute("node.link", json!({ "group": group, "from": rgb, "fromSocket": "Color", "to": curves, "toSocket": "curves" })).is_err());
     let inspected = doc.inspect().unwrap();
     let group_json = inspected["nodeGroups"].as_array().unwrap().iter().find(|item| item["id"] == group).unwrap();
     assert_eq!(group_json["tree"], "compositor");
@@ -142,7 +141,7 @@ fn compositing_is_saved_undone_and_removed_with_its_group() {
     let saved = inspected["nodeGroups"].as_array().unwrap().iter().find(|item| item["id"] == group).unwrap();
     assert_eq!(saved["tree"], "compositor");
     assert!(saved["nodes"].as_array().unwrap().iter().any(|node| node["id"] == exposure && node["values"]["Exposure"] == -1.0));
-    run(&mut doc, "nodes.removeGroup", json!({ "group": group }));
+    run(&mut doc, "node.removeGroup", json!({ "group": group }));
     assert_eq!(doc.inspect().unwrap()["render"]["compositor"], Value::Null);
     run(&mut doc, "edit.undo", json!({}));
     assert_eq!(doc.inspect().unwrap()["render"]["compositor"], group);
@@ -170,14 +169,14 @@ fn an_image_node_lays_a_picture_over_the_render_and_keeps_it_in_the_file() {
     let mut doc = starter();
     let made = run(&mut doc, "compositor.new", json!({}));
     let group = made["group"].clone();
-    let image = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "image" }))["node"].clone();
+    let image = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "image" }))["node"].clone();
     let set = run(&mut doc, "compositor.setImage", json!({ "node": image, "base64": base64(&red_and_clear()), "name": "Logo.png" }));
     let hash = set["image"].as_str().unwrap().to_owned();
-    assert!(doc.execute("nodes.setValue", json!({ "group": group, "node": image, "id": "Image", "value": "f00d" })).is_err());
-    let over = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "alphaOver" }))["node"].clone();
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": over, "toSocket": "Background" }));
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": image, "fromSocket": "Image", "to": over, "toSocket": "Foreground" }));
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": over, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
+    assert!(doc.execute("node.setValue", json!({ "group": group, "node": image, "id": "Image", "value": "f00d" })).is_err());
+    let over = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "alphaOver" }))["node"].clone();
+    run(&mut doc, "node.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": over, "toSocket": "Background" }));
+    run(&mut doc, "node.link", json!({ "group": group, "from": image, "fromSocket": "Image", "to": over, "toSocket": "Foreground" }));
+    run(&mut doc, "node.link", json!({ "group": group, "from": over, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
     let (width, height, rgba) = render(&mut doc);
     // The picture sits at the middle at its own size: its red pixel left of the centre.
     let at = |x: u32, y: u32| &rgba[((y * width + x) * 4) as usize..((y * width + x) * 4 + 4) as usize];
@@ -193,14 +192,14 @@ fn a_preview_is_small_and_can_show_the_viewer() {
     let mut doc = starter();
     run(&mut doc, "render.set", json!({ "width": 1920, "height": 1080 }));
     let made = run(&mut doc, "compositor.new", json!({}));
-    let viewer = run(&mut doc, "nodes.addNode", json!({ "group": made["group"], "kind": "viewer" }))["node"].clone();
-    let invert = run(&mut doc, "nodes.addNode", json!({ "group": made["group"], "kind": "invert" }))["node"].clone();
+    let viewer = run(&mut doc, "node.addNode", json!({ "group": made["group"], "kind": "viewer" }))["node"].clone();
+    let invert = run(&mut doc, "node.addNode", json!({ "group": made["group"], "kind": "invert" }))["node"].clone();
     run(
         &mut doc,
-        "nodes.link",
+        "node.link",
         json!({ "group": made["group"], "from": made["renderLayers"], "fromSocket": "Image", "to": invert, "toSocket": "Color" }),
     );
-    run(&mut doc, "nodes.link", json!({ "group": made["group"], "from": invert, "fromSocket": "Color", "to": viewer, "toSocket": "Image" }));
+    run(&mut doc, "node.link", json!({ "group": made["group"], "from": invert, "fromSocket": "Color", "to": viewer, "toSocket": "Image" }));
     let output = run(&mut doc, "compositor.preview", json!({ "size": 64 }));
     assert_eq!((output["width"].as_u64(), output["height"].as_u64()), (Some(64), Some(36)));
     let shown = run(&mut doc, "compositor.preview", json!({ "size": 64, "viewer": true }));
@@ -227,9 +226,9 @@ fn a_cryptomatte_node_picks_a_matte_from_the_render() {
     let mut doc = starter();
     let made = run(&mut doc, "compositor.new", json!({}));
     let group = made["group"].clone();
-    let crypto = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "cryptomatte" }))["node"].clone();
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": crypto, "toSocket": "Image" }));
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": crypto, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
+    let crypto = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "cryptomatte" }))["node"].clone();
+    run(&mut doc, "node.link", json!({ "group": group, "from": made["renderLayers"], "fromSocket": "Image", "to": crypto, "toSocket": "Image" }));
+    run(&mut doc, "node.link", json!({ "group": group, "from": crypto, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }));
     let picked = run(&mut doc, "compositor.pickMatte", json!({ "node": crypto, "x": 0.5, "y": 0.5 }));
     assert_eq!(picked["name"], "Cube");
     assert_eq!(picked["matte"], "Cube");
@@ -255,7 +254,7 @@ fn a_path_traced_render_gives_its_light_passes() {
     let made = run(&mut doc, "compositor.new", json!({}));
     run(
         &mut doc,
-        "nodes.link",
+        "node.link",
         json!({ "group": made["group"], "from": made["renderLayers"], "fromSocket": "Diffuse Color", "to": made["output"], "toSocket": "Image" }),
     );
     let answer = run(&mut doc, "render.trace.start", json!({ "samples": 2, "wait": true }));

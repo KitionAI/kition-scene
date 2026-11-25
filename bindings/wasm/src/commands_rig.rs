@@ -106,7 +106,7 @@ const GROUPS: &[&str] = &["Object", "Vertex Groups"];
 const SHAPES: &[&str] = &["Object", "Shape Keys"];
 
 static SPECS: &[Spec] = &[
-    spec("add.armature", "Armature", &["Add"], None, true, Needs::ObjectMode, || {
+    spec("object.addArmature", "Armature", &["Add"], None, true, Needs::ObjectMode, || {
         s::of(vec![("location", s::vec3("Where to put it, in metres")), ("name", s::string("The object's name"))])
     }),
     spec("mode.armature", "Toggle Edit Mode", &["Armature"], Some("Tab"), false, Needs::Armature, || {
@@ -283,7 +283,7 @@ fn graph_key(mut extra: Vec<(&'static str, Value)>) -> Vec<(&'static str, Value)
 }
 
 /// Object-level commands that act on the bones while an armature is in edit or pose mode.
-const TAKEN_OVER: &[&str] = &["edit.delete", "edit.duplicate", "select.all", "select.none"];
+const TAKEN_OVER: &[&str] = &["edit.delete", "edit.duplicate", "edit.selectAll", "edit.deselectAll"];
 
 fn spec_of(id: &str) -> Option<&'static Spec> {
     SPECS.iter().find(|spec| spec.id == id)
@@ -352,8 +352,8 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
     }
     if doc.session.rig.is_some() && TAKEN_OVER.contains(&command) {
         return Some(match command {
-            "select.all" => select_all(doc, params::string(params, "action").ok().flatten().unwrap_or("select")),
-            "select.none" => select_all(doc, "deselect"),
+            "edit.selectAll" => select_all(doc, params::string(params, "action").ok().flatten().unwrap_or("select")),
+            "edit.deselectAll" => select_all(doc, "deselect"),
             "edit.delete" => change(doc, "Delete Bones", delete_bones),
             _ => change(doc, "Duplicate Bones", duplicate_bones),
         });
@@ -635,7 +635,7 @@ fn mesh_mut(scene: &mut Scene, id: Id) -> Result<&mut kition_scene_model::Mesh, 
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "add.armature" => {
+        "object.addArmature" => {
             let name = params::string(params, "name")?.unwrap_or("Armature");
             let id = doc.scene.add_object(name, ObjectData::Armature(Armature::starter()));
             if let Some(location) = params::vec3(params, "location")? {

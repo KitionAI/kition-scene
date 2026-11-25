@@ -658,7 +658,7 @@ async fn s11_fifty_rounds_of_mixed_editing() {
         // The session selects nothing: a reread that deletes a selected object is refused by name
         // (kition-sdk call-context.md, "Session Continuity On Reread"), and `DeleteOther` may
         // delete the object the setup left selected.
-        doc.execute("select.none", json!({})).unwrap();
+        doc.execute("edit.deselectAll", json!({})).unwrap();
     }
     let bytes = doc.save_file(None).unwrap();
     // Per their change and write: rounds, applied, refused necessary, refused false, applied

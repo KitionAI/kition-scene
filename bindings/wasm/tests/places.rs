@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 
 fn scene() -> (SceneDocument, u64, u64, u64) {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
-    let small = doc.execute("add.cube", json!({ "name": "Small", "size": 0.5, "location": [0.25, 0, 0] })).unwrap();
+    let small = doc.execute("object.addCube", json!({ "name": "Small", "size": 0.5, "location": [0.25, 0, 0] })).unwrap();
     let small = small["object"].as_u64().or_else(|| small["objects"][0].as_u64()).unwrap_or_else(|| panic!("{small}"));
     let ids: std::collections::BTreeMap<String, u64> = doc.inspect().unwrap()["objects"]
         .as_array()
@@ -81,7 +81,7 @@ fn commands_declare_pick_as_their_place_and_position_independence() {
     assert!(commands["mesh.extrude"].places.is_empty());
     assert_eq!(commands["object.rename"].places, ["pick"]);
     assert!(commands["object.rename"].schema.as_ref().unwrap().get("pick").is_some());
-    assert!(commands["add.cube"].places.is_empty());
+    assert!(commands["object.addCube"].places.is_empty());
     for id in ["object.rename", "object.hide", "object.reveal", "material.assign", "material.clear", "light.set", "camera.set"] {
         assert!(commands[id].position_independent, "{id}");
     }
@@ -180,8 +180,9 @@ fn covered_rebuilds_nested_parents_and_visibility_without_editing_the_document()
 fn live_pick_and_covered_replay_agree_on_rotated_mesh_bounds() {
     use kition_kit::CoveredAsk;
     let (mut doc, ..) = scene();
-    let sphere = doc.execute("add.icoSphere", json!({"name":"Rotated","radius":1,"subdivisions":1,"location":[10,0,0],"rotation":[0,0,45]})).unwrap()
-        ["object"]
+    let sphere = doc
+        .execute("object.addIcoSphere", json!({"name":"Rotated","radius":1,"subdivisions":1,"location":[10,0,0],"rotation":[0,0,45]}))
+        .unwrap()["object"]
         .clone();
     let bounds = doc.derived(std::slice::from_ref(&sphere), &["bounds".into()]).unwrap()[0].values["bounds"].clone();
     let asked = CoveredAsk { id: sphere, before: serde_json::from_value(json!({"~bounds":bounds})).unwrap(), ..Default::default() };

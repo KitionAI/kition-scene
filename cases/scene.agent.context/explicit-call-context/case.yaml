@@ -6,7 +6,7 @@ intent: >-
   the editor's selection, active object, mode, edited mesh elements, current frame or viewport:
   set_context makes `on` (object ids or names) the selection and `at.time` (seconds, counted as
   file.render's target.time) the current frame without an edit, and restore_editor_state puts all
-  of it back, dropping what the run deleted; object.parent driven by `on` and anim.insertKey at 2 s
+  of it back, dropping what the run deleted; object.parent driven by `on` and animation.insertKey at 2 s
   change exactly what they name; an agent's command given its objects leaves the selection (a
   person's duplicate still selects the copies); an edit-mode command given `elements` extrudes a
   face in one step from object mode; a run that entered edit mode is put back after a failing

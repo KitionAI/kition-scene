@@ -9,11 +9,11 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 }
 fn setup() -> SceneDocument {
     let mut doc = SceneDocument::create("Weights.kscene", 640, 360).unwrap();
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.delete", json!({}));
-    run(&mut doc, "add.plane", json!({"name":"Cloth","size":1}));
+    run(&mut doc, "object.addPlane", json!({"name":"Cloth","size":1}));
     run(&mut doc, "physics.cloth.add", json!({"airDamping":0}));
-    run(&mut doc, "add.plane", json!({"name":"Soft","size":1,"location":[3,0,0]}));
+    run(&mut doc, "object.addPlane", json!({"name":"Soft","size":1,"location":[3,0,0]}));
     run(&mut doc, "physics.softBody.add", json!({"goal":false,"edges":false,"friction":0}));
     run(&mut doc, "physics.field.new", json!({"name":"Wind","type":"wind","strength":2,"flow":0}));
     run(&mut doc, "physics.world.set", json!({"frameEnd":12}));

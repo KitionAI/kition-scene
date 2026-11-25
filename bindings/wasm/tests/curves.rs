@@ -26,9 +26,9 @@ fn evaluated(doc: &SceneDocument, name: &str) -> (u64, u64) {
 #[test]
 fn curves_are_added_set_and_kept_by_the_file() {
     let mut doc = SceneDocument::create("Curves.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.curveBezier", json!({ "location": [0, 0, 1] }));
-    run(&mut doc, "add.curveCircle", json!({ "radius": 2 }));
-    run(&mut doc, "add.curvePath", json!({}));
+    run(&mut doc, "object.addCurveBezier", json!({ "location": [0, 0, 1] }));
+    run(&mut doc, "object.addCurveCircle", json!({ "radius": 2 }));
+    run(&mut doc, "object.addCurvePath", json!({}));
     assert_eq!(object(&doc, "BezierCurve")["type"], "curve");
     assert_eq!(evaluated(&doc, "BezierCurve"), (13, 0));
     // The reference's bevelled circle: 576 vertices and faces.
@@ -63,10 +63,10 @@ fn curves_are_added_set_and_kept_by_the_file() {
 #[test]
 fn curve_edit_mode_extrudes_subdivides_and_deletes_points() {
     let mut doc = SceneDocument::create("Edit.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.curveBezier", json!({}));
+    run(&mut doc, "object.addCurveBezier", json!({}));
     run(&mut doc, "mode.shape", json!({}));
     assert_eq!(doc.inspect().unwrap()["mode"]["mode"], "curveEdit");
-    assert!(doc.execute("add.cube", json!({})).is_err(), "objects wait for object mode");
+    assert!(doc.execute("object.addCube", json!({})).is_err(), "objects wait for object mode");
     // Extrude the end point: a third point continues the spline.
     run(&mut doc, "curve.select", json!({ "points": [1] }));
     run(&mut doc, "curve.extrude", json!({}));
@@ -77,7 +77,7 @@ fn curve_edit_mode_extrudes_subdivides_and_deletes_points() {
     let moved = object(&doc, "BezierCurve")["curve"]["splines"][0]["points"][2]["co"].clone();
     assert!((moved[1].as_f64().unwrap() - 1.0).abs() < 1e-5, "{moved}");
     // Select all, subdivide both segments, then toggle cyclic.
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "curve.subdivide", json!({}));
     assert_eq!(object(&doc, "BezierCurve")["curve"]["splines"][0]["points"].as_array().unwrap().len(), 5);
     run(&mut doc, "curve.toggleCyclic", json!({}));
@@ -98,7 +98,7 @@ fn curve_edit_mode_extrudes_subdivides_and_deletes_points() {
 fn the_move_tool_drags_a_curve_point_in_one_step() {
     let mut doc = SceneDocument::create("Drag.kscene", 1280, 720).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.curveBezier", json!({}));
+    run(&mut doc, "object.addCurveBezier", json!({}));
     run(&mut doc, "view.resize", json!({ "width": 640, "height": 480 }));
     run(&mut doc, "view.top", json!({}));
     run(&mut doc, "view.frameAll", json!({}));
@@ -126,7 +126,7 @@ fn the_move_tool_drags_a_curve_point_in_one_step() {
 #[test]
 fn texts_are_typed_into_and_converted() {
     let mut doc = SceneDocument::create("Text.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.text", json!({}));
+    run(&mut doc, "object.addText", json!({}));
     assert_eq!(object(&doc, "Text")["text"]["body"], "Text");
     run(&mut doc, "text.set", json!({ "extrude": 0.1, "align": "center" }));
     let (vertices, faces) = evaluated(&doc, "Text");

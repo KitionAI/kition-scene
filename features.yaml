@@ -64,7 +64,7 @@ features:
     dimension: [function, fidelity, conversion, robustness, performance]
     priority: P1
     status: has
-    commands: [nodes.describe, nodes.addNode, nodes.setValue, nodes.link]
+    commands: [node.describe, node.addNode, node.setValue, node.link]
     paths: [crates/engine/nodes/src/**, crates/engine/model/src/node_tree.rs, web/src/NodeEditor.tsx, web/src/NodeEditorStrings.ts]
     target: Blender 5.2.3 LTS
     gap: NURBS to Bezier requires cubic Bezier knots from a prior Bezier or Catmull-Rom conversion and equal positive weights; other NURBS must be resampled to Poly first. NURBS order is limited to 16, weights to 100000000, and new spline coordinates, radius and tilt to magnitude 1000000000000. No custom knot vectors or object-curve type changes.
@@ -97,7 +97,7 @@ features:
     dimension: [function, fidelity, conversion, robustness, performance]
     priority: P1
     status: has
-    commands: [particles.add, particles.set, particles.stats, particles.convert]
+    commands: [particle.add, particle.set, particle.stats, particle.convert]
     paths: [crates/engine/particles/src/boids.rs, crates/engine/particles/src/settings.rs, crates/engine/particles/src/sim.rs, crates/engine/model/src/particles.rs, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/commands_boids.rs, bindings/wasm/src/commands_particles.rs, web/src/Boids.tsx, web/src/Particles.tsx]
     target: Blender 5.2.3 LTS
     gap: Average airborne Goal/Avoid/Separate/Flock only; at-rest births, current target snapshots, bounded neighborhoods and deterministic turns differ from Blender's hidden seed state; no ground, scene forces, collisions, volume emission or cross-system flocking.
@@ -130,7 +130,7 @@ features:
     dimension: [function, performance]
     priority: P0
     status: has
-    commands: [anim.insertKey]
+    commands: [animation.insertKey]
     paths: [crates/kdm/kdm-model/src/write.rs]
     cases: [regressions/issue-anim-insertkey-cost, scene.animation.keyframes/save-reopen]
     since: "2026-11-17"
@@ -190,7 +190,7 @@ features:
     dimension: [ai]
     priority: P0
     status: has
-    commands: [material.assign, anim.insertKey, mesh.extrude, select.objects, mode.set, frame.set]
+    commands: [material.assign, animation.insertKey, mesh.extrude, select.objects, mode.set, frame.set]
     paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/acts.rs, bindings/wasm/src/reads.json, bindings/wasm/src/context.rs, bindings/wasm/src/commands.rs, bindings/headless/src/main.rs, bindings/headless/tests/context.rs, bindings/wasm/tests/context.rs, bindings/wasm/tests/acts.rs]
     requirements: [AX13]
     cases: [scene.agent.context/explicit-call-context, scene.agent.context/reads-declared, scene.agent.context/three-objects-one-run, regressions/issue-inspect-editor-state]
@@ -230,7 +230,7 @@ features:
     dimension: [ai]
     priority: P0
     status: has
-    commands: [object.translate, object.rename, object.hide, material.assign, material.set, modifier.set, constraint.set, vertexGroup.assign, anim.insertKey, light.set, camera.set, object.parent, mesh.extrude]
+    commands: [object.translate, object.rename, object.hide, material.assign, material.set, modifier.set, constraint.set, vertexGroup.assign, animation.insertKey, light.set, camera.set, object.parent, mesh.extrude]
     paths: [bindings/wasm/src/place.rs, bindings/wasm/src/rests.rs, bindings/wasm/src/reads.json, bindings/wasm/src/params.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/commands_anim2.rs, bindings/wasm/src/commands_nodes.rs, crates/kdm/kdm-model/model/schema.json, bindings/headless/tests/premises.rs, bindings/headless/tests/land9.rs, bindings/wasm/tests/object_params.rs, bindings/wasm/tests/saved.rs, bindings/wasm/src/collab.rs, bindings/wasm/src/context.rs, bindings/wasm/tests/reread.rs, agent/guide.md]
     requirements: [AX13]
     cases: [scene.agent.premises/per-call, scene.agent.premises/object-parameters, scene.agent.premises/independent-reading, scene.agent.premises/independent-writes, scene.agent.places/outside-changes, regressions/issue-c8-land-9c, regressions/issue-c8-land-9c-review, regressions/issue-c8-land-11c, regressions/issue-c8-land-12-scene, regressions/issue-c8-scene-pin-reread, regressions/issue-driven-value-sources, regressions/issue-session-object-held]
@@ -300,7 +300,7 @@ features:
     dimension: [function, conversion, data-safety]
     priority: P0
     status: has
-    commands: [add.cube, add.cylinder, add.uvSphere, object.transform, edit.delete]
+    commands: [object.addCube, object.addCylinder, object.addUvSphere, object.transform, edit.delete]
     paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/scene.rs, bindings/wasm/tests/round_trip.rs]
     target: Blender 5.2.3 LTS
     cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-object-info-deleted-object, regressions/issue-outliner-delete-save, regressions/issue-object-kind-surface]
@@ -340,7 +340,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [edit.undo, edit.redo, edit.duplicate, select.all, select.none, select.objects]
+    commands: [edit.undo, edit.redo, edit.duplicate, edit.selectAll, edit.deselectAll, select.objects]
     paths: [bindings/wasm/src/commands_rig.rs, bindings/wasm/examples/bench.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/examples/conformance.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -351,7 +351,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [add.plane, add.circle, add.icoSphere, add.cone, add.torus, add.grid, add.light, add.camera, add.empty, add.armature, add.curveBezier, add.curveCircle, add.curvePath, add.text, add.lattice]
+    commands: [object.addPlane, object.addCircle, object.addIcoSphere, object.addCone, object.addTorus, object.addGrid, object.addLight, object.addCamera, object.addEmpty, object.addArmature, object.addCurveBezier, object.addCurveCircle, object.addCurvePath, object.addText, object.addLattice]
     paths: [bindings/wasm/src/commands_curve.rs, bindings/wasm/src/check.rs, bindings/wasm/examples/bench.rs, bindings/wasm/examples/sculpt_bench.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -490,7 +490,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [anim.deleteKey, anim.clear, anim.setInterpolation, frame.set, frame.next, frame.previous, frame.start, frame.end, anim.nextKey, anim.previousKey, frame.range, driver.add, driver.set, driver.remove, keyingSet.new, keyingSet.remove, keyingSet.addPaths, keyingSet.removePath, keyingSet.setActive, action.new, action.assign, action.remove, action.rename, nla.pushDown, nla.addTrack, nla.removeTrack, nla.setTrack, nla.addStrip, nla.removeStrip, nla.setAction, nla.tweak, nla.tweakExit, graph.moveKey, graph.deleteKey, graph.setInterpolation]
+    commands: [animation.deleteKey, animation.clear, animation.setInterpolation, frame.set, frame.next, frame.previous, frame.start, frame.end, animation.nextKey, animation.previousKey, frame.range, driver.add, driver.set, driver.remove, keyingSet.new, keyingSet.remove, keyingSet.addPaths, keyingSet.removePath, keyingSet.setActive, action.new, action.assign, action.remove, action.rename, nla.pushDown, nla.addTrack, nla.removeTrack, nla.setTrack, nla.addStrip, nla.removeStrip, nla.setAction, nla.tweak, nla.tweakExit, graph.moveKey, graph.deleteKey, graph.setInterpolation]
     paths: [bindings/wasm/src/commands_anim2.rs, bindings/wasm/src/commands_anim.rs, bindings/wasm/src/commands_nla.rs, bindings/wasm/src/commands_rig.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -523,7 +523,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [particles.remove, particleEdit.brush, particleEdit.stroke, particleEdit.reset]
+    commands: [particle.remove, particleEdit.brush, particleEdit.stroke, particleEdit.reset]
     paths: [bindings/wasm/src/commands_particles.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -565,7 +565,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [nodes.newGroup, nodes.removeGroup, nodes.renameGroup, nodes.removeNodes, nodes.moveNodes, nodes.unlink, nodes.addInput, nodes.removeInput, nodes.addOutput, nodes.removeOutput, nodes.addZoneItem, nodes.removeZoneItem]
+    commands: [node.newGroup, node.removeGroup, node.renameGroup, node.removeNodes, node.moveNodes, node.unlink, node.addInput, node.removeInput, node.addOutput, node.removeOutput, node.addZoneItem, node.removeZoneItem]
     paths: [bindings/wasm/src/commands_nodes.rs, bindings/wasm/examples/conformance.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."

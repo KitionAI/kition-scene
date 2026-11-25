@@ -44,10 +44,10 @@ fn saves_and_reopens(mut doc: SceneDocument) -> SceneDocument {
 fn table() -> SceneDocument {
     let mut doc = SceneDocument::create("Table.kscene", 640, 360).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.cube", json!({ "name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04] }));
-    run(&mut doc, "add.cylinder", json!({ "name": "Leg 1", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, 0.5, 0.36] }));
-    run(&mut doc, "add.cylinder", json!({ "name": "Leg 2", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, 0.5, 0.36] }));
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball", "location": [0, 0, 1.2] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Top", "location": [0, 0, 0.75], "scale": [1, 0.6, 0.04] }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Leg 1", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [0.9, 0.5, 0.36] }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Leg 2", "radius": 0.04, "depth": 0.72, "vertices": 16, "location": [-0.9, 0.5, 0.36] }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "location": [0, 0, 1.2] }));
     doc
 }
 
@@ -125,9 +125,9 @@ fn mesh_edits_survive_save_and_reopen() {
 fn keyframed_motion_survives_save_and_reopen() {
     let mut doc = table();
     run(&mut doc, "select.objects", json!({ "objects": "Ball" }));
-    run(&mut doc, "anim.insertKey", json!({ "properties": ["location"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "properties": ["location"], "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "objects": ["Ball"], "location": [0, 0, 2.4] }));
-    run(&mut doc, "anim.insertKey", json!({ "properties": ["location"], "frame": 24 }));
+    run(&mut doc, "animation.insertKey", json!({ "properties": ["location"], "frame": 24 }));
     run(&mut doc, "frame.set", json!({ "frame": 12 }));
     let reopened = saves_and_reopens(doc);
     let scene = described(&reopened);

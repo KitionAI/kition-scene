@@ -50,13 +50,13 @@ fn node_group_lists_own_nodes_and_links_but_references_own_nothing() {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
     let material = doc.execute("material.new", json!({"name":"Shared","assign":false})).unwrap()["material"].as_u64().unwrap() as u32;
     doc.execute("material.assign", json!({"material":material,"objects":["Cube"]})).unwrap();
-    let group = doc.execute("nodes.newGroup", json!({"name":"Owned","object":"Cube"})).unwrap()["group"].clone();
+    let group = doc.execute("node.newGroup", json!({"name":"Owned","object":"Cube"})).unwrap()["group"].clone();
     let mut exchange = Exchange::new();
     let replica = exchange.replica(&mut doc).unwrap();
     let record = replica.objects_of_type("NodeGroup").into_iter().find(|id| replica.get(id, "key").unwrap() == group).unwrap();
     let children: Vec<_> = ["nodes", "links"].into_iter().flat_map(|field| replica.list(&record, field).unwrap()).collect();
     assert!(!children.is_empty());
-    doc.execute("nodes.removeGroup", json!({"group":group})).unwrap();
+    doc.execute("node.removeGroup", json!({"group":group})).unwrap();
     let replica = exchange.replica(&mut doc).unwrap();
     assert!(!replica.exists(&record));
     assert!(children.iter().all(|id| !replica.exists(id)), "the engine deletes both owning lists");

@@ -60,7 +60,7 @@ fn near(actual: Vec3, expected: [f32; 3], what: &str) {
 /// Cube (no parent, at the origin) turned 90 degrees about Z by a Copy Rotation of `Turned`.
 fn turned_by_a_constraint() -> SceneDocument {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Turned", "location": [0, 5, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Turned", "location": [0, 5, 0] }));
     run(&mut doc, "object.transform", json!({ "objects": ["Turned"], "rotation": [0, 0, 90] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyRotation", "target": "Turned" }));
     // The constraint turns it: its X axis points along world Y.
@@ -80,7 +80,7 @@ fn parent_frame_translate_ignores_the_own_constraints() {
 #[test]
 fn parent_frame_translate_turns_through_a_rotated_parent() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Pivot" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Pivot" }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "Pivot" }));
     run(&mut doc, "object.transform", json!({ "objects": ["Pivot"], "rotation": [0, 0, 90] }));
     run(&mut doc, "object.translate", json!({ "objects": ["Cube"], "offset": [1, 0, 0] }));
@@ -113,7 +113,7 @@ fn parent_frame_look_at_ignores_the_own_constraints() {
 #[test]
 fn parent_frame_look_at_keeps_the_location_a_constraint_moves() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Spot", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Spot", "location": [3, 0, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyLocation", "target": "Spot", "offset": true }));
     run(&mut doc, "object.lookAt", json!({ "object": "Cube", "target": [3, -5, 0] }));
     // Aimed from where it is seen ([3, 0, 0]) along -Y; its location field stays [0, 0, 0] (the
@@ -154,8 +154,8 @@ fn parent_frame_camera_move_ignores_the_track_constraint() {
 /// Cube is seen at [6, 0, 0].
 fn under_a_moved_parent() -> SceneDocument {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "P1" }));
-    run(&mut doc, "add.empty", json!({ "name": "P2", "location": [0, 0, 2] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "P1" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "P2", "location": [0, 0, 2] }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0] }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "P1" }));
     run(&mut doc, "object.translate", json!({ "objects": ["P1"], "offset": [5, 0, 0] }));
@@ -177,7 +177,7 @@ fn reparent_keeps_the_world_place() {
 #[test]
 fn reparent_an_unparented_object_keeps_its_fields() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "P2", "location": [0, 0, 2] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "P2", "location": [0, 0, 2] }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0], "rotation": [0, 0, 200] }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "P2" }));
     // No old parent: the fields are untouched (200 degrees stays 200) and the world stays.
@@ -189,8 +189,8 @@ fn reparent_an_unparented_object_keeps_its_fields() {
 #[test]
 fn reparent_on_delete_keeps_the_child_in_place() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "GP" }));
-    run(&mut doc, "add.empty", json!({ "name": "P" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "GP" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "P" }));
     run(&mut doc, "object.parent", json!({ "objects": ["P"], "parent": "GP" }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0] }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "P" }));
@@ -205,7 +205,7 @@ fn reparent_on_delete_keeps_the_child_in_place() {
 #[test]
 fn reparent_to_armature_keeps_a_parented_mesh_in_place() {
     let mut doc = under_a_moved_parent();
-    run(&mut doc, "add.armature", json!({ "name": "Armature", "location": [0, 3, 0] }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Armature", "location": [0, 3, 0] }));
     run(&mut doc, "object.parentArmature", json!({ "armature": "Armature", "objects": ["Cube"], "weights": "none" }));
     // Cube was seen at [6, 0, 0]; it stays there under the armature. (It went to [1, 0, 0].)
     near(world_at(&doc, "Cube"), [6.0, 0.0, 0.0], "world");
@@ -216,7 +216,7 @@ fn reparent_to_armature_keeps_a_parented_mesh_in_place() {
 #[test]
 fn clear_parent_without_a_parent_changes_nothing() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Spot", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Spot", "location": [3, 0, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyLocation", "target": "Spot", "offset": true }));
     near(world_at(&doc, "Cube"), [3.0, 0.0, 0.0], "before");
     run(&mut doc, "object.clearParent", json!({ "objects": ["Cube"] }));
@@ -229,7 +229,7 @@ fn clear_parent_without_a_parent_changes_nothing() {
 #[test]
 fn clear_parent_bakes_the_parent_not_the_own_constraints() {
     let mut doc = under_a_moved_parent();
-    run(&mut doc, "add.empty", json!({ "name": "Spot", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Spot", "location": [3, 0, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyLocation", "target": "Spot", "offset": true }));
     // Before its constraint Cube is at [6, 0, 0]; Copy Location with offset adds [3, 0, 0].
     near(world_at(&doc, "Cube"), [9.0, 0.0, 0.0], "before");
@@ -245,7 +245,7 @@ fn clear_parent_bakes_the_parent_not_the_own_constraints() {
 #[test]
 fn apply_constraint_later_one_does_not_apply_the_earlier_again() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Spot", "location": [5, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Spot", "location": [5, 0, 0] }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0], "rotation": [0, 0, 30] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyLocation", "target": "Spot", "offset": true }));
     run(
@@ -269,7 +269,7 @@ fn apply_constraint_later_one_does_not_apply_the_earlier_again() {
 #[test]
 fn apply_constraint_first_one_still_bakes() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Spot", "location": [5, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Spot", "location": [5, 0, 0] }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "copyLocation", "target": "Spot", "offset": true }));
     run(&mut doc, "constraint.apply", json!({ "object": "Cube", "index": 0 }));
@@ -283,7 +283,7 @@ fn apply_constraint_first_one_still_bakes() {
 #[test]
 fn scale_children_of_a_selected_parent_scaled_once() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "P" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "P" }));
     run(&mut doc, "object.transform", json!({ "objects": ["Cube"], "location": [1, 0, 0] }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "P" }));
     run(&mut doc, "object.scale", json!({ "objects": ["P", "Cube"], "factor": 2 }));
@@ -301,7 +301,7 @@ fn scale_children_of_a_selected_parent_scaled_once() {
 /// wide at the origin, its location field [0, 0, 0].
 fn under_a_scaled_parent() -> SceneDocument {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Big" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Big" }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "Big" }));
     run(&mut doc, "object.scale", json!({ "objects": ["Big"], "factor": 2 }));
     doc
@@ -324,7 +324,7 @@ fn promo_hop_lands_on_the_world_point_under_a_scaled_parent() {
 #[test]
 fn promo_gather_measures_and_keys_in_the_world() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Hub" }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Hub" }));
     run(&mut doc, "object.parent", json!({ "objects": ["Cube"], "parent": "Hub" }));
     run(&mut doc, "object.translate", json!({ "objects": ["Hub"], "offset": [10, 0, 0] }));
     near(world_at(&doc, "Cube"), [10.0, 0.0, 0.0], "before");
@@ -346,7 +346,7 @@ fn promo_gather_measures_and_keys_in_the_world() {
 #[test]
 fn extrude_offset_adds_to_the_move_along_the_normal() {
     let mut doc = new_doc();
-    run(&mut doc, "add.plane", json!({ "name": "Floor", "location": [0, 0, 5] }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Floor", "location": [0, 0, 5] }));
     run(&mut doc, "mode.set", json!({ "mode": "edit", "object": "Floor" }));
     let before = doc.scene().object_named("Floor").unwrap().mesh().unwrap().positions.clone();
     run(&mut doc, "mesh.extrude", json!({ "elements": { "object": "Floor", "vertices": [0, 1] }, "distance": 2, "offset": [1, 0, 0] }));
@@ -368,18 +368,18 @@ fn extrude_offset_adds_to_the_move_along_the_normal() {
 fn interpolation_tweak_frame_maps_through_the_strip() {
     let mut doc = new_doc();
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
     run(&mut doc, "frame.set", json!({ "frame": 11 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, 2] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
-    run(&mut doc, "anim.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] }));
+    run(&mut doc, "animation.setInterpolation", json!({ "objects": "Cube", "interpolation": "linear" }));
     run(&mut doc, "nla.pushDown", json!({ "object": "Cube", "name": "Rise" }));
     run(&mut doc, "nla.setStrip", json!({ "object": "Cube", "track": 0, "strip": 0, "start": 21, "scale": 2 }));
     run(&mut doc, "nla.tweak", json!({ "object": "Cube", "track": 0, "strip": 0 }));
     // Strip from scene frame 21 at scale 2 over action 1..11: scene frame 21 is action frame
     // (21 - 21) / 2 + 1 = 1, as insertKey and deleteKey map it. (Frame 21 was compared with the
     // action's frames 1 and 11 as is: no key, refused.)
-    run(&mut doc, "anim.setInterpolation", json!({ "objects": "Cube", "frame": 21, "interpolation": "constant" }));
+    run(&mut doc, "animation.setInterpolation", json!({ "objects": "Cube", "frame": 21, "interpolation": "constant" }));
     let cube = id_of(&doc, "Cube");
     for channel in doc.scene().animation.channels.iter().filter(|channel| channel.target == cube) {
         for key in &channel.keys {
@@ -394,7 +394,7 @@ fn interpolation_tweak_frame_maps_through_the_strip() {
 #[test]
 fn dyntopo_levels_never_retopologise() {
     let mut doc = new_doc();
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball", "location": [6, 0, 0] }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "location": [6, 0, 0] }));
     run(&mut doc, "mode.sculpt", json!({ "on": true, "object": "Cube" }));
     run(&mut doc, "sculpt.dyntopo", json!({ "enabled": true }));
     // The guard on subdividing reads the session: Ball is not sculpted, so it gets levels.

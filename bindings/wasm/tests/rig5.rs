@@ -28,7 +28,7 @@ fn dimensions(doc: &SceneDocument) -> Vec<f64> {
 #[test]
 fn envelopes_deform_a_mesh_without_groups() {
     let mut doc = SceneDocument::create("E.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.armature", json!({ "location": [0, 0, -1] }));
+    run(&mut doc, "object.addArmature", json!({ "location": [0, 0, -1] }));
     run(
         &mut doc,
         "bone.set",
@@ -68,7 +68,7 @@ fn envelopes_deform_a_mesh_without_groups() {
 #[test]
 fn custom_shapes_draw_bones_and_let_go_of_deleted_objects() {
     let mut doc = SceneDocument::create("S.kscene", 640, 360).unwrap();
-    run(&mut doc, "add.armature", json!({ "location": [0, 0, 1.2] }));
+    run(&mut doc, "object.addArmature", json!({ "location": [0, 0, 1.2] }));
     let before = doc.render(0.0, 0.0, 1.0, 640, 360).unwrap();
     assert!(doc.execute("bone.set", json!({ "object": "Armature", "bone": "Bone", "shape": "Armature" })).is_err(), "not its own shape");
     assert!(doc.execute("bone.set", json!({ "object": "Armature", "bone": "Bone", "shapeScale": [2, 2, 2] })).is_err(), "no shape yet");

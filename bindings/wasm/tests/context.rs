@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 fn scene() -> SceneDocument {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
     for (name, x) in [("Left", -3), ("Right", 3)] {
-        doc.execute("add.cube", json!({ "name": name, "location": [x, 0, 0] })).unwrap();
+        doc.execute("object.addCube", json!({ "name": name, "location": [x, 0, 0] })).unwrap();
     }
     doc.execute("frame.range", json!({ "start": 1, "end": 120, "fps": 24 })).unwrap();
     doc.execute("select.objects", json!({ "objects": "Cube" })).unwrap();
@@ -98,14 +98,14 @@ fn a_selection_command_driven_by_on_changes_those_objects_and_leaves_the_selecti
     assert!(object(&inspected, "Cube").get("parent").is_none());
 }
 
-/// `anim.insertKey` driven by `at.time` keys at that time (2 s: frame 49) and leaves the current
+/// `animation.insertKey` driven by `at.time` keys at that time (2 s: frame 49) and leaves the current
 /// frame where the person left it.
 #[test]
 fn a_frame_command_driven_by_at_time_keys_there_and_leaves_the_current_frame() {
     let mut doc = scene();
     let saved = doc.editor_state();
     doc.set_context(&context(json!({ "time": 2.0 }))).unwrap();
-    doc.execute_as("anim.insertKey", json!({ "objects": "Right", "properties": ["location"] }), &agent()).unwrap();
+    doc.execute_as("animation.insertKey", json!({ "objects": "Right", "properties": ["location"] }), &agent()).unwrap();
     doc.restore_editor_state(&saved).unwrap();
     let inspected = doc.inspect().unwrap();
     assert_eq!(inspected["animation"]["frame"], json!(7));

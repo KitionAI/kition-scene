@@ -57,36 +57,36 @@ fn motion_blur_is_a_render_setting() {
     let reopened = SceneDocument::open("t.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.inspect().unwrap()["render"]["shutterPosition"], "start");
     // A keyed cube renders blurred, and the render leaves the scene as it was.
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [2, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 3 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 3 }));
     assert_eq!(trace(&mut doc)["done"], true);
 }
 
 #[test]
 fn shader_groups_give_materials_and_the_world_their_volumes() {
     let mut doc = starter();
-    let made = run(&mut doc, "nodes.newGroup", json!({ "tree": "shader", "material": "Material" }));
+    let made = run(&mut doc, "node.newGroup", json!({ "tree": "shader", "material": "Material" }));
     let group = made["group"].clone();
     let material = doc.inspect().unwrap()["materials"][0].clone();
     assert_eq!(material["shader"], group);
     // A Volume Absorption into the Volume, the Principled BSDF out of the Surface: only a volume.
-    let absorb = run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "volumeAbsorption", "values": { "Density": 2.0 } }))["node"].clone();
-    run(&mut doc, "nodes.link", json!({ "group": group, "from": absorb, "fromSocket": "Volume", "to": made["output"], "toSocket": "Volume" }));
-    run(&mut doc, "nodes.unlink", json!({ "group": group, "to": made["output"], "toSocket": "Surface" }));
-    let world = run(&mut doc, "nodes.newGroup", json!({ "tree": "shader", "world": true, "name": "Mist" }));
+    let absorb = run(&mut doc, "node.addNode", json!({ "group": group, "kind": "volumeAbsorption", "values": { "Density": 2.0 } }))["node"].clone();
+    run(&mut doc, "node.link", json!({ "group": group, "from": absorb, "fromSocket": "Volume", "to": made["output"], "toSocket": "Volume" }));
+    run(&mut doc, "node.unlink", json!({ "group": group, "to": made["output"], "toSocket": "Surface" }));
+    let world = run(&mut doc, "node.newGroup", json!({ "tree": "shader", "world": true, "name": "Mist" }));
     assert_eq!(doc.inspect().unwrap()["world"]["volume"], world["group"]);
-    assert!(doc.execute("nodes.newGroup", json!({ "tree": "shader", "world": true, "material": "Material" })).is_err());
+    assert!(doc.execute("node.newGroup", json!({ "tree": "shader", "world": true, "material": "Material" })).is_err());
     assert_eq!(trace(&mut doc)["done"], true);
     // Only shader groups: a geometry group is refused.
-    let geometry = run(&mut doc, "nodes.newGroup", json!({}))["group"].clone();
+    let geometry = run(&mut doc, "node.newGroup", json!({}))["group"].clone();
     assert!(doc.execute("world.set", json!({ "volume": geometry })).is_err());
     assert!(doc.execute("material.set", json!({ "material": "Material", "shader": geometry })).is_err());
     run(&mut doc, "world.set", json!({ "volume": null }));
     assert_eq!(doc.inspect().unwrap()["world"]["volume"], Value::Null);
     run(&mut doc, "world.set", json!({ "volume": "Mist" }));
     // Removing the group lets go of it.
-    run(&mut doc, "nodes.removeGroup", json!({ "group": "Mist" }));
+    run(&mut doc, "node.removeGroup", json!({ "group": "Mist" }));
     assert_eq!(doc.inspect().unwrap()["world"]["volume"], Value::Null);
     run(&mut doc, "material.set", json!({ "material": "Material", "shader": null }));
     assert_eq!(doc.inspect().unwrap()["materials"][0]["shader"], Value::Null);

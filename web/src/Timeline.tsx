@@ -96,9 +96,9 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
     <div className="scene-timeline" data-testid="scene-timeline">
       <div className="scene-timeline-controls">
         <IconButton icon={SkipBackIcon} label={t('jumpStart')} onClick={() => void editor.run('frame.start', {})} />
-        <IconButton icon={KeyframePreviousIcon} label={t('previousKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('anim.previousKey', {})} />
+        <IconButton icon={KeyframePreviousIcon} label={t('previousKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('animation.previousKey', {})} />
         <IconButton icon={playing ? PauseIcon : PlayIcon} label={playing ? t('pause') : t('play')} onClick={() => setPlaying((on) => !on)} data-testid="scene-timeline-play" />
-        <IconButton icon={KeyframeNextIcon} label={t('nextKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('anim.nextKey', {})} />
+        <IconButton icon={KeyframeNextIcon} label={t('nextKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('animation.nextKey', {})} />
         <IconButton icon={SkipForwardIcon} label={t('jumpEnd')} onClick={() => void editor.run('frame.end', {})} />
         <span className="scene-timeline-field scene-timeline-frame">
           <NumberField label={t('frame')} value={frame} step={1} min={-1048574} max={1048574} testId="scene-timeline-frame" onChange={(value, final) => final && goTo(value)} />
@@ -107,7 +107,7 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
           icon={KeyframeIcon}
           label={`${t('insertKey')} (I)`}
           disabled={readOnly || !hasSelection}
-          onClick={() => void editor.run('anim.insertKey', {})}
+          onClick={() => void editor.run('animation.insertKey', {})}
           data-testid="scene-timeline-insert"
           data-keyed={keyed || undefined}
         />
@@ -116,7 +116,7 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
             <KeyingSetChoice info={info} />
           </span>
         ) : null}
-        <IconButton icon={TrashIcon} label={`${t('deleteKey')} (Alt+I)`} disabled={readOnly || !hasSelection || !keyed} onClick={() => void editor.run('anim.deleteKey', {})} data-testid="scene-timeline-delete" />
+        <IconButton icon={TrashIcon} label={`${t('deleteKey')} (Alt+I)`} disabled={readOnly || !hasSelection || !keyed} onClick={() => void editor.run('animation.deleteKey', {})} data-testid="scene-timeline-delete" />
       </div>
       <div
         ref={ruler}

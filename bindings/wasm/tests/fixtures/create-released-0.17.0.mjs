@@ -14,18 +14,18 @@ await init({ module_or_path: await readFile(join(directory, 'engine/kition_scene
 const doc = SceneDocument.create('Released.kscene', 640, 480)
 try {
   const run = (command, params = {}) => JSON.parse(doc.execute(command, JSON.stringify(params)))
-  const group = run('nodes.newGroup', { object: 'Cube', name: 'ReleasedCurves' })
-  const curve = run('nodes.addNode', { group: 'ReleasedCurves', kind: 'curveBezierSegment', values: {
+  const group = run('node.newGroup', { object: 'Cube', name: 'ReleasedCurves' })
+  const curve = run('node.addNode', { group: 'ReleasedCurves', kind: 'curveBezierSegment', values: {
     Resolution: 8, Start: [-1, 0, 0], 'Start Handle': [-0.6, 1, 0],
     'End Handle': [0.5, 1, 0.4], End: [1, 0, 0.4],
   } })
-  run('nodes.link', { group: 'ReleasedCurves', from: curve.node, fromSocket: 'Curve',
+  run('node.link', { group: 'ReleasedCurves', from: curve.node, fromSocket: 'Curve',
     to: group.output, toSocket: 'Geometry' })
   run('physics.world.set', { gravity: [0, 0, -9.81], frameStart: 1, frameEnd: 12,
     substeps: 2, iterations: 10 })
-  run('add.grid', { name: 'Cloth', xSubdivisions: 2, ySubdivisions: 2, size: 2, location: [3, 0, 3] })
+  run('object.addGrid', { name: 'Cloth', xSubdivisions: 2, ySubdivisions: 2, size: 2, location: [3, 0, 3] })
   run('physics.cloth.add', { objects: 'Cloth', mass: 0.3, airDamping: 1, quality: 5 })
-  run('add.cube', { name: 'Soft', size: 1, location: [0, 3, 3] })
+  run('object.addCube', { name: 'Soft', size: 1, location: [0, 3, 3] })
   run('physics.softBody.add', { objects: 'Soft', mass: 0.5, friction: 0.2, goal: false,
     frameStart: 1, frameEnd: 12 })
   run('physics.field.new', { name: 'Wind', type: 'wind', strength: 2, flow: 0 })

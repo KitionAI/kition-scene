@@ -23,7 +23,7 @@ fn world(doc: &SceneDocument, name: &str) -> [f64; 3] {
 #[test]
 fn constraints_on_objects() {
     let mut doc = SceneDocument::create("C.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.empty", json!({ "name": "Goal", "location": [3, 4, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Goal", "location": [3, 4, 0] }));
     // The camera tracks the goal.
     let added = run(&mut doc, "constraint.add", json!({ "object": "Camera", "type": "trackTo", "target": "Goal" }));
     assert_eq!(added["name"], "Track To");
@@ -64,12 +64,12 @@ fn constraints_on_objects() {
 #[test]
 fn ik_on_a_bone_through_commands() {
     let mut doc = SceneDocument::create("Ik.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.armature", json!({}));
+    run(&mut doc, "object.addArmature", json!({}));
     run(&mut doc, "mode.armature", json!({}));
     run(&mut doc, "bone.select", json!({ "bones": "Bone" }));
     run(&mut doc, "bone.extrude", json!({ "tail": [0, 0.2, 2] }));
     run(&mut doc, "mode.armature", json!({}));
-    run(&mut doc, "add.empty", json!({ "name": "Goal", "location": [0, 0.6, 1.4] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Goal", "location": [0, 0.6, 1.4] }));
     run(&mut doc, "mode.pose", json!({ "object": "Armature" }));
     run(&mut doc, "bone.select", json!({ "bones": "Bone.001" }));
     let added = run(&mut doc, "constraint.add", json!({ "type": "ik", "target": "Goal", "chain": 2 }));

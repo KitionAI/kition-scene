@@ -239,7 +239,7 @@ function NodeBox({
 }) {
   const { run, t, phrase: p } = useKitEditor()
   const readOnly = useReadOnly()
-  const set = (id: string, value: unknown) => void run('nodes.setValue', { group: group.id, node: node.id, id, value })
+  const set = (id: string, value: unknown) => void run('node.setValue', { group: group.id, node: node.id, id, value })
   const linked = (socket: string) => group.links.some((link) => link.to === node.id && link.toSocket === socket)
   const [itemType, setItemType] = useState<string>('float')
   const used = typeof node.values.group === 'number' ? node.values.group : null
@@ -251,19 +251,19 @@ function NodeBox({
     socket.id !== 'Geometry' &&
     ((isZoneOutput(node) && side === 'input') || (node.kind === 'groupInput' && side === 'output') || (node.kind === 'groupOutput' && side === 'input'))
   const remove = (socket: SocketInfo) => {
-    if (isZoneOutput(node)) void run('nodes.removeZoneItem', { group: group.id, node: node.id, name: socket.id })
-    else void run(node.kind === 'groupInput' ? 'nodes.removeInput' : 'nodes.removeOutput', { group: group.id, name: socket.id })
+    if (isZoneOutput(node)) void run('node.removeZoneItem', { group: group.id, node: node.id, name: socket.id })
+    else void run(node.kind === 'groupInput' ? 'node.removeInput' : 'node.removeOutput', { group: group.id, name: socket.id })
   }
   const addSocket = () => {
     if (isZoneOutput(node)) {
       const taken = node.zone?.items.map((item) => item.name) ?? []
-      void run('nodes.addZoneItem', { group: group.id, node: node.id, name: unusedName(choiceLabel(itemType).replace(/^./, (c) => c.toUpperCase()), taken), type: itemType })
+      void run('node.addZoneItem', { group: group.id, node: node.id, name: unusedName(choiceLabel(itemType).replace(/^./, (c) => c.toUpperCase()), taken), type: itemType })
     } else if (node.kind === 'groupInput') {
       const taken = group.inputs.map((input) => input.name)
-      void run('nodes.addInput', { group: group.id, name: unusedName(t('groupInputName', { count: taken.length + 1 }), taken), type: itemType })
+      void run('node.addInput', { group: group.id, name: unusedName(t('groupInputName', { count: taken.length + 1 }), taken), type: itemType })
     } else {
       const taken = group.outputs.map((output) => output.name)
-      void run('nodes.addOutput', { group: group.id, name: unusedName(t('groupOutputName', { count: taken.length + 1 }), taken), type: itemType })
+      void run('node.addOutput', { group: group.id, name: unusedName(t('groupOutputName', { count: taken.length + 1 }), taken), type: itemType })
     }
   }
   const left = node.location[0] + (offset?.x ?? 0)
@@ -433,7 +433,7 @@ export function NodeEditor({ info }: { info: SceneInfo }) {
   const openMenu = (at: Point) => {
     setMenu({ at, query: '', active: 0 })
     if (kinds?.tree !== tree) {
-      void run('nodes.describe', { tree }).then((result) => {
+      void run('node.describe', { tree }).then((result) => {
         const described = parsed(result)
         // A zone is added by its input (its output comes with it).
         const hidden = ['groupInput', 'groupOutput', 'repeatOutput', 'simulationOutput']
@@ -453,13 +453,13 @@ export function NodeEditor({ info }: { info: SceneInfo }) {
     if (!group || !menu) return
     const at = toCanvas(menu.at)
     setMenu(null)
-    void run('nodes.addNode', { group: group.id, kind: kind.id, location: [Math.round(at.x), Math.round(at.y)] })
+    void run('node.addNode', { group: group.id, kind: kind.id, location: [Math.round(at.x), Math.round(at.y)] })
     canvas.current?.focus({ preventScroll: true })
   }
 
   const removeSelected = () => {
     if (!group || !selected.length || readOnly) return
-    void run('nodes.removeNodes', { group: group.id, nodes: selected })
+    void run('node.removeNodes', { group: group.id, nodes: selected })
     setSelected([])
   }
 
@@ -524,17 +524,17 @@ export function NodeEditor({ info }: { info: SceneInfo }) {
       if (!current.moved) setSelected([])
     } else if (current.kind === 'nodes') {
       const { x, y } = current.offset
-      if (Math.hypot(x, y) > 0.5) void run('nodes.moveNodes', { group: group.id, nodes: current.ids, offset: [Math.round(x), Math.round(y)] })
+      if (Math.hypot(x, y) > 0.5) void run('node.moveNodes', { group: group.id, nodes: current.ids, offset: [Math.round(x), Math.round(y)] })
     } else {
       const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('.scene-node-socket[data-side="input"]')
       const to = target ? Number(target.dataset.node) : null
       const toSocket = target?.dataset.socket ?? null
       const detach = current.detach
       if (detach && (to !== detach.to || toSocket !== detach.toSocket)) {
-        void run('nodes.unlink', { group: group.id, to: detach.to, toSocket: detach.toSocket, from: detach.from, fromSocket: detach.fromSocket })
+        void run('node.unlink', { group: group.id, to: detach.to, toSocket: detach.toSocket, from: detach.from, fromSocket: detach.fromSocket })
       }
       if (to != null && toSocket && !(detach && to === detach.to && toSocket === detach.toSocket)) {
-        void run('nodes.link', { group: group.id, from: current.from, fromSocket: current.fromSocket, to, toSocket })
+        void run('node.link', { group: group.id, from: current.from, fromSocket: current.fromSocket, to, toSocket })
       }
     }
   }
@@ -601,7 +601,7 @@ export function NodeEditor({ info }: { info: SceneInfo }) {
             ))}
           </nav>
         ) : null}
-        <button type="button" className="kui-button" data-size="sm" disabled={readOnly || !active} onClick={() => void run('nodes.newGroup', active ? { object: active.id } : {}).then(() => setChosen(null))} data-testid="scene-nodes-new">
+        <button type="button" className="kui-button" data-size="sm" disabled={readOnly || !active} onClick={() => void run('node.newGroup', active ? { object: active.id } : {}).then(() => setChosen(null))} data-testid="scene-nodes-new">
           {t('newNodeGroup')}
         </button>
         <button type="button" className="kui-button" data-size="sm" disabled={readOnly} onClick={() => void run('compositor.new', {}).then((result) => setChosen(parsed(result)?.group ?? null))} data-testid="scene-nodes-new-compositor">
@@ -749,7 +749,7 @@ export function GeometryNodesFields({ object, info, modifier, index }: { object:
             onChange={(value) => set({ group: value === '' ? null : Number(value) })}
             testId={`scene-modifier-${index}-group`}
           />
-          <button type="button" className="kui-button" data-size="sm" disabled={readOnly} onClick={() => void run('nodes.newGroup', { object: object.id, modifier: index })} data-testid={`scene-modifier-${index}-new-group`}>
+          <button type="button" className="kui-button" data-size="sm" disabled={readOnly} onClick={() => void run('node.newGroup', { object: object.id, modifier: index })} data-testid={`scene-modifier-${index}-new-group`}>
             {t('newNodeGroup')}
           </button>
         </span>

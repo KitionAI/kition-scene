@@ -19,8 +19,8 @@ fn object<'a>(inspected: &'a Value, name: &str) -> &'a Value {
 fn rigged() -> SceneDocument {
     let mut doc = SceneDocument::create("Rig.kscene", 1280, 720).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.cylinder", json!({ "name": "Column", "vertices": 8, "radius": 0.2, "depth": 2, "location": [0, 0, 1] }));
-    run(&mut doc, "add.armature", json!({}));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Column", "vertices": 8, "radius": 0.2, "depth": 2, "location": [0, 0, 1] }));
+    run(&mut doc, "object.addArmature", json!({}));
     run(&mut doc, "mode.armature", json!({}));
     run(&mut doc, "bone.select", json!({ "bones": "Bone" }));
     run(&mut doc, "bone.extrude", json!({}));
@@ -63,8 +63,8 @@ fn an_armature_is_built_bound_and_posed() {
     let bent = posed_top(&mut doc, 21);
     assert!(rest < 0.5 && bent > 0.8, "the column bends along Y: {rest} then {bent}");
     // Keying in pose mode does not reach the object-level keys; object commands wait.
-    assert!(doc.execute("anim.insertKey", json!({})).is_err());
-    assert!(doc.execute("add.cube", json!({})).is_err());
+    assert!(doc.execute("animation.insertKey", json!({})).is_err());
+    assert!(doc.execute("object.addCube", json!({})).is_err());
     run(&mut doc, "mode.pose", json!({ "on": false }));
     assert_eq!(doc.inspect().unwrap()["mode"]["mode"], "object");
 
@@ -161,9 +161,9 @@ fn shape_keys_and_vertex_groups() {
 #[test]
 fn the_graph_editor_moves_retimes_and_deletes_keys() {
     let mut doc = SceneDocument::create("Graph.kscene", 1280, 720).unwrap();
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [4, 0, 0] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 21 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 21 }));
     let cube = object(&doc.inspect().unwrap(), "Cube")["id"].clone();
     run(&mut doc, "graph.moveKey", json!({ "target": cube, "property": "location", "index": 0, "frame": 21, "toFrame": 11, "value": 2 }));
     run(&mut doc, "graph.setInterpolation", json!({ "target": cube, "property": "location", "index": 0, "frame": 1, "interpolation": "linear" }));

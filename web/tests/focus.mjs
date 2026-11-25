@@ -35,7 +35,7 @@ try {
   await until(async () => (await app.getAttribute('data-mode')) === 'line', 'Single line shows')
   const frame = page.frames().find((item) => item.url().includes('index.html'))
   assert.equal(await kit.locator('.kui-ribbon-tab[aria-selected="true"]').getAttribute('data-tab'), 'Add', 'Single line opens on Add')
-  const row = await frame.evaluate(lineRowReport, ['scene-cmd-add.cube', 'scene-cmd-add.uvSphere', 'scene-cmd-add.light', 'scene-cmd-add.camera'])
+  const row = await frame.evaluate(lineRowReport, ['scene-cmd-object.addCube', 'scene-cmd-object.addUvSphere', 'scene-cmd-object.addLight', 'scene-cmd-object.addCamera'])
   assert.deepEqual(row.missing, [], `Add's row shows its primary commands (${row.buttons} buttons)`)
 
   for (const id of ['scene-graph-toggle', 'scene-nla-toggle', 'scene-nodes-toggle']) await kit.getByTestId(id).check()

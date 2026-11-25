@@ -259,7 +259,7 @@
     "NodeGroup": {
       "batchOps": {
         "set.name": { "direct": true },
-        "delete": { "command": "nodes.removeGroup", "params": { "group": "target" } }
+        "delete": { "command": "node.removeGroup", "params": { "group": "target" } }
       },
       "label": "name",
       "toolId": { "field": "key" },

@@ -55,7 +55,7 @@ fn group_names(doc: &SceneDocument, name: &str) -> Vec<String> {
 /// Edit mode on Cube; a second mesh Sphere to name.
 fn editing_cube_with_sphere() -> SceneDocument {
     let mut doc = new_doc();
-    run(&mut doc, "add.uvSphere", json!({ "name": "Sphere", "location": [4, 0, 0] }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Sphere", "location": [4, 0, 0] }));
     run(&mut doc, "mode.set", json!({ "mode": "edit", "object": "Cube" }));
     doc
 }
@@ -139,8 +139,8 @@ fn edit_mode_naming_the_edited_mesh_acts_as_before() {
 #[test]
 fn bone_set_changes_the_named_armature_while_another_is_posed() {
     let mut doc = new_doc();
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
-    run(&mut doc, "add.armature", json!({ "name": "Other", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Other", "location": [3, 0, 0] }));
     run(&mut doc, "mode.pose", json!({ "object": "Rig", "on": true }));
     run(&mut doc, "bone.set", json!({ "object": "Other", "bone": "Bone", "roll": 45 }));
     assert!((roll(&doc, "Other", "Bone") - 45.0).abs() < 1e-3, "the named armature's bone turns");
@@ -169,7 +169,7 @@ fn delete_named_objects_in_mesh_edit_mode_deletes_them() {
 #[test]
 fn delete_named_objects_in_curve_lattice_and_armature_edit() {
     let mut doc = new_doc();
-    run(&mut doc, "add.lattice", json!({ "name": "Cage" }));
+    run(&mut doc, "object.addLattice", json!({ "name": "Cage" }));
     run(&mut doc, "mode.shape", json!({}));
     // A plain Delete in lattice edit deletes nothing and keeps the lattice (modifiers3.rs, older
     // than this case, holds it answering success).
@@ -179,14 +179,14 @@ fn delete_named_objects_in_curve_lattice_and_armature_edit() {
     assert!(!has(&doc, "Cube"), "the named object goes in lattice edit");
     assert!(has(&doc, "Cage"));
     run(&mut doc, "mode.shape", json!({}));
-    run(&mut doc, "add.curveBezier", json!({ "name": "Path" }));
+    run(&mut doc, "object.addCurveBezier", json!({ "name": "Path" }));
     run(&mut doc, "mode.shape", json!({}));
     run(&mut doc, "edit.delete", json!({ "objects": ["Cage"] }));
     assert!(!has(&doc, "Cage"), "the named object goes in curve edit");
     let ObjectData::Curve(curve) = &doc.scene().object_named("Path").unwrap().data else { panic!() };
     assert_eq!(curve.splines.len(), 1, "the edited curve keeps its points");
     run(&mut doc, "mode.shape", json!({}));
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
     run(&mut doc, "mode.armature", json!({}));
     run(&mut doc, "bone.select", json!({ "bones": ["Bone"] }));
     run(&mut doc, "edit.delete", json!({ "objects": ["Path"] }));
@@ -203,8 +203,8 @@ fn delete_in_sculpt_and_particle_edit_keeps_the_object_being_worked_on() {
     assert!(error.starts_with("not-allowed"), "{error}");
     assert!(has(&doc, "Cube"), "sculpt mode does not delete the sculpted mesh");
     run(&mut doc, "mode.sculpt", json!({ "on": false }));
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball" }));
-    run(&mut doc, "particles.add", json!({ "kind": "hair", "hairLength": 1, "count": 20 }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball" }));
+    run(&mut doc, "particle.add", json!({ "kind": "hair", "hairLength": 1, "count": 20 }));
     run(&mut doc, "mode.particleEdit", json!({}));
     let error = refused(&mut doc, "edit.delete", json!({}));
     assert!(error.starts_with("not-allowed"), "{error}");
@@ -218,7 +218,7 @@ fn delete_in_sculpt_and_particle_edit_keeps_the_object_being_worked_on() {
 #[test]
 fn paint_on_a_named_mesh_uses_its_own_groups() {
     let mut doc = new_doc();
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball", "location": [4, 0, 0] }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "location": [4, 0, 0] }));
     run(&mut doc, "vertexGroup.add", json!({ "object": "Cube", "name": "Arm" }));
     run(&mut doc, "vertexGroup.add", json!({ "object": "Ball", "name": "Leg" }));
     run(&mut doc, "mode.weightPaint", json!({ "object": "Cube", "on": true }));
@@ -233,7 +233,7 @@ fn paint_on_a_named_mesh_uses_its_own_groups() {
 #[test]
 fn paint_normalize_all_on_a_named_mesh_locks_none_of_the_session_groups() {
     let mut doc = new_doc();
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball", "location": [4, 0, 0] }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "location": [4, 0, 0] }));
     run(&mut doc, "vertexGroup.add", json!({ "object": "Cube", "name": "Arm" }));
     // Ball has its own group called Arm too, with weight 0.25, and a second group with 0.25:
     // with Cube's Arm taken for Ball's locked group, Ball's Arm would stay 0.25.
@@ -292,8 +292,8 @@ fn elements_faces_select_only_the_named_faces() {
 #[test]
 fn modifier_set_changes_an_armature_modifiers_armature() {
     let mut doc = new_doc();
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
-    run(&mut doc, "add.armature", json!({ "name": "Rig2", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig2", "location": [3, 0, 0] }));
     run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "armature", "operand": "Rig" }));
     let armature_of = |doc: &SceneDocument| match &doc.scene().object_named("Cube").unwrap().modifiers[0].kind {
         ModifierKind::Armature { object, .. } => *object,
@@ -311,8 +311,8 @@ fn modifier_set_changes_an_armature_modifiers_armature() {
 #[test]
 fn gates_named_objects_run_without_a_selection() {
     let mut doc = new_doc();
-    run(&mut doc, "add.empty", json!({ "name": "Tag" }));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Tag" }));
+    run(&mut doc, "edit.deselectAll", json!({}));
     assert!(doc.session().editor.selected.is_empty());
     let before = doc.scene().object_named("Cube").unwrap().location;
     run(&mut doc, "object.translate", json!({ "objects": ["Cube"], "offset": [1, 0, 0] }));
@@ -327,21 +327,21 @@ fn gates_named_objects_run_without_a_selection() {
     run(&mut doc, "mesh.recalculateNormals", json!({ "objects": ["Cube"] }));
     run(&mut doc, "object.shadeSmooth", json!({ "objects": ["Cube"] }));
     run(&mut doc, "material.new", json!({ "name": "Red" }));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "edit.deselectAll", json!({}));
     run(&mut doc, "material.clear", json!({ "objects": ["Cube"] }));
     run(&mut doc, "uv.cubeProject", json!({ "objects": ["Cube"] }));
-    run(&mut doc, "add.curveBezier", json!({ "name": "Path" }));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "object.addCurveBezier", json!({ "name": "Path" }));
+    run(&mut doc, "edit.deselectAll", json!({}));
     run(&mut doc, "object.convertToMesh", json!({ "objects": ["Path"] }));
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
+    run(&mut doc, "edit.deselectAll", json!({}));
     run(&mut doc, "object.parentArmature", json!({ "objects": ["Cube"], "armature": "Rig", "weights": "empty" }));
 }
 
 #[test]
 fn gates_pose_commands_naming_bones_run_without_a_bone_selection() {
     let mut doc = new_doc();
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
     run(&mut doc, "mode.pose", json!({ "on": true }));
     assert!(doc.session().rig.as_ref().unwrap().selected.is_empty());
     run(&mut doc, "pose.insertKey", json!({ "bones": ["Bone"] }));
@@ -352,7 +352,7 @@ fn gates_pose_commands_naming_bones_run_without_a_bone_selection() {
 #[test]
 fn gates_still_refuse_with_nothing_named() {
     let mut doc = new_doc();
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "edit.deselectAll", json!({}));
     let error = refused(&mut doc, "object.translate", json!({ "offset": [1, 0, 0] }));
     assert!(error.starts_with("not-allowed"), "{error}");
     run(&mut doc, "mode.set", json!({ "mode": "edit", "object": "Cube" }));
@@ -384,7 +384,7 @@ fn digit_names_are_ids_only_of_their_own_kind() {
 #[test]
 fn modes_a_refused_curve_set_leaves_the_selection_as_it_was() {
     let mut doc = new_doc();
-    run(&mut doc, "add.curveBezier", json!({ "name": "Path" }));
+    run(&mut doc, "object.addCurveBezier", json!({ "name": "Path" }));
     let (selected, active) = (doc.session().editor.selected.clone(), doc.session().editor.active);
     assert!(doc.execute("curve.set", json!({ "object": "Cube", "resolution": 4 })).is_err());
     assert_eq!(
@@ -403,10 +403,10 @@ fn modes_a_refused_curve_set_leaves_the_selection_as_it_was() {
 #[test]
 fn modes_lattice_set_on_another_lattice_keeps_the_edited_selection() {
     let mut doc = new_doc();
-    run(&mut doc, "add.lattice", json!({ "name": "B" }));
-    run(&mut doc, "add.lattice", json!({ "name": "A", "resolution": 4 }));
+    run(&mut doc, "object.addLattice", json!({ "name": "B" }));
+    run(&mut doc, "object.addLattice", json!({ "name": "A", "resolution": 4 }));
     run(&mut doc, "mode.shape", json!({}));
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     let selected = |doc: &SceneDocument| {
         let mode = doc.inspect().unwrap()["mode"].clone();
         assert_eq!(mode["mode"], "latticeEdit");
@@ -421,7 +421,7 @@ fn modes_lattice_set_on_another_lattice_keeps_the_edited_selection() {
 fn modes_particles_and_remesh_naming_an_object_wait_for_object_mode() {
     let mut doc = new_doc();
     run(&mut doc, "mode.set", json!({ "mode": "edit", "object": "Cube" }));
-    let error = refused(&mut doc, "particles.add", json!({ "object": "Cube" }));
+    let error = refused(&mut doc, "particle.add", json!({ "object": "Cube" }));
     assert!(error.starts_with("not-allowed"), "{error}");
     assert!(doc.scene().object_named("Cube").unwrap().particles.is_empty());
     let error = refused(&mut doc, "sculpt.remesh", json!({ "object": "Cube" }));

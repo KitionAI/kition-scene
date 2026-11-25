@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 
 fn empty() -> SceneDocument {
     let mut doc = SceneDocument::create("Untitled.kscene", 640, 360).unwrap();
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.delete", json!({}));
     doc
 }
@@ -49,7 +49,7 @@ fn lowest(doc: &SceneDocument, name: &str) -> f32 {
 #[test]
 fn soft_body_settings_are_undoable_checked_and_saved() {
     let mut doc = empty();
-    run(&mut doc, "add.cube", json!({ "name": "Jelly", "size": 2, "location": [0, 0, 3] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Jelly", "size": 2, "location": [0, 0, 3] }));
     let added = run(&mut doc, "physics.softBody.add", json!({ "objects": "Jelly", "goalDefault": 0.9, "bending": 1 }));
     assert_eq!(added["objects"][0]["softBody"]["goalDefault"].as_f64().map(|value| (value * 100.0).round()), Some(90.0));
     run(&mut doc, "physics.softBody.set", json!({ "objects": "Jelly", "pull": 0.8, "goalGroup": "Pin", "frameStart": 5, "frameEnd": 40 }));
@@ -68,7 +68,7 @@ fn soft_body_settings_are_undoable_checked_and_saved() {
     }
     assert!(doc.execute("physics.cloth.add", json!({ "objects": "Jelly" })).is_err(), "a soft body is not also cloth");
     assert_eq!(physics_of(&doc, "Jelly"), before);
-    run(&mut doc, "add.plane", json!({ "name": "Floor", "size": 10 }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Floor", "size": 10 }));
     run(&mut doc, "physics.collision.add", json!({ "objects": "Floor", "damping": 0.5 }));
     assert!(doc.execute("physics.softBody.add", json!({ "objects": "Floor", "pull": 2 })).is_err());
     assert!(physics_of(&doc, "Floor").get("softBody").is_none(), "a failed add adds nothing");
@@ -82,9 +82,9 @@ fn soft_body_settings_are_undoable_checked_and_saved() {
 #[test]
 fn a_baked_soft_body_falls_onto_a_floor_and_rests_on_it() {
     let mut doc = empty();
-    run(&mut doc, "add.plane", json!({ "name": "Floor", "size": 10 }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Floor", "size": 10 }));
     run(&mut doc, "physics.collision.add", json!({ "objects": "Floor" }));
-    run(&mut doc, "add.cube", json!({ "name": "Jelly", "size": 1, "location": [0, 0, 2] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Jelly", "size": 1, "location": [0, 0, 2] }));
     run(&mut doc, "physics.softBody.add", json!({ "objects": "Jelly", "goal": false }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 72 }));
     let baked = run(&mut doc, "physics.bake", json!({}));
@@ -101,20 +101,20 @@ fn a_baked_soft_body_falls_onto_a_floor_and_rests_on_it() {
 #[test]
 fn hair_dynamics_bake_alone_and_droop() {
     let mut doc = empty();
-    run(&mut doc, "add.plane", json!({ "name": "Head", "size": 0.1, "rotation": [90, 0, 0] }));
-    run(&mut doc, "particles.add", json!({ "object": "Head", "kind": "hair", "count": 4, "hairLength": 1, "segments": 4, "dynamics": true }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Head", "size": 0.1, "rotation": [90, 0, 0] }));
+    run(&mut doc, "particle.add", json!({ "object": "Head", "kind": "hair", "count": 4, "hairLength": 1, "segments": 4, "dynamics": true }));
     let inspected = doc.inspect().unwrap();
     assert_eq!(inspected["particles"][0]["dynamics"]["stiffness"].as_f64(), Some(0.5));
     assert_eq!(inspected["physics"]["bakeable"], true, "hair alone can be baked");
     assert!(inspected["physics"]["objects"].as_array().unwrap().is_empty());
-    run(&mut doc, "particles.set", json!({ "object": "Head", "dynamics": { "stiffness": 5, "mass": 0.5 } }));
+    run(&mut doc, "particle.set", json!({ "object": "Head", "dynamics": { "stiffness": 5, "mass": 0.5 } }));
     let dynamics = doc.inspect().unwrap()["particles"][0]["dynamics"].clone();
     assert_eq!((dynamics["stiffness"].as_f64(), dynamics["mass"].as_f64(), dynamics["quality"].as_u64()), (Some(5.0), Some(0.5), Some(5)));
     run(&mut doc, "edit.undo", json!({}));
     assert_eq!(doc.inspect().unwrap()["particles"][0]["dynamics"]["stiffness"].as_f64(), Some(0.5), "one undo step");
-    assert!(doc.execute("particles.set", json!({ "object": "Head", "dynamics": { "stiffness": -1 } })).is_err());
-    assert!(doc.execute("particles.set", json!({ "object": "Head", "dynamics": { "springs": 1 } })).is_err(), "no such setting");
-    assert!(doc.execute("particles.set", json!({ "object": "Head", "dynamics": 3 })).is_err());
+    assert!(doc.execute("particle.set", json!({ "object": "Head", "dynamics": { "stiffness": -1 } })).is_err());
+    assert!(doc.execute("particle.set", json!({ "object": "Head", "dynamics": { "springs": 1 } })).is_err(), "no such setting");
+    assert!(doc.execute("particle.set", json!({ "object": "Head", "dynamics": 3 })).is_err());
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 48 }));
     let tips = |doc: &SceneDocument| -> f32 {
         let strands = particles::strands(doc.scene(), id(doc, "Head"), 0, true);
@@ -126,14 +126,14 @@ fn hair_dynamics_bake_alone_and_droop() {
     let drooped = tips(&doc);
     assert!(drooped < -0.3, "the strands droop: {drooped}");
     // Stats see the baked strands; the length stays.
-    let stats = run(&mut doc, "particles.stats", json!({ "object": "Head" }));
+    let stats = run(&mut doc, "particle.stats", json!({ "object": "Head" }));
     assert!((stats["meanWorldLength"].as_f64().unwrap() - 1.0).abs() < 5e-3, "{stats}");
     let back = reopen(&mut doc);
     assert_eq!(back.inspect().unwrap()["particles"][0]["dynamics"]["stiffness"].as_f64(), Some(0.5));
     // Emitters have no strands to simulate.
-    run(&mut doc, "particles.add", json!({ "object": "Head", "name": "Sparks" }));
-    assert!(doc.execute("particles.set", json!({ "object": "Head", "system": "Sparks", "dynamics": true })).is_err());
-    run(&mut doc, "particles.set", json!({ "object": "Head", "system": 0, "kind": "emitter" }));
+    run(&mut doc, "particle.add", json!({ "object": "Head", "name": "Sparks" }));
+    assert!(doc.execute("particle.set", json!({ "object": "Head", "system": "Sparks", "dynamics": true })).is_err());
+    run(&mut doc, "particle.set", json!({ "object": "Head", "system": 0, "kind": "emitter" }));
     assert!(doc.inspect().unwrap()["particles"][0].get("dynamics").is_none(), "an emitter drops its hair dynamics");
 }
 
@@ -142,7 +142,7 @@ fn a_released_0_12_0_file_takes_soft_bodies_and_hair_dynamics() {
     let mut doc = SceneDocument::open("Lab.kscene", include_bytes!("fixtures/released-0.12.0.kscene")).unwrap();
     run(&mut doc, "physics.softBody.add", json!({ "objects": "Sheet", "goalGroup": "Pin", "goalDefault": 1, "bending": 0.5 }));
     run(&mut doc, "physics.collision.add", json!({ "objects": "Floor", "damping": 0.3 }));
-    run(&mut doc, "particles.set", json!({ "object": "Head", "dynamics": { "stiffness": 2, "pinStiffness": 0.5 } }));
+    run(&mut doc, "particle.set", json!({ "object": "Head", "dynamics": { "stiffness": 2, "pinStiffness": 0.5 } }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 12 }));
     assert_eq!(run(&mut doc, "physics.bake", json!({}))["state"], "baked");
     let back = reopen(&mut doc);

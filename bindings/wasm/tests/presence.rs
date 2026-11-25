@@ -21,7 +21,7 @@ fn a_selection_travels_as_kdm_ids_and_comes_back_outlined_in_the_peers_colour() 
     let mut bob = SceneDocument::open("Room.kscene", &bytes).unwrap();
     for doc in [&mut alice, &mut bob] {
         run(doc, "view.resize", json!({ "width": 640, "height": 400 }));
-        run(doc, "select.none", json!({}));
+        run(doc, "edit.deselectAll", json!({}));
     }
     run(&mut alice, "select.objects", json!({ "objects": "Cube" }));
     let shared = run(&mut alice, "presence.local", json!({ "pointer": [320, 200] }));

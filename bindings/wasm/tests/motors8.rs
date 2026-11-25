@@ -9,13 +9,13 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 }
 fn setup() -> SceneDocument {
     let mut doc = SceneDocument::create("Motors.kscene", 640, 360).unwrap();
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.delete", json!({}));
-    run(&mut doc, "add.cube", json!({"name":"Anchor", "size":1, "location":[-2,0,0]}));
+    run(&mut doc, "object.addCube", json!({"name":"Anchor", "size":1, "location":[-2,0,0]}));
     run(&mut doc, "physics.rigidBody.add", json!({"type":"passive"}));
-    run(&mut doc, "add.cube", json!({"name":"Body", "size":1, "location":[2,0,0]}));
+    run(&mut doc, "object.addCube", json!({"name":"Body", "size":1, "location":[2,0,0]}));
     run(&mut doc, "physics.rigidBody.add", json!({"linearDamping":0, "angularDamping":0}));
-    run(&mut doc, "add.empty", json!({"name":"Motor"}));
+    run(&mut doc, "object.addEmpty", json!({"name":"Motor"}));
     run(&mut doc, "physics.constraint.add", json!({"type":"motor", "object1":"Anchor", "object2":"Body"}));
     run(&mut doc, "physics.world.set", json!({"gravity":[0,0,0], "frameEnd":25}));
     doc
@@ -112,7 +112,7 @@ fn invalid_motor_edits_are_atomic_including_multi_object_operations() {
 fn released_015_file_takes_motor_settings_without_new_kdm_fields() {
     let mut doc = SceneDocument::open("Released.kscene", include_bytes!("fixtures/released-0.15.0.kscene")).unwrap();
     let original = doc.scene().object_named("Cube").unwrap().data.clone();
-    run(&mut doc, "add.empty", json!({"name":"Motor"}));
+    run(&mut doc, "object.addEmpty", json!({"name":"Motor"}));
     run(
         &mut doc,
         "physics.constraint.add",

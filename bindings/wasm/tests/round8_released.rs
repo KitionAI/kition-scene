@@ -63,7 +63,7 @@ fn recovering_a_released_sculpt_keeps_its_motor_and_rebuilds_derived_physics() {
     assert!(original.has_uvs(), "the released fixture must exercise UV preservation");
     let finest = multires::evaluate(&original, 1);
     let body = doc.scene().object_named("Cube").unwrap().physics.clone();
-    run(&mut doc, "add.empty", json!({"name": "Motor"}));
+    run(&mut doc, "object.addEmpty", json!({"name": "Motor"}));
     run(
         &mut doc,
         "physics.constraint.add",

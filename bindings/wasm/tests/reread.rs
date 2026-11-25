@@ -20,8 +20,8 @@ fn agent() -> Origin {
 /// one added), and their ids.
 fn scene() -> (SceneDocument, u32, u32) {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
-    doc.execute("add.cube", json!({ "name": "Mine", "location": [3, 0, 0] })).unwrap();
-    doc.execute("add.cube", json!({ "name": "Theirs", "location": [6, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "Mine", "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "Theirs", "location": [6, 0, 0] })).unwrap();
     let id = |doc: &SceneDocument, name: &str| doc.scene().object_named(name).unwrap().id;
     let (mine, theirs) = (id(&doc, "Mine"), id(&doc, "Theirs"));
     (doc, mine, theirs)

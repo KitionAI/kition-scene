@@ -29,7 +29,7 @@ fn named(doc: &SceneDocument, name: &str) -> Value {
 fn an_undo_holds_the_objects_of_the_steps_it_takes_back() {
     let mut doc = SceneDocument::create("Undo.kscene", 320, 180).unwrap();
     let agent = Origin::agent("agent:test");
-    doc.execute_as("add.cube", json!({ "name": "A", "location": [3, 0, 0] }), &agent).unwrap();
+    doc.execute_as("object.addCube", json!({ "name": "A", "location": [3, 0, 0] }), &agent).unwrap();
     let mut fresh = SceneDocument::open("Undo.kscene", &doc.save_file(None).unwrap()).unwrap();
     // A document read again has no step to take back: the undo holds nothing.
     assert_eq!(held(&fresh, "edit.undo", json!({})), vec![], "a reopened document's undo");
@@ -40,7 +40,7 @@ fn an_undo_holds_the_objects_of_the_steps_it_takes_back() {
     // The person's scope has no step.
     assert_eq!(held(&fresh, "edit.undo", json!({ "scope": "person" })), vec![]);
     assert_eq!(held(&fresh, "edit.redo", json!({})), vec![], "nothing to redo");
-    fresh.execute_as("add.camera", json!({ "name": "Side", "location": [9, 0, 1] }), &agent).unwrap();
+    fresh.execute_as("object.addCamera", json!({ "name": "Side", "location": [9, 0, 1] }), &agent).unwrap();
     fresh.execute_as("object.setCamera", json!({ "object": named(&fresh, "Side") }), &agent).unwrap();
     let undo = held(&fresh, "edit.undo", json!({}));
     assert!(
@@ -68,7 +68,7 @@ fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
     let agent = Origin::agent("agent:test");
     let label = |doc: &SceneDocument, key: &str| doc.inspect().unwrap()[key].clone();
     let x = |doc: &SceneDocument| doc.scene().object_named("A").map(|object| object.location.x);
-    doc.execute("add.cube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
     let added = label(&doc, "undo");
     doc.execute("object.translate", json!({ "objects": "A", "offset": [1, 0, 0] })).unwrap();
     let moved = label(&doc, "undo");
@@ -114,8 +114,8 @@ fn merge_agent_draft(doc: &mut SceneDocument, agent: &Origin) -> Value {
     use kition_kit::session::{__export_changes, __snapshot};
     let base = KitSessionDocument::session(doc).version();
     let mut draft = SceneDocument::open_with_replica("Undo.kscene", &[], &__snapshot(doc).unwrap(), &doc.blobs_bundle()).unwrap();
-    draft.execute_as("add.empty", json!({ "name": "Drafted", "location": [0, 5, 0] }), agent).unwrap();
-    doc.execute("add.empty", json!({ "name": "Mine", "location": [0, -5, 0] })).unwrap();
+    draft.execute_as("object.addEmpty", json!({ "name": "Drafted", "location": [0, 5, 0] }), agent).unwrap();
+    doc.execute("object.addEmpty", json!({ "name": "Mine", "location": [0, -5, 0] })).unwrap();
     let mine = doc.inspect().unwrap()["undo"].clone();
     assert!(mine.is_string(), "{mine}");
     let changes = __export_changes(&draft, &base.encode()).unwrap();
@@ -136,7 +136,7 @@ fn a_merge_and_a_restore_are_named_steps_of_the_person() {
     let agent = Origin::agent("agent:test");
     let label = |doc: &SceneDocument, key: &str| doc.inspect().unwrap()[key].clone();
     let names = |doc: &SceneDocument| doc.scene().objects.iter().map(|object| object.name.clone()).collect::<Vec<_>>();
-    doc.execute("add.cube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
     let checkpoint = kition_kit::session::__snapshot(&doc).unwrap();
     doc.execute("object.translate", json!({ "objects": "A", "offset": [1, 0, 0] })).unwrap();
     let moved = label(&doc, "undo");

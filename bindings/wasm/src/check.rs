@@ -90,7 +90,7 @@ pub fn check(scene: &Scene) -> Vec<Diagnostic> {
     match scene.camera {
         None if !visible_meshes.is_empty() => warnings.push(
             Diagnostic::new("scene.noCamera", Severity::Warning, "The scene has no camera, so it cannot be rendered")
-                .fix("add.camera", Some(json!({ "location": [7.36, -6.93, 4.96], "rotation": [63.6, 0, 46.7] }))),
+                .fix("object.addCamera", Some(json!({ "location": [7.36, -6.93, 4.96], "rotation": [63.6, 0, 46.7] }))),
         ),
         Some(camera) => {
             if let Some(view) = kition_scene_raster::view::camera_view(scene, camera) {
@@ -118,7 +118,7 @@ pub fn check(scene: &Scene) -> Vec<Diagnostic> {
     if !lights && !visible_meshes.is_empty() && scene.world.strength * scene.world.color.max_element() < 0.2 {
         warnings.push(
             Diagnostic::new("scene.noLight", Severity::Warning, "Nothing lights the scene, so renders come out dark")
-                .fix("add.light", Some(json!({ "kind": "sun", "rotation": [40, 0, 30] }))),
+                .fix("object.addLight", Some(json!({ "kind": "sun", "rotation": [40, 0, 30] }))),
         );
     }
     for object in &scene.objects {

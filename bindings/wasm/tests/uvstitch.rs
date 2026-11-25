@@ -47,7 +47,7 @@ fn unwrap_methods_and_stitching_two_islands() {
     let stitched = run(&mut doc, "uv.stitch", json!({}));
     assert_eq!(stitched["edges"], 1);
     // On the two faces of that edge the corners now meet; seams stay marked.
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     let layout = run(&mut doc, "uv.layout", json!({}));
     assert_eq!(layout["seams"].as_array().unwrap().len(), 12);
     let faces: Vec<&Value> = layout["faces"]
@@ -71,7 +71,7 @@ fn unwrap_methods_and_stitching_two_islands() {
     // Nothing between islands to stitch now: refused, nothing changed.
     run(&mut doc, "mesh.select", json!({ "vertices": [0, 1] }));
     assert!(doc.execute("uv.stitch", json!({})).is_err());
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.undo", json!({}));
     assert!(corners_at(&mut doc, 0).len() >= 3);
 }

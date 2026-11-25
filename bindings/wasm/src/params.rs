@@ -236,7 +236,7 @@ fn names_ids(node: &Value) -> bool {
 }
 
 /// A command's parameters: its `ParameterSchemaSpec`, or the `properties` of a JSON Schema
-/// object. A parameter itself named `properties` (`anim.insertKey`'s) is no JSON Schema's: taking
+/// object. A parameter itself named `properties` (`animation.insertKey`'s) is no JSON Schema's: taking
 /// it for one hid the command's `objects` from its object parameters (C8-scene-read).
 pub fn parameters(schema: &Value) -> &Value {
     match schema.get("properties") {

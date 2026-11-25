@@ -82,12 +82,12 @@ fn scene_with_history() -> SceneDocument {
 fn scene_with_history_made_at() -> (SceneDocument, Version) {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
     let made_at = version(&doc);
-    doc.execute("add.text", json!({ "name": "Words", "body": "Kept", "location": [0, 4, 0] })).unwrap();
+    doc.execute("object.addText", json!({ "name": "Words", "body": "Kept", "location": [0, 4, 0] })).unwrap();
     doc.execute("text.insert", json!({ "object": "Words", "text": TYPED_THEN_DELETED })).unwrap();
     doc.execute("text.set", json!({ "object": "Words", "body": "Kept" })).unwrap();
-    doc.execute("add.cube", json!({ "name": DELETED_OBJECT, "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": DELETED_OBJECT, "location": [3, 0, 0] })).unwrap();
     doc.execute("edit.delete", json!({ "objects": [DELETED_OBJECT] })).unwrap();
-    doc.execute("add.cube", json!({ "name": OVERWRITTEN, "location": [-3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": OVERWRITTEN, "location": [-3, 0, 0] })).unwrap();
     doc.execute("object.rename", json!({ "object": OVERWRITTEN, "name": "Kept" })).unwrap();
     assert_eq!(body(&doc, "Words"), "Kept");
     (doc, made_at)
@@ -147,7 +147,7 @@ fn a_file_opened_without_a_store_is_the_same_document_and_edits() {
     let kept = id(&back, "Kept");
     back.execute("object.rename", json!({ "object": kept, "name": "Edited" })).unwrap();
     back.execute("text.insert", json!({ "object": "Words", "text": "!" })).unwrap();
-    back.execute("add.cube", json!({ "name": "New", "location": [0, -4, 0] })).unwrap();
+    back.execute("object.addCube", json!({ "name": "New", "location": [0, -4, 0] })).unwrap();
     let saved = host_save(&mut back);
     let again = SceneDocument::open(FILE, &saved).unwrap();
     assert_eq!(again.doc_id(), doc.doc_id());
@@ -159,7 +159,7 @@ fn a_file_opened_without_a_store_is_the_same_document_and_edits() {
 #[test]
 fn undo_after_a_save_takes_back_the_last_edit() {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
-    doc.execute("add.cube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
+    doc.execute("object.addCube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
     let a = id(&doc, "A");
     doc.execute("object.translate", json!({ "objects": [a], "offset": [1, 0, 0] })).unwrap();
     host_save(&mut doc);
@@ -195,7 +195,7 @@ fn a_file_saved_elsewhere_opens_on_the_stored_replica_by_its_state() {
     let mut elsewhere = SceneDocument::open(FILE, &bytes).unwrap();
     let kept = id(&elsewhere, "Kept");
     elsewhere.execute("object.rename", json!({ "object": kept, "name": "Elsewhere" })).unwrap();
-    elsewhere.execute("add.cube", json!({ "name": "New", "location": [0, -4, 0] })).unwrap();
+    elsewhere.execute("object.addCube", json!({ "name": "New", "location": [0, -4, 0] })).unwrap();
     let edited = host_save(&mut elsewhere);
     let opened = SceneDocument::open_with_replica(FILE, &edited, &stored, &elsewhere.blobs_bundle()).unwrap();
     assert_eq!(opened.doc_id(), doc.doc_id());
@@ -228,7 +228,7 @@ fn two_sessions_that_open_the_same_file_and_save_without_editing_write_the_same_
         first.execute(command, params).unwrap_or_else(|error| panic!("{command}: {error}"));
     }
     for (command, params) in
-        [("view.top", json!({})), ("view.overlays", json!({ "on": false })), ("select.all", json!({})), ("frame.set", json!({ "frame": 7 }))]
+        [("view.top", json!({})), ("view.overlays", json!({ "on": false })), ("edit.selectAll", json!({})), ("frame.set", json!({ "frame": 7 }))]
     {
         second.execute(command, params).unwrap_or_else(|error| panic!("{command}: {error}"));
     }

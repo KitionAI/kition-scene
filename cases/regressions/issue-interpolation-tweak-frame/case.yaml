@@ -2,7 +2,7 @@ format: 1
 id: regressions/issue-interpolation-tweak-frame
 feature: scene.animation.timeline
 intent: >-
-  anim.setInterpolation in NLA tweak mode finds the key at the tweaked strip's action frame for a
+  animation.setInterpolation in NLA tweak mode finds the key at the tweaked strip's action frame for a
   scene `frame`, as insertKey and deleteKey place and find it (it does not compare the scene frame
   with the action's frames).
 layer: gate

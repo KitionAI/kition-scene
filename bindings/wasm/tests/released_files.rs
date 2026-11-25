@@ -17,14 +17,14 @@ fn run(doc: &mut SceneDocument, command: &str, params: Value) -> Value {
 fn a_released_file_takes_fields_constraints_and_density_groups() {
     let mut doc = SceneDocument::open("Room.kscene", RELEASED).unwrap();
     run(&mut doc, "physics.rigidBody.add", json!({ "objects": "Cube", "deactivation": true, "startDeactivated": true }));
-    run(&mut doc, "add.cube", json!({ "name": "Second", "size": 1, "location": [3, 0, 0] }));
+    run(&mut doc, "object.addCube", json!({ "name": "Second", "size": 1, "location": [3, 0, 0] }));
     run(&mut doc, "physics.rigidBody.add", json!({ "objects": "Second" }));
     run(&mut doc, "physics.constraint.connect", json!({ "objects": ["Cube", "Second"], "type": "hinge" }));
     run(&mut doc, "physics.field.new", json!({ "type": "turbulence", "strength": 2, "name": "Gust" }));
-    run(&mut doc, "add.grid", json!({ "name": "Sheet", "size": 2 }));
+    run(&mut doc, "object.addGrid", json!({ "name": "Sheet", "size": 2 }));
     run(&mut doc, "physics.cloth.add", json!({ "objects": "Sheet", "selfCollision": true }));
     run(&mut doc, "vertexGroup.add", json!({ "object": "Sheet", "name": "Dense" }));
-    run(&mut doc, "particles.add", json!({ "object": "Sheet", "densityGroup": "Dense" }));
+    run(&mut doc, "particle.add", json!({ "object": "Sheet", "densityGroup": "Dense" }));
 
     let saved = doc.save_file(None).unwrap();
     doc.mark_saved();
@@ -50,10 +50,10 @@ fn a_released_file_takes_physics_particles_and_node_groups() {
     let mut doc = SceneDocument::open("Room.kscene", RELEASED).unwrap();
     run(&mut doc, "physics.world.set", json!({ "gravity": [0, 0, -5] }));
     run(&mut doc, "physics.rigidBody.add", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.plane", json!({ "name": "Floor", "size": 10, "location": [0, 0, -2] }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Floor", "size": 10, "location": [0, 0, -2] }));
     run(&mut doc, "physics.collision.add", json!({ "objects": "Floor" }));
-    run(&mut doc, "particles.add", json!({ "object": "Floor", "kind": "hair" }));
-    run(&mut doc, "nodes.newGroup", json!({ "object": "Floor", "name": "Lift" }));
+    run(&mut doc, "particle.add", json!({ "object": "Floor", "kind": "hair" }));
+    run(&mut doc, "node.newGroup", json!({ "object": "Floor", "name": "Lift" }));
 
     let saved = doc.save_file(None).unwrap();
     doc.mark_saved();
@@ -101,15 +101,15 @@ fn released_files_take_a_compositing_group_and_keep_it() {
     for (version, bytes) in files {
         let mut doc = SceneDocument::open("Room.kscene", bytes).unwrap_or_else(|error| panic!("{version}: {error}"));
         let made = run(&mut doc, "compositor.new", json!({ "name": "Grade" }));
-        let glare = run(&mut doc, "nodes.addNode", json!({ "group": made["group"], "kind": "glare", "values": { "Type": "bloom" } }))["node"].clone();
+        let glare = run(&mut doc, "node.addNode", json!({ "group": made["group"], "kind": "glare", "values": { "Type": "bloom" } }))["node"].clone();
         run(
             &mut doc,
-            "nodes.link",
+            "node.link",
             json!({ "group": made["group"], "from": made["renderLayers"], "fromSocket": "Image", "to": glare, "toSocket": "Image" }),
         );
         run(
             &mut doc,
-            "nodes.link",
+            "node.link",
             json!({ "group": made["group"], "from": glare, "fromSocket": "Image", "to": made["output"], "toSocket": "Image" }),
         );
         let saved = doc.save_file(None).unwrap();

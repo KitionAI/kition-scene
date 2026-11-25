@@ -48,7 +48,7 @@ fn png_base64(value: u8) -> String {
 #[test]
 fn a_lattice_bends_a_mesh_and_the_file_keeps_it() {
     let mut doc = SceneDocument::create("Lattice.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.lattice", json!({ "resolution": 3, "scale": [2, 2, 2] }));
+    run(&mut doc, "object.addLattice", json!({ "resolution": 3, "scale": [2, 2, 2] }));
     let lattice = object(&doc, "Lattice");
     assert_eq!(lattice["type"], "lattice");
     assert_eq!(lattice["lattice"]["pointCount"], 27);
@@ -82,11 +82,11 @@ fn a_lattice_bends_a_mesh_and_the_file_keeps_it() {
 fn lattice_edit_mode_selects_and_drags_points() {
     let mut doc = SceneDocument::create("Edit.kscene", 1280, 720).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.lattice", json!({}));
+    run(&mut doc, "object.addLattice", json!({}));
     run(&mut doc, "mode.shape", json!({}));
     assert_eq!(doc.inspect().unwrap()["mode"]["mode"], "latticeEdit");
-    assert!(doc.execute("add.cube", json!({})).is_err(), "objects wait for object mode");
-    run(&mut doc, "select.all", json!({}));
+    assert!(doc.execute("object.addCube", json!({})).is_err(), "objects wait for object mode");
+    run(&mut doc, "edit.selectAll", json!({}));
     assert_eq!(doc.inspect().unwrap()["mode"]["points"].as_array().unwrap().len(), 8);
     run(&mut doc, "lattice.select", json!({ "points": [7] }));
     run(&mut doc, "lattice.movePoints", json!({ "offset": [0.5, 0, 0] }));
@@ -122,7 +122,7 @@ fn lattice_edit_mode_selects_and_drags_points() {
 #[test]
 fn shrinkwrap_decimate_and_an_image_displace_through_commands() {
     let mut doc = SceneDocument::create("Mods.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.uvSphere", json!({ "name": "Ball", "radius": 1.5 }));
+    run(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "radius": 1.5 }));
     run(&mut doc, "modifier.add", json!({ "object": "Ball", "type": "shrinkwrap", "operand": "Cube" }));
     let size = dimensions(&doc, "Ball");
     assert!(size.iter().all(|side| (side - 2.0).abs() < 1e-3), "onto the cube: {size:?}");
@@ -145,7 +145,7 @@ fn shrinkwrap_decimate_and_an_image_displace_through_commands() {
     assert!(doc.execute("modifier.set", json!({ "object": "Cube", "index": 0, "iterations": 99 })).is_err());
 
     // Displace by an image: white pushes out by strength × (1 − mid level).
-    run(&mut doc, "add.plane", json!({ "name": "Ground", "size": 2, "location": [5, 0, 0] }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Ground", "size": 2, "location": [5, 0, 0] }));
     run(&mut doc, "modifier.add", json!({ "object": "Ground", "type": "displace", "strength": 1 }));
     let set = run(&mut doc, "modifier.setImage", json!({ "object": "Ground", "index": 0, "base64": png_base64(255), "imageName": "White.png" }));
     assert_eq!((set["width"].as_u64(), set["height"].as_u64()), (Some(2), Some(2)));
@@ -167,10 +167,10 @@ fn released_files_take_lattices_and_the_new_modifiers() {
         [("0.7.0", &include_bytes!("fixtures/released-0.7.0.kscene")[..]), ("0.8.0", &include_bytes!("fixtures/released-0.8.0.kscene")[..])]
     {
         let mut doc = SceneDocument::open("Room.kscene", bytes).unwrap();
-        run(&mut doc, "add.lattice", json!({ "name": "Cage", "resolution": [2, 3, 2], "scale": [3, 3, 3] }));
+        run(&mut doc, "object.addLattice", json!({ "name": "Cage", "resolution": [2, 3, 2], "scale": [3, 3, 3] }));
         run(&mut doc, "lattice.movePoints", json!({ "object": "Cage", "points": [11], "offset": [0.2, 0, 0] }));
         run(&mut doc, "modifier.add", json!({ "object": "Cube", "type": "lattice", "operand": "Cage" }));
-        run(&mut doc, "add.uvSphere", json!({ "name": "Wrapped", "location": [4, 0, 0] }));
+        run(&mut doc, "object.addUvSphere", json!({ "name": "Wrapped", "location": [4, 0, 0] }));
         run(&mut doc, "modifier.add", json!({ "object": "Wrapped", "type": "shrinkwrap", "operand": "Cube" }));
         run(&mut doc, "modifier.add", json!({ "object": "Wrapped", "type": "decimate", "mode": "unsubdivide", "iterations": 1 }));
         let saved = doc.save_file(None).unwrap();

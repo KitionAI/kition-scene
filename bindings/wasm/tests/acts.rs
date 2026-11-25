@@ -3,7 +3,7 @@
 //! reading it, not what descriptions say. Each command's code is found in the kit's sources (the
 //! match arms and `command == "…"` branches that name it, with the code before them in the same
 //! function, and the `Needs` gate its spec names), and followed through the kit's functions, the
-//! document's methods and the commands it runs (`run_view(doc, "select.all", …)`) to the
+//! document's methods and the commands it runs (`run_view(doc, "edit.selectAll", …)`) to the
 //! accessors of the selection and active object, of the current frame, and of the mode and the
 //! edited mesh's selected elements. A command that reaches one and does not declare it, or declares
 //! what it never reads, fails here (task card C4-scene). The commands are the ones the document's
@@ -24,7 +24,7 @@ const SELECTION: &[&str] = &["editor.selected", "editor.active"];
 /// the scan cannot follow: the viewport picture a sculpt finds its surface in (`picture(doc)`, drawn
 /// at the current frame), Cryptomatte's names under a point of the scene as it stands
 /// (`passes::names_at`), a particle system baked at the current frame (`particles::realize(&only`,
-/// `particles.convert`), and imported objects taking their values at the current frame
+/// `particle.convert`), and imported objects taking their values at the current frame
 /// (`kition_scene_exchange::place`).
 const TIME: &[&str] = &[
     "timeline.frame",
@@ -76,7 +76,7 @@ const DISPATCH: &[&str] = &[
 const ROUTES: &[(&str, &str, &str)] = &[
     ("lattice.select", "commands_lattice", "select"),
     ("compositor.preview", "commands_compositor", "preview"),
-    ("nodes.describe", "commands_nodes", "describe"),
+    ("node.describe", "commands_nodes", "describe"),
     ("graph.removeModifier", "commands_nla", "modifiers"),
     // The projections `run` maps to a `Projection` (`"uv.cubeProject" => Some(Projection::Cube)`)
     // and gives the meshes `uv_targets` chooses.
@@ -309,7 +309,7 @@ fn reach(code: &[u8], source: &str, commands: &BTreeSet<String>) -> Reach {
             } else {
                 found.calls.insert((None, name.clone()));
             }
-            // `run_view(doc, "select.all", …)`: the command runs another, and reads what it reads.
+            // `run_view(doc, "edit.selectAll", …)`: the command runs another, and reads what it reads.
             if code.get(after) == Some(&b'(') {
                 let args = &source[after + 1..];
                 let args = args.trim_start();

@@ -21,7 +21,7 @@ try {
   run('sculpt.stroke', { kind: 'inflate', points: [[0, 0, 0.7]], worldRadius: 1, strength: 0.5 })
   run('mode.set', { mode: 'object' })
   run('physics.rigidBody.add', { objects: 'Cube', mass: 2 })
-  run('add.cube', { name: 'Anchor', size: 1, location: [5, 0, 0] })
+  run('object.addCube', { name: 'Anchor', size: 1, location: [5, 0, 0] })
   run('physics.rigidBody.add', { objects: 'Anchor', type: 'passive' })
   run('physics.world.set', { gravity: [0, 0, 0], frameEnd: 12 })
   run('select.objects', { objects: 'Cube' })

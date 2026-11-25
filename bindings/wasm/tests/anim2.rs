@@ -25,7 +25,7 @@ fn reopen(doc: &mut SceneDocument) -> SceneDocument {
 #[test]
 fn drivers_follow_their_sources_and_survive_saving() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.empty", json!({ "name": "Handle", "location": [1, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Handle", "location": [1, 0, 0] }));
     run(
         &mut doc,
         "driver.add",
@@ -47,8 +47,8 @@ fn drivers_follow_their_sources_and_survive_saving() {
     assert_eq!(drivers[0]["variables"][0]["channel"], "locationX");
     assert!((number(&drivers[0]["value"]) - 6.5).abs() < 1e-4);
     // A driven property takes no keys, and a keyed one is not driven over its keys.
-    assert!(doc.execute("anim.insertKey", json!({ "objects": "Cube", "properties": ["location"] })).is_err());
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Handle", "properties": ["location"] }));
+    assert!(doc.execute("animation.insertKey", json!({ "objects": "Cube", "properties": ["location"] })).is_err());
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Handle", "properties": ["location"] }));
     assert!(doc.execute("driver.add", json!({ "object": "Handle", "property": "location", "index": 0 })).is_err());
     // A broken expression is refused; the driver stays as it was.
     assert!(doc.execute("driver.set", json!({ "object": "Cube", "property": "location", "index": 2, "expression": "h *" })).is_err());
@@ -81,17 +81,17 @@ fn keying_sets_choose_what_insert_keyframe_keys() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
     run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
     run(&mut doc, "keyingSet.setActive", json!({ "name": "locRot" }));
-    run(&mut doc, "anim.insertKey", json!({}));
+    run(&mut doc, "animation.insertKey", json!({}));
     let properties = |doc: &SceneDocument| object(&doc.inspect().unwrap(), "Cube")["animated"].clone();
     assert_eq!(properties(&doc), json!(["location", "rotation"]));
     // Available keys only what is keyed already.
-    run(&mut doc, "anim.insertKey", json!({ "keyingSet": "available", "frame": 10 }));
+    run(&mut doc, "animation.insertKey", json!({ "keyingSet": "available", "frame": 10 }));
     assert_eq!(doc.inspect().unwrap()["animation"]["keyFrames"], json!([1.0, 10.0]));
     // A set of the scene's own: the light's power, whatever is selected.
     let made = run(&mut doc, "keyingSet.new", json!({ "name": "Lighting" }));
     assert_eq!(made["name"], "Lighting");
     run(&mut doc, "keyingSet.addPaths", json!({ "objects": "Light", "properties": ["power", "color"] }));
-    run(&mut doc, "anim.insertKey", json!({ "frame": 5 }));
+    run(&mut doc, "animation.insertKey", json!({ "frame": 5 }));
     let light = object(&doc.inspect().unwrap(), "Light")["animated"].clone();
     assert_eq!(light, json!(["power", "color"]));
     let sets = doc.inspect().unwrap()["animation"]["keyingSets"].clone();
@@ -108,7 +108,7 @@ fn keying_sets_choose_what_insert_keyframe_keys() {
     assert!(doc.inspect().unwrap()["animation"]["keyingSets"]["active"].is_null());
 
     // Whole Character keys every bone of an armature in pose mode.
-    run(&mut doc, "add.armature", json!({ "name": "Rig" }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig" }));
     run(&mut doc, "mode.armature", json!({}));
     run(&mut doc, "bone.select", json!({ "bones": "Bone" }));
     run(&mut doc, "bone.extrude", json!({}));
@@ -122,21 +122,21 @@ fn keying_sets_choose_what_insert_keyframe_keys() {
 #[test]
 fn actions_stash_assign_and_play_through_a_constraint() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 }));
     run(&mut doc, "object.transform", json!({ "objects": "Cube", "location": [0, 0, 4] }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 11 }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 11 }));
     let made = run(&mut doc, "action.new", json!({ "name": "Rise", "object": "Cube" }));
     assert_eq!(made["channels"], 3);
     // Another object takes the action's keys.
-    run(&mut doc, "add.empty", json!({ "name": "Twin", "location": [5, 0, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Twin", "location": [5, 0, 0] }));
     run(&mut doc, "action.assign", json!({ "objects": "Twin", "action": "Rise" }));
     run(&mut doc, "frame.set", json!({ "frame": 11 }));
     assert!((number(&object(&doc.inspect().unwrap(), "Twin")["location"][2]) - 4.0).abs() < 1e-4);
     run(&mut doc, "frame.set", json!({ "frame": 1 }));
 
     // An Action constraint plays it from a handle's height: half way up at 0.5.
-    run(&mut doc, "add.empty", json!({ "name": "Handle", "location": [0, 3, 0.5] }));
-    run(&mut doc, "add.empty", json!({ "name": "Puppet", "location": [0, -3, 0] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Handle", "location": [0, 3, 0.5] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Puppet", "location": [0, -3, 0] }));
     run(
         &mut doc,
         "constraint.add",
@@ -158,7 +158,7 @@ fn actions_stash_assign_and_play_through_a_constraint() {
 #[test]
 fn the_new_constraints_through_commands() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
-    run(&mut doc, "add.empty", json!({ "name": "Goal", "location": [0, 0, 6] }));
+    run(&mut doc, "object.addEmpty", json!({ "name": "Goal", "location": [0, 0, 6] }));
     // Stretch To takes the distance now as its rest length, then stretches.
     run(&mut doc, "constraint.add", json!({ "object": "Cube", "type": "stretchTo", "target": "Goal" }));
     let cube = object(&doc.inspect().unwrap(), "Cube").clone();
@@ -195,7 +195,7 @@ fn the_new_constraints_through_commands() {
     assert!(doc.execute("constraint.add", json!({ "object": "Cube", "type": "splineIk" })).is_err());
 
     // Armature: the cube follows a bone like a skinned vertex, and with dual quaternions.
-    run(&mut doc, "add.armature", json!({ "name": "Rig", "location": [3, 0, 0] }));
+    run(&mut doc, "object.addArmature", json!({ "name": "Rig", "location": [3, 0, 0] }));
     run(
         &mut doc,
         "constraint.add",
@@ -213,7 +213,7 @@ fn the_new_constraints_through_commands() {
     assert_eq!(armature["targets"][0]["bone"], "Bone");
 
     // Spline IK on a bone along a path curve.
-    run(&mut doc, "add.curvePath", json!({ "name": "Path", "location": [0, 5, 0] }));
+    run(&mut doc, "object.addCurvePath", json!({ "name": "Path", "location": [0, 5, 0] }));
     run(&mut doc, "constraint.add", json!({ "object": "Rig", "bone": "Bone", "type": "splineIk", "target": "Path", "chain": 1 }));
     assert!(doc.execute("constraint.set", json!({ "object": "Rig", "bone": "Bone", "index": 0, "target": "Cube" })).is_err(), "a curve only");
     let bones = run(&mut doc, "file.export", json!({ "format": "glb" }));
@@ -229,14 +229,14 @@ fn the_new_constraints_through_commands() {
 fn the_armature_modifier_blends_dual_quaternions_on_request() {
     let mut doc = SceneDocument::create("A.kscene", 1280, 720).unwrap();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.cylinder", json!({ "name": "Column", "vertices": 8, "radius": 0.2, "depth": 2, "location": [0, 0, 1] }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Column", "vertices": 8, "radius": 0.2, "depth": 2, "location": [0, 0, 1] }));
     run(&mut doc, "select.objects", json!({ "objects": "Column" }));
     run(&mut doc, "mode.toggle", json!({}));
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "mesh.subdivide", json!({}));
     run(&mut doc, "mesh.subdivide", json!({}));
     run(&mut doc, "mode.toggle", json!({}));
-    run(&mut doc, "add.armature", json!({}));
+    run(&mut doc, "object.addArmature", json!({}));
     run(&mut doc, "mode.armature", json!({}));
     run(&mut doc, "bone.select", json!({ "bones": "Bone" }));
     run(&mut doc, "bone.extrude", json!({}));
@@ -264,7 +264,7 @@ fn a_released_090_file_takes_drivers_actions_and_keying_sets() {
     let mut doc = SceneDocument::open("Room.kscene", include_bytes!("fixtures/released-0.9.0-rig.kscene")).unwrap();
     run(&mut doc, "keyingSet.new", json!({ "name": "Mine" }));
     run(&mut doc, "keyingSet.addPaths", json!({ "objects": "Ball" }));
-    run(&mut doc, "anim.insertKey", json!({ "objects": "Ball", "properties": ["location"] }));
+    run(&mut doc, "animation.insertKey", json!({ "objects": "Ball", "properties": ["location"] }));
     run(&mut doc, "action.new", json!({ "name": "Bounce", "object": "Ball" }));
     run(&mut doc, "driver.add", json!({ "object": "Cube", "property": "scale", "index": 0, "expression": "2" }));
     run(&mut doc, "constraint.add", json!({ "object": "Rig", "bone": "Bone", "type": "stretchTo", "target": "Ball", "volume": "none" }));

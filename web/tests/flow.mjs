@@ -164,7 +164,7 @@ try {
 
   await kit.getByTestId('scene-menu-Add').click()
   await kit.locator('[role="menuitem"][data-kit-ui-id="menu:Add/Mesh"]').hover()
-  await kit.getByTestId('scene-cmd-add.uvSphere').click()
+  await kit.getByTestId('scene-cmd-object.addUvSphere').click()
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"]').count()) === 1)
   step('Add ▸ Mesh ▸ UV Sphere adds a sphere', (await kit.locator('[data-testid="scene-outliner-item"][data-name="Sphere"]').count()) === 1)
   // Delete removes what the outliner selected, as in Blender, while the outliner row keeps the focus.
@@ -279,7 +279,7 @@ try {
   step('O turns proportional editing off', (await details()).mode.proportional == null)
   // The UV editor beside the viewport: a click inside a face selects its island, and a drag on
   // the selection moves its coordinates in one step.
-  await frame.evaluate(() => window.kitScene.run([{ command: 'select.all', params: { action: 'deselect' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'edit.selectAll', params: { action: 'deselect' } }]))
   await kit.getByTestId('scene-uv-toggle').click()
   await until(async () => (await kit.locator('.scene-uv-face').count()) > 0)
   step('the UV editor shows the faces', (await kit.locator('.scene-uv-face').count()) === (await edited())?.mesh?.faces)
@@ -331,7 +331,7 @@ try {
   await kit.getByTestId('scene-uv-close').click()
   await until(async () => (await kit.getByTestId('scene-uv-editor').count()) === 0)
   // The knife across the middle of the view, confirmed with Enter.
-  await frame.evaluate(() => window.kitScene.run([{ command: 'select.all', params: {} }, { command: 'view.frameSelected', params: {} }, { command: 'select.all', params: { action: 'deselect' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'edit.selectAll', params: {} }, { command: 'view.frameSelected', params: {} }, { command: 'edit.selectAll', params: { action: 'deselect' } }]))
   const facesBefore = (await edited())?.mesh?.faces
   const area = await kit.getByTestId('scene-viewport').boundingBox()
   await kit.getByTestId('scene-viewport').hover()
@@ -494,7 +494,7 @@ try {
   // with automatic weights, a bone posed and keyed, and its curve in the graph editor.
   await frame.evaluate(() => window.kitScene.run([{ command: 'view.shading', params: { mode: 'solid' } }, { command: 'frame.set', params: { frame: 1 } }]))
   await kit.getByTestId('scene-menu-Add').click()
-  await kit.getByTestId('scene-cmd-add.armature').click()
+  await kit.getByTestId('scene-cmd-object.addArmature').click()
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="Armature"]').count()) === 1)
   step('Add ▸ Armature adds an armature', (await object('Armature'))?.armature?.bones?.length === 1)
   // The editor knows the armature is active once its bones show.
@@ -613,7 +613,7 @@ try {
   // with E in its edit mode, a text typed into in the viewport, and the text made a mesh.
   await kit.getByTestId('scene-menu-Add').click()
   await kit.locator('[role="menuitem"][data-kit-ui-id="menu:Add/Curve"]').hover()
-  await kit.getByTestId('scene-cmd-add.curveBezier').click()
+  await kit.getByTestId('scene-cmd-object.addCurveBezier').click()
   await until(async () => (await kit.locator('[data-testid="scene-outliner-item"][data-name="BezierCurve"]').count()) === 1)
   step('Add ▸ Curve ▸ Bezier adds a curve', (await object('BezierCurve'))?.type === 'curve')
   const bevel = kit.getByTestId('scene-curve-bevel').locator('input')
@@ -635,7 +635,7 @@ try {
   await until(async () => (await details()).mode.mode === 'object')
   step('Tab leaves the curve', (await details()).mode.mode === 'object')
   await kit.getByTestId('scene-menu-Add').click()
-  await kit.getByTestId('scene-cmd-add.text').click()
+  await kit.getByTestId('scene-cmd-object.addText').click()
   await until(async () => (await object('Text'))?.type === 'text')
   step('Add ▸ Text adds a text', (await object('Text'))?.text?.body === 'Text')
   await kit.getByTestId('scene-text').waitFor()
@@ -662,7 +662,7 @@ try {
   // the mask protecting it.
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.grid', params: { name: 'Clay', xSubdivisions: 60, ySubdivisions: 60, size: 2, location: [12, 12, 0] } },
+      { command: 'object.addGrid', params: { name: 'Clay', xSubdivisions: 60, ySubdivisions: 60, size: 2, location: [12, 12, 0] } },
       { command: 'view.top', params: {} },
       { command: 'view.frameSelected', params: {} },
     ]),
@@ -745,7 +745,7 @@ try {
   // and a stroke in sculpt mode shaping level 2 while the base keeps its eight vertices.
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.cube', params: { name: 'Lump', location: [-12, 12, 0] } },
+      { command: 'object.addCube', params: { name: 'Lump', location: [-12, 12, 0] } },
       { command: 'view.frameSelected', params: {} },
     ]),
   )
@@ -781,8 +781,8 @@ try {
   }
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.plane', params: { name: 'Floor', size: 6, location: [-12, -12, 0] } },
-      { command: 'add.cube', params: { name: 'Faller', size: 1, location: [-12, -12, 3] } },
+      { command: 'object.addPlane', params: { name: 'Floor', size: 6, location: [-12, -12, 0] } },
+      { command: 'object.addCube', params: { name: 'Faller', size: 1, location: [-12, -12, 3] } },
       { command: 'select.objects', params: { objects: 'Floor' } },
     ]),
   )
@@ -830,8 +830,8 @@ try {
   step('the rigid body card sets deactivation and starting asleep', (await physicsOf('Faller'))?.rigidBody?.startDeactivated === true)
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.empty', params: { name: 'Gust', location: [-14, -12, 1] } },
-      { command: 'add.empty', params: { name: 'Joint', location: [-12, -12, 4], rotation: [90, 0, 0] } },
+      { command: 'object.addEmpty', params: { name: 'Gust', location: [-14, -12, 1] } },
+      { command: 'object.addEmpty', params: { name: 'Joint', location: [-12, -12, 4], rotation: [90, 0, 0] } },
       { command: 'select.objects', params: { objects: 'Gust' } },
     ]),
   )
@@ -878,7 +878,7 @@ try {
   // pointer stroke (one undo step), and Particle Edit left from its tool header.
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.uvSphere', params: { name: 'Furball', location: [-12, 12, 0] } },
+      { command: 'object.addUvSphere', params: { name: 'Furball', location: [-12, 12, 0] } },
       { command: 'view.front', params: {} },
       { command: 'view.frameSelected', params: {} },
     ]),
@@ -916,7 +916,7 @@ try {
   // it back).
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.cube', params: { name: 'Nodes', location: [-12, -12, 0] } },
+      { command: 'object.addCube', params: { name: 'Nodes', location: [-12, -12, 0] } },
       { command: 'select.objects', params: { objects: ['Nodes'] } },
     ]),
   )
@@ -976,15 +976,15 @@ try {
   // repeat zone comes from the add menu as a pair in a frame, and an item added on its output
   // shows on both of its nodes.
   const outerId = (await nodeGroup()).id
-  await frame.evaluate(() => window.kitScene.run([{ command: 'nodes.newGroup', params: { name: 'Inner' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'node.newGroup', params: { name: 'Inner' } }]))
   await until(async () => (await details()).nodeGroups?.length === 2)
   const innerGroup = (await details()).nodeGroups.find((group) => group.name === 'Inner')
   await frame.evaluate(
     ([inner, outer]) =>
       window.kitScene.run([
-        { command: 'nodes.addInput', params: { group: inner, name: 'Height', type: 'float', default: 1 } },
-        { command: 'nodes.addOutput', params: { group: inner, name: 'Lift', type: 'float' } },
-        { command: 'nodes.addNode', params: { group: outer, kind: 'group', location: [0, 260], values: { group: inner } } },
+        { command: 'node.addInput', params: { group: inner, name: 'Height', type: 'float', default: 1 } },
+        { command: 'node.addOutput', params: { group: inner, name: 'Lift', type: 'float' } },
+        { command: 'node.addNode', params: { group: outer, kind: 'group', location: [0, 260], values: { group: inner } } },
       ]),
     [innerGroup.id, outerId],
   )
@@ -1148,13 +1148,13 @@ try {
   // its points dragged in lattice edit mode), shrinkwrapped onto, and decimated by its panel.
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.cube', params: { name: 'Caged', location: [12, -12, 0] } },
+      { command: 'object.addCube', params: { name: 'Caged', location: [12, -12, 0] } },
       { command: 'select.objects', params: { objects: ['Caged'] } },
     ]),
   )
   await until(async () => (await object('Caged'))?.type === 'mesh')
   await kit.getByTestId('scene-menu-Add').click()
-  await kit.getByTestId('scene-cmd-add.lattice').click()
+  await kit.getByTestId('scene-cmd-object.addLattice').click()
   await until(async () => (await object('Lattice'))?.type === 'lattice')
   step('the Add menu adds a lattice', (await object('Lattice'))?.lattice?.pointCount === 8 && (await kit.getByTestId('scene-lattice').count()) === 1)
   await kit.getByTestId('scene-lattice-u').locator('input').fill('3')
@@ -1202,7 +1202,7 @@ try {
   await page.keyboard.press('w')
   await frame.evaluate(() =>
     window.kitScene.run([
-      { command: 'add.uvSphere', params: { name: 'Wrapped', location: [12, -12, 0], radius: 2 } },
+      { command: 'object.addUvSphere', params: { name: 'Wrapped', location: [12, -12, 0], radius: 2 } },
       { command: 'select.objects', params: { objects: ['Wrapped'] } },
     ]),
   )
@@ -1228,7 +1228,7 @@ try {
   if (process.env.KITION_SCENE_SNAPSHOT && which === 'chromium') await page.screenshot({ path: process.env.KITION_SCENE_SNAPSHOT.replace(/\.png$/, '-lattice.png') })
 
   // Drivers, keying sets, actions, and Stretch To from the panels.
-  await frame.evaluate(() => window.kitScene.run([{ command: 'add.empty', params: { name: 'Knob', location: [2, 0, 0] } }, { command: 'select.objects', params: { objects: 'Caged' } }]))
+  await frame.evaluate(() => window.kitScene.run([{ command: 'object.addEmpty', params: { name: 'Knob', location: [2, 0, 0] } }, { command: 'select.objects', params: { objects: 'Caged' } }]))
   await kit.getByTestId('scene-drivers').waitFor()
   await kit.getByTestId('scene-add-driver').click()
   await kit.getByTestId('scene-add-driver-location-2').click()
@@ -1342,27 +1342,27 @@ try {
       return canvas.toDataURL('image/png').split(',')[1]
     })
     await gpuDraws('a point light’s shadows', [
-      { command: 'select.all', params: {} },
+      { command: 'edit.selectAll', params: {} },
       { command: 'object.hide', params: {} },
-      { command: 'add.plane', params: { name: 'Stage', size: 12, location: [40, 0, 0] } },
-      { command: 'add.cube', params: { name: 'Block', location: [40, 0, 1] } },
-      { command: 'add.uvSphere', params: { name: 'Ball', location: [42.5, 1, 0.8], radius: 0.8 } },
-      { command: 'add.light', params: { name: 'Bulb', kind: 'point', power: 300, location: [37, -3, 5] } },
+      { command: 'object.addPlane', params: { name: 'Stage', size: 12, location: [40, 0, 0] } },
+      { command: 'object.addCube', params: { name: 'Block', location: [40, 0, 1] } },
+      { command: 'object.addUvSphere', params: { name: 'Ball', location: [42.5, 1, 0.8], radius: 0.8 } },
+      { command: 'object.addLight', params: { name: 'Bulb', kind: 'point', power: 300, location: [37, -3, 5] } },
       { command: 'select.objects', params: { objects: ['Stage'] } },
       { command: 'view.frameSelected', params: {} },
       { command: 'view.orbit', params: { tilt: -15 } },
       { command: 'view.shading', params: { mode: 'material' } },
     ])
     await gpuDraws('a spot light’s and a sun’s shadows', [
-      { command: 'add.light', params: { name: 'Spot', kind: 'spot', power: 500, location: [44, -4, 6], rotation: [35, 0, 45] } },
-      { command: 'add.light', params: { name: 'Sun', kind: 'sun', power: 1, location: [40, 0, 8], rotation: [30, 15, -40] } },
+      { command: 'object.addLight', params: { name: 'Spot', kind: 'spot', power: 500, location: [44, -4, 6], rotation: [35, 0, 45] } },
+      { command: 'object.addLight', params: { name: 'Sun', kind: 'sun', power: 1, location: [40, 0, 8], rotation: [30, 15, -40] } },
     ])
     await gpuDraws('a world image', [
       { command: 'object.hide', params: { objects: ['Bulb', 'Spot', 'Sun'] } },
       { command: 'world.setImage', params: { base64: sky, name: 'Sky.png', strength: 0.8 } },
     ])
     await gpuDraws('the view through a camera', [
-      { command: 'add.camera', params: { name: 'Lens', location: [46, -8, 4], rotation: [70, 0, 35] } },
+      { command: 'object.addCamera', params: { name: 'Lens', location: [46, -8, 4], rotation: [70, 0, 35] } },
       { command: 'object.setCamera', params: { object: 'Lens' } },
       { command: 'view.camera', params: {} },
     ])
@@ -1396,16 +1396,16 @@ try {
     ])
     await gpuDraws('hair', [
       { command: 'mode.weightPaint', params: {} },
-      { command: 'particles.add', params: { kind: 'hair', hairLength: 0.4, count: 300 } },
+      { command: 'particle.add', params: { kind: 'hair', hairLength: 0.4, count: 300 } },
     ])
     await gpuDraws('armature edit mode’s bones', [
-      { command: 'add.armature', params: { name: 'Bones', location: [41.5, 0, 2] } },
+      { command: 'object.addArmature', params: { name: 'Bones', location: [41.5, 0, 2] } },
       { command: 'view.frameSelected', params: {} },
       { command: 'mode.armature', params: {} },
     ])
     await gpuDraws('curve edit mode’s points and handles', [
       { command: 'mode.armature', params: {} },
-      { command: 'add.curveBezier', params: { name: 'Track', location: [39, 0, 2] } },
+      { command: 'object.addCurveBezier', params: { name: 'Track', location: [39, 0, 2] } },
       { command: 'view.frameSelected', params: {} },
       { command: 'mode.shape', params: {} },
     ])
@@ -1413,7 +1413,7 @@ try {
     await until(async () => (await details()).mode.mode === 'object')
     // The view framed on the cube that draws the bone, set where the bone stands, then hidden.
     await gpuDraws('a custom bone shape’s faces and edges', [
-      { command: 'add.cube', params: { name: 'Knot', size: 1, location: [41.5, 0, 2.5] } },
+      { command: 'object.addCube', params: { name: 'Knot', size: 1, location: [41.5, 0, 2.5] } },
       { command: 'view.frameSelected', params: {} },
       { command: 'view.orbit', params: { tilt: -15 } },
       { command: 'object.hide', params: { objects: ['Knot'] } },

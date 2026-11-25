@@ -10,7 +10,7 @@ fn main() -> Result<(), String> {
     let mut doc = SceneDocument::create("Bench.kscene", 1280, 720)?;
     doc.execute("edit.delete", json!({ "objects": "Cube" }))?;
     let start = std::time::Instant::now();
-    doc.execute("add.grid", json!({ "name": "Clay", "xSubdivisions": 446, "ySubdivisions": 446, "size": 2 }))?;
+    doc.execute("object.addGrid", json!({ "name": "Clay", "xSubdivisions": 446, "ySubdivisions": 446, "size": 2 }))?;
     println!("add a 200k-vertex grid: {:.0} ms", start.elapsed().as_secs_f64() * 1000.0);
     doc.execute("mode.sculpt", json!({}))?;
     for (kind, radius) in [("draw", 0.1), ("clayStrips", 0.1), ("smooth", 0.1), ("grab", 0.2)] {

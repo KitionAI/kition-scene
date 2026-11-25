@@ -16,12 +16,12 @@ try {
   const run = (command, params = {}) => JSON.parse(doc.execute(command, JSON.stringify(params)))
   run('render.set', { width: 200, height: 320 })
   run('camera.set', { object: 'Camera', lens: 43, sensor: 32, clipStart: 0.2, clipEnd: 120 })
-  run('add.camera', { name: 'Ortho', location: [4, -6, 3] })
+  run('object.addCamera', { name: 'Ortho', location: [4, -6, 3] })
   run('camera.set', { object: 'Ortho', orthographic: true, orthoScale: 7 })
   run('object.lookAt', { object: 'Ortho', target: [0, 0, 0] })
-  run('particles.add', { object: 'Cube', kind: 'emitter', name: 'Flight', count: 6, frameStart: 1,
+  run('particle.add', { object: 'Cube', kind: 'emitter', name: 'Flight', count: 6, frameStart: 1,
     frameEnd: 1, lifetime: 60, seed: 7, normalVelocity: 1, objectVelocity: [0.2, -0.1, 0.3], gravity: 0 })
-  run('add.empty', { name: 'Target', location: [4, 1, 2] })
+  run('object.addEmpty', { name: 'Target', location: [4, 1, 2] })
   run('select.objects', { objects: 'Cube' })
   run('frame.set', { frame: 12 })
   await writeFile(new URL('released-0.16.0.kscene', import.meta.url), doc.save())

@@ -77,8 +77,8 @@ fn main() -> Result<(), String> {
         ("check-zeroScale.kscene", scene(&[("object.transform", json!({ "objects": "Cube", "scale": [1, 1, 0] }))])?),
         ("check-nodesError.kscene", {
             let mut doc = SceneDocument::create("Scene.kscene", 1280, 720)?;
-            let made = doc.execute("nodes.newGroup", json!({ "object": "Cube" }))?;
-            doc.execute("nodes.removeNodes", json!({ "nodes": [made.get("output").cloned().unwrap_or_default()] }))?;
+            let made = doc.execute("node.newGroup", json!({ "object": "Cube" }))?;
+            doc.execute("node.removeNodes", json!({ "nodes": [made.get("output").cloned().unwrap_or_default()] }))?;
             doc.save_file(None)?
         }),
         ("check-emptyMesh.kscene", scene(&[("mesh.setGeometry", json!({ "object": "Cube", "positions": [], "faces": [] }))])?),

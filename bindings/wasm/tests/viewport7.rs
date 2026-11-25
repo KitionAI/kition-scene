@@ -11,7 +11,7 @@ fn starter() -> SceneDocument {
     let mut doc = doc.reopen("View.kscene").unwrap();
     run(&mut doc, "view.resize", json!({"width":96,"height":64}));
     run(&mut doc, "view.grid", json!({"on":false}));
-    run(&mut doc, "select.none", json!({}));
+    run(&mut doc, "edit.deselectAll", json!({}));
     doc
 }
 fn complete(doc: &mut SceneDocument, samples: u32) -> Value {

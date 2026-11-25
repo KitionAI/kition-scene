@@ -35,7 +35,7 @@ pub fn spot(n: usize) -> [f64; 3] {
 pub fn scene_doc(cubes: usize) -> SceneDocument {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
     for n in 0..cubes {
-        doc.execute("add.cube", json!({ "name": format!("C{n}"), "location": spot(n) })).unwrap();
+        doc.execute("object.addCube", json!({ "name": format!("C{n}"), "location": spot(n) })).unwrap();
     }
     doc
 }

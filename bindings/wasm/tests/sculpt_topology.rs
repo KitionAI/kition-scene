@@ -146,7 +146,7 @@ fn dynamic_topology_refines_under_strokes() {
 fn face_sets_hiding_and_gestures() {
     let mut doc = scene();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.grid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
+    run(&mut doc, "object.addGrid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
     run(&mut doc, "view.top", json!({}));
     run(&mut doc, "view.frameSelected", json!({}));
     run(&mut doc, "mode.sculpt", json!({}));
@@ -214,7 +214,7 @@ fn face_sets_hiding_and_gestures() {
 fn the_gpu_viewport_draws_face_sets_and_hiding() {
     let mut doc = scene();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.grid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
+    run(&mut doc, "object.addGrid", json!({ "name": "Clay", "xSubdivisions": 20, "ySubdivisions": 20, "size": 2 }));
     run(&mut doc, "view.top", json!({}));
     run(&mut doc, "view.frameSelected", json!({}));
     run(&mut doc, "mode.sculpt", json!({}));

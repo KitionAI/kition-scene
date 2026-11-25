@@ -45,7 +45,7 @@ fn leaning(normals: &[[f32; 3]]) -> usize {
 fn with_cylinder() -> SceneDocument {
     let mut doc = starter();
     run(&mut doc, "edit.delete", json!({ "objects": "Cube" }));
-    run(&mut doc, "add.cylinder", json!({ "name": "Can", "vertices": 24 }));
+    run(&mut doc, "object.addCylinder", json!({ "name": "Can", "vertices": 24 }));
     doc
 }
 

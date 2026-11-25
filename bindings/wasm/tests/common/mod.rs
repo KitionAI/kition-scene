@@ -107,13 +107,13 @@ impl KitAdapter for SceneKit {
 
     fn create(&self) -> Result<SceneDocument> {
         let mut doc = SceneDocument::create(NAME, 320, 180)?;
-        exec(&mut doc, "add.uvSphere", json!({ "name": "Ball", "location": [3, 0, 1], "segments": 8, "rings": 4 }))?;
+        exec(&mut doc, "object.addUvSphere", json!({ "name": "Ball", "location": [3, 0, 1], "segments": 8, "rings": 4 }))?;
         exec(&mut doc, "material.new", json!({ "name": "Red", "baseColor": "#cc3322" }))?;
-        exec(&mut doc, "add.cylinder", json!({ "name": "Post", "location": [-3, 0, 1], "vertices": 8 }))?;
+        exec(&mut doc, "object.addCylinder", json!({ "name": "Post", "location": [-3, 0, 1], "vertices": 8 }))?;
         exec(&mut doc, "object.parent", json!({ "objects": ["Post"], "parent": "Cube" }))?;
         exec(&mut doc, "modifier.add", json!({ "object": "Ball", "type": "subdivision" }))?;
-        exec(&mut doc, "add.text", json!({ "name": "Sign", "body": "Sign", "location": [0, -4, 0] }))?;
-        exec(&mut doc, "select.none", json!({}))?;
+        exec(&mut doc, "object.addText", json!({ "name": "Sign", "body": "Sign", "location": [0, -4, 0] }))?;
+        exec(&mut doc, "edit.deselectAll", json!({}))?;
         Ok(doc)
     }
 
@@ -164,8 +164,8 @@ impl KitAdapter for SceneKit {
         let value = rng.next_u64() % 10_000;
         let small = (value % 9) as f64 - 4.0;
         let (label, done) = match (rng.below(18), target, mesh) {
-            (0 | 1, _, _) => ("add cube", attempt(doc, "add.cube", json!({ "location": [small, (value % 5) as f64, 0] }))),
-            (2, _, _) => ("add sphere", attempt(doc, "add.icoSphere", json!({ "location": [0, small, 1], "subdivisions": 1 }))),
+            (0 | 1, _, _) => ("add cube", attempt(doc, "object.addCube", json!({ "location": [small, (value % 5) as f64, 0] }))),
+            (2, _, _) => ("add sphere", attempt(doc, "object.addIcoSphere", json!({ "location": [0, small, 1], "subdivisions": 1 }))),
             (3 | 4, Some(id), _) => (
                 "move",
                 {
@@ -200,30 +200,30 @@ impl KitAdapter for SceneKit {
             (12, _, Some(id)) => {
                 // An edit-mode step: extrude every face of a mesh a little.
                 let ok = attempt(doc, "mode.set", json!({ "mode": "edit", "object": id }))
-                    && attempt(doc, "select.all", json!({ "action": "select" }))
+                    && attempt(doc, "edit.selectAll", json!({ "action": "select" }))
                     && attempt(doc, "mesh.subdivide", json!({}));
                 let _ = doc.execute("mode.set", json!({ "mode": "object" }));
                 ("subdivide", ok)
             }
-            (13, Some(id), _) => ("key", attempt(doc, "anim.insertKey", json!({ "objects": [id], "frame": 1 + (value % 40) as i64 }))),
+            (13, Some(id), _) => ("key", attempt(doc, "animation.insertKey", json!({ "objects": [id], "frame": 1 + (value % 40) as i64 }))),
             (14, _, _) => (
                 "add curve",
-                attempt(doc, "add.curveBezier", json!({ "location": [small, 0, 2] }))
+                attempt(doc, "object.addCurveBezier", json!({ "location": [small, 0, 2] }))
                     && attempt(doc, "curve.set", json!({ "bevelDepth": 0.05 + (value % 3) as f64 * 0.05 })),
             ),
             (15, _, _) => (
                 "add text",
-                attempt(doc, "add.text", json!({ "body": format!("T{value}"), "location": [0, small, 0] }))
+                attempt(doc, "object.addText", json!({ "body": format!("T{value}"), "location": [0, small, 0] }))
                     && attempt(doc, "text.set", json!({ "extrude": 0.02 })),
             ),
             (16, Some(collider), Some(id)) => (
                 "particles",
-                attempt(doc, "particles.add", json!({ "object": id, "count": 50 + value % 100, "seed": value % 7, "kind": "emitter" }))
-                    && (collider == id || attempt(doc, "particles.set", json!({ "object": id, "colliders": [collider] }))),
+                attempt(doc, "particle.add", json!({ "object": id, "count": 50 + value % 100, "seed": value % 7, "kind": "emitter" }))
+                    && (collider == id || attempt(doc, "particle.set", json!({ "object": id, "colliders": [collider] }))),
             ),
             (17, _, Some(id)) => {
                 // Hair, groomed with a comb stroke across the view.
-                let ok = attempt(doc, "particles.add", json!({ "object": id, "kind": "hair", "count": 30, "hairLength": 0.5 }))
+                let ok = attempt(doc, "particle.add", json!({ "object": id, "kind": "hair", "count": 30, "hairLength": 0.5 }))
                     && attempt(doc, "mode.particleEdit", json!({ "object": id }))
                     && attempt(doc, "particleEdit.stroke", json!({ "kind": "comb", "radius": 200, "points": [[60, 90], [160, 80], [260, 70]] }));
                 let _ = doc.execute("mode.particleEdit", json!({ "on": false }));
@@ -231,7 +231,7 @@ impl KitAdapter for SceneKit {
             }
             _ => return Ok(None),
         };
-        let _ = doc.execute("select.none", json!({}));
+        let _ = doc.execute("edit.deselectAll", json!({}));
         Ok(done.then(|| label.to_owned()))
     }
 
@@ -246,7 +246,7 @@ impl KitAdapter for SceneKit {
                 exec(doc, "object.transform", json!({ "objects": [id], "rotation": [0, 0, 1 + (*value % 300)] }))?;
             }
             Script::Create => {
-                exec(doc, "add.cube", json!({ "location": [5, 5, 0] }))?;
+                exec(doc, "object.addCube", json!({ "location": [5, 5, 0] }))?;
             }
             Script::Delete => {
                 let id = probe(doc)?;
@@ -309,7 +309,7 @@ impl KitAdapter for SceneKit {
             }
             _ => return Ok(false),
         }
-        exec(doc, "select.none", json!({}))?;
+        exec(doc, "edit.deselectAll", json!({}))?;
         Ok(true)
     }
 

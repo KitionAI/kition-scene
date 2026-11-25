@@ -109,24 +109,24 @@ async fn the_ids_survive_reopening_and_a_rewrite() {
 async fn receipts_in_space() {
     use kition_kit::KitDocument;
     let mut doc = kition_scene_kit::SceneDocument::create(FILE, 320, 180).unwrap();
-    doc.execute("add.empty", json!({ "name": "Parent5" })).unwrap();
-    doc.execute("add.empty", json!({ "name": "Parent200", "location": [0, 50, 0] })).unwrap();
+    doc.execute("object.addEmpty", json!({ "name": "Parent5" })).unwrap();
+    doc.execute("object.addEmpty", json!({ "name": "Parent200", "location": [0, 50, 0] })).unwrap();
     for n in 0..200 {
         doc.execute(
-            "add.cube",
+            "object.addCube",
             json!({ "name": format!("K{n}"), "size": 0.2, "location": [0.5 * (n % 20) as f64, 50.0 + 0.5 * (n / 20) as f64, 0] }),
         )
         .unwrap();
     }
     for n in 0..5 {
-        doc.execute("add.cube", json!({ "name": format!("F{n}"), "size": 0.2, "location": [n as f64, -5, 0] })).unwrap();
+        doc.execute("object.addCube", json!({ "name": format!("F{n}"), "size": 0.2, "location": [n as f64, -5, 0] })).unwrap();
     }
     let kids200: Vec<String> = (0..200).map(|n| format!("K{n}")).collect();
     let kids5: Vec<String> = (0..5).map(|n| format!("F{n}")).collect();
     doc.execute("object.parent", json!({ "objects": kids200, "parent": "Parent200" })).unwrap();
     doc.execute("object.parent", json!({ "objects": kids5, "parent": "Parent5" })).unwrap();
     // A 2,000-face grid (50 x 40) and its 2,091 vertices; a material shared by 50 cubes.
-    doc.execute("add.grid", json!({ "name": "Grid", "xSubdivisions": 50, "ySubdivisions": 40, "location": [0, -20, 0] })).unwrap();
+    doc.execute("object.addGrid", json!({ "name": "Grid", "xSubdivisions": 50, "ySubdivisions": 40, "location": [0, -20, 0] })).unwrap();
     doc.execute("material.new", json!({ "name": "Shared", "assign": false })).unwrap();
     let fifty: Vec<String> = (0..50).map(|n| format!("K{n}")).collect();
     doc.execute("material.assign", json!({ "material": "Shared", "objects": fifty })).unwrap();

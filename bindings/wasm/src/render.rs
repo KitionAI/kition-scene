@@ -224,7 +224,7 @@ fn cameras(scene: &Scene) -> String {
         .map(|object| format!("{} \"{}\"", object.id, object.name))
         .collect();
     if listed.is_empty() {
-        "the scene has no cameras: add one with add.camera, or use a named view (front, back, left, right, top, bottom or persp)".to_owned()
+        "the scene has no cameras: add one with object.addCamera, or use a named view (front, back, left, right, top, bottom or persp)".to_owned()
     } else {
         format!("the scene's cameras are {}", listed.join(", "))
     }

@@ -50,7 +50,7 @@ const ANIMATION: &[&str] = &["Object", "Animation"];
 
 static SPECS: &[Spec] = &[
     Spec {
-        id: "anim.insertKey",
+        id: "animation.insertKey",
         title: "Insert Keyframe",
         menu: ANIMATION,
         shortcut: Some("I"),
@@ -59,7 +59,7 @@ static SPECS: &[Spec] = &[
         schema: || s::of(targets()),
     },
     Spec {
-        id: "anim.deleteKey",
+        id: "animation.deleteKey",
         title: "Delete Keyframe",
         menu: ANIMATION,
         shortcut: Some("Alt+I"),
@@ -68,7 +68,7 @@ static SPECS: &[Spec] = &[
         schema: || s::of(targets()),
     },
     Spec {
-        id: "anim.clear",
+        id: "animation.clear",
         title: "Clear Keyframes",
         menu: ANIMATION,
         shortcut: Some("Shift+Alt+I"),
@@ -85,7 +85,7 @@ static SPECS: &[Spec] = &[
         },
     },
     Spec {
-        id: "anim.setInterpolation",
+        id: "animation.setInterpolation",
         title: "Interpolation",
         menu: ANIMATION,
         shortcut: None,
@@ -146,7 +146,7 @@ static SPECS: &[Spec] = &[
         schema: || s::of(vec![]),
     },
     Spec {
-        id: "anim.nextKey",
+        id: "animation.nextKey",
         title: "Jump to Next Keyframe",
         menu: &["View", "Frame"],
         shortcut: Some("ArrowUp"),
@@ -155,7 +155,7 @@ static SPECS: &[Spec] = &[
         schema: || s::of(vec![]),
     },
     Spec {
-        id: "anim.previousKey",
+        id: "animation.previousKey",
         title: "Jump to Previous Keyframe",
         menu: &["View", "Frame"],
         shortcut: Some("ArrowDown"),
@@ -299,7 +299,7 @@ const TRANSFORM: &[Property] = &[Property::Location, Property::Rotation, Propert
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
-        "anim.insertKey" => {
+        "animation.insertKey" => {
             let frame = frame_param(doc, params)?;
             if let Some(set) = crate::commands_anim2::keying_set_for(doc, params)? {
                 let objects = objects(doc, params)?;
@@ -316,7 +316,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             Ok(json!({ "frame": frame, "keys": keys }))
         }
-        "anim.deleteKey" => {
+        "animation.deleteKey" => {
             let frame = frame_param(doc, params)?;
             let wanted = properties(params, &Property::ALL)?;
             let mut keys = 0;
@@ -332,7 +332,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             Ok(json!({ "frame": frame, "deleted": keys }))
         }
-        "anim.clear" => {
+        "animation.clear" => {
             let only = match params.get("properties").filter(|value| !value.is_null()) {
                 Some(_) => Some(properties(params, &[])?),
                 None => None,
@@ -360,7 +360,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             Ok(json!({ "cleared": channels }))
         }
-        "anim.setInterpolation" => {
+        "animation.setInterpolation" => {
             let interpolation = params::string(params, "interpolation")?
                 .and_then(Interpolation::parse)
                 .ok_or_else(|| bad("`interpolation` must be bezier, linear, or constant"))?;
@@ -445,9 +445,9 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
         "frame.previous" => go(doc, if timeline.frame <= timeline.start { timeline.end as f32 } else { current - 1.0 }),
         "frame.start" => go(doc, timeline.start as f32),
         "frame.end" => go(doc, timeline.end as f32),
-        "anim.nextKey" | "anim.previousKey" => {
+        "animation.nextKey" | "animation.previousKey" => {
             let keys = doc.scene.key_frames(&[]);
-            let found = if command == "anim.nextKey" {
+            let found = if command == "animation.nextKey" {
                 keys.into_iter().find(|frame| *frame > current + 1e-4)
             } else {
                 keys.into_iter().rev().find(|frame| *frame < current - 1e-4)

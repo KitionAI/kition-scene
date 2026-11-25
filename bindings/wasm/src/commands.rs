@@ -139,7 +139,7 @@ fn modifier_settings() -> Vec<(&'static str, Value)> {
         ("vertexGroup", s::string("armature: a group whose weights say how much of the deformation each vertex takes; null for all")),
         ("invertVertexGroup", s::boolean("armature: use one minus that group's weights")),
         ("multiModifier", s::boolean("armature: deform what the Armature modifier above got and mix over its result by the group")),
-        ("group", s::integer("geometryNodes: the node group's id (nodes.newGroup makes one)")),
+        ("group", s::integer("geometryNodes: the node group's id (node.newGroup makes one)")),
         ("inputs", json!({ "type": "object", "additionalProperties": true, "description": "geometryNodes: the group's inputs by name" })),
         (
             "limits",
@@ -169,10 +169,10 @@ static SPECS: &[Spec] = &[
             ("offset", s::vec3("Move the copies by this much, in metres")),
         ])
     }),
-    spec("select.all", "Select All", &["Edit", "Select"], Some("A"), false, Needs::Always, || {
+    spec("edit.selectAll", "Select All", &["Edit", "Select"], Some("A"), false, Needs::Always, || {
         s::of(vec![("action", s::choice("What to do", &["select", "deselect", "invert"]))])
     }),
-    spec("select.none", "Select None", &["Edit", "Select"], Some("Alt+A"), false, Needs::Always, none),
+    spec("edit.deselectAll", "Select None", &["Edit", "Select"], Some("Alt+A"), false, Needs::Always, none),
     spec("select.objects", "Select Objects", &[], None, false, Needs::Always, || {
         s::of(vec![
             ("objects", s::required(s::objects("The objects to select"))),
@@ -181,8 +181,8 @@ static SPECS: &[Spec] = &[
         ])
     }),
     // Add.
-    spec("add.plane", "Plane", ADD_MESH, None, true, Needs::Always, || with_placement(vec![("size", s::number("Side length in metres (2)"))])),
-    spec("add.backdrop", "Backdrop", ADD_MESH, None, true, Needs::ObjectMode, || {
+    spec("object.addPlane", "Plane", ADD_MESH, None, true, Needs::Always, || with_placement(vec![("size", s::number("Side length in metres (2)"))])),
+    spec("object.addBackdrop", "Backdrop", ADD_MESH, None, true, Needs::ObjectMode, || {
         with_placement(vec![
             ("name", s::string("The new object's name (Backdrop)")),
             ("width", s::number("Width across X in metres (20)")),
@@ -192,25 +192,25 @@ static SPECS: &[Spec] = &[
             ("segments", s::integer("Faces round the curve, 1 to 256 (16)")),
         ])
     }),
-    spec("add.cube", "Cube", ADD_MESH, None, true, Needs::Always, || with_placement(vec![("size", s::number("Side length in metres (2)"))])),
-    spec("add.circle", "Circle", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addCube", "Cube", ADD_MESH, None, true, Needs::Always, || with_placement(vec![("size", s::number("Side length in metres (2)"))])),
+    spec("object.addCircle", "Circle", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("vertices", s::integer("Vertices (32)")),
             ("radius", s::number("Radius in metres (1)")),
             ("fill", s::choice("How to fill it", &["nothing", "ngon", "triangleFan"])),
         ])
     }),
-    spec("add.uvSphere", "UV Sphere", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addUvSphere", "UV Sphere", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("segments", s::integer("Segments around (32)")),
             ("rings", s::integer("Rings from pole to pole (16)")),
             ("radius", s::number("Radius in metres (1)")),
         ])
     }),
-    spec("add.icoSphere", "Ico Sphere", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addIcoSphere", "Ico Sphere", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![("subdivisions", s::integer("Subdivisions, 1 to 8 (2)")), ("radius", s::number("Radius in metres (1)"))])
     }),
-    spec("add.cylinder", "Cylinder", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addCylinder", "Cylinder", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("vertices", s::integer("Vertices around (32)")),
             ("radius", s::number("Radius in metres (1)")),
@@ -218,7 +218,7 @@ static SPECS: &[Spec] = &[
             ("fill", s::choice("How the ends are closed", &["nothing", "ngon", "triangleFan"])),
         ])
     }),
-    spec("add.cone", "Cone", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addCone", "Cone", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("vertices", s::integer("Vertices around (32)")),
             ("radius1", s::number("Bottom radius in metres (1)")),
@@ -227,7 +227,7 @@ static SPECS: &[Spec] = &[
             ("fill", s::choice("How the ends are closed", &["nothing", "ngon", "triangleFan"])),
         ])
     }),
-    spec("add.torus", "Torus", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addTorus", "Torus", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("majorSegments", s::integer("Segments around the ring (48)")),
             ("minorSegments", s::integer("Segments around the tube (12)")),
@@ -235,24 +235,26 @@ static SPECS: &[Spec] = &[
             ("minorRadius", s::number("Tube radius in metres (0.25)")),
         ])
     }),
-    spec("add.grid", "Grid", ADD_MESH, None, true, Needs::Always, || {
+    spec("object.addGrid", "Grid", ADD_MESH, None, true, Needs::Always, || {
         with_placement(vec![
             ("xSubdivisions", s::integer("Faces along X (10)")),
             ("ySubdivisions", s::integer("Faces along Y (10)")),
             ("size", s::number("Side length in metres (2)")),
         ])
     }),
-    spec("add.light", "Light", &["Add"], None, true, Needs::ObjectMode, || {
+    spec("object.addLight", "Light", &["Add"], None, true, Needs::ObjectMode, || {
         with_placement(vec![
             ("kind", s::choice("The kind of light", &["point", "sun", "spot", "area"])),
             ("power", s::number("Watts (W/m² for a sun)")),
             ("color", s::color("Colour")),
         ])
     }),
-    spec("add.camera", "Camera", &["Add"], None, true, Needs::ObjectMode, || {
+    spec("object.addCamera", "Camera", &["Add"], None, true, Needs::ObjectMode, || {
         with_placement(vec![("lens", s::number("Focal length in millimetres (50)"))])
     }),
-    spec("add.empty", "Empty", &["Add"], None, true, Needs::ObjectMode, || with_placement(vec![("size", s::number("Axis length in metres (1)"))])),
+    spec("object.addEmpty", "Empty", &["Add"], None, true, Needs::ObjectMode, || {
+        with_placement(vec![("size", s::number("Axis length in metres (1)"))])
+    }),
     // Object.
     spec("object.transform", "Set Transform", &["Object", "Transform"], None, true, Needs::Always, || {
         s::of(vec![
@@ -1010,7 +1012,7 @@ fn select_only(doc: &mut SceneDocument, ids: Vec<Id>) {
 fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     let view = &mut doc.session.editor.view;
     match command {
-        "select.all" => {
+        "edit.selectAll" => {
             let action = params::string(params, "action")?.unwrap_or("select");
             match doc.session.mode {
                 Mode::Object => {
@@ -1035,7 +1037,7 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
                 }
             }
         }
-        "select.none" => return run_view(doc, "select.all", &json!({ "action": "deselect" })),
+        "edit.deselectAll" => return run_view(doc, "edit.selectAll", &json!({ "action": "deselect" })),
         "select.objects" => {
             let ids = params::objects(&doc.scene, params, "objects")?.ok_or_else(|| bad("`objects` is required"))?;
             let extend = params::boolean(params, "extend")?.unwrap_or(false);
@@ -1287,15 +1289,15 @@ fn export(doc: &SceneDocument, params: &Value) -> Result<Value, String> {
 
 fn primitive(command: &str, params: &Value) -> Result<Primitive, String> {
     let kind = match command {
-        "add.plane" => "plane",
-        "add.cube" => "cube",
-        "add.circle" => "circle",
-        "add.uvSphere" => "uvSphere",
-        "add.icoSphere" => "icoSphere",
-        "add.cylinder" => "cylinder",
-        "add.cone" => "cone",
-        "add.torus" => "torus",
-        "add.grid" => "grid",
+        "object.addPlane" => "plane",
+        "object.addCube" => "cube",
+        "object.addCircle" => "circle",
+        "object.addUvSphere" => "uvSphere",
+        "object.addIcoSphere" => "icoSphere",
+        "object.addCylinder" => "cylinder",
+        "object.addCone" => "cone",
+        "object.addTorus" => "torus",
+        "object.addGrid" => "grid",
         other => return Err(format!("unknown-command: {other}")),
     };
     let mut fields = serde_json::Map::new();
@@ -1722,7 +1724,15 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
                 }
             }
         }
-        "add.plane" | "add.cube" | "add.circle" | "add.uvSphere" | "add.icoSphere" | "add.cylinder" | "add.cone" | "add.torus" | "add.grid" => {
+        "object.addPlane"
+        | "object.addCube"
+        | "object.addCircle"
+        | "object.addUvSphere"
+        | "object.addIcoSphere"
+        | "object.addCylinder"
+        | "object.addCone"
+        | "object.addTorus"
+        | "object.addGrid" => {
             let shape = primitive(command, params)?;
             let mut mesh = shape.build().map_err(|error| error.to_string())?;
             if let Mode::Edit(id) = doc.session.mode {
@@ -1744,7 +1754,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             add_object(doc, shape.display_name(), ObjectData::Mesh(mesh), params)
         }
-        "add.backdrop" => {
+        "object.addBackdrop" => {
             let number = |key: &str, default: f32| -> Result<f32, String> { Ok(params::number(params, key)?.unwrap_or(default)) };
             let segments = params::integer(params, "segments")?.unwrap_or(16);
             let mesh = kition_scene_model::primitives::backdrop(
@@ -1757,7 +1767,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             .map_err(|error| error.to_string())?;
             add_object(doc, "Backdrop", ObjectData::Mesh(mesh), params)
         }
-        "add.light" => {
+        "object.addLight" => {
             let kind = match params::string(params, "kind")?.unwrap_or("point") {
                 "point" => LightKind::Point,
                 "sun" => LightKind::Sun,
@@ -1774,7 +1784,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             add_object(doc, "Light", ObjectData::Light(light), params)
         }
-        "add.camera" => {
+        "object.addCamera" => {
             let mut camera = Camera::default();
             if let Some(lens) = params::number(params, "lens")? {
                 if !(1.0..=5000.0).contains(&lens) {
@@ -1788,7 +1798,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
             }
             Ok(value)
         }
-        "add.empty" => {
+        "object.addEmpty" => {
             let size = params::number(params, "size")?.unwrap_or(1.0);
             if size.is_nan() || size <= 0.0 {
                 return Err(bad("`size` must be positive"));

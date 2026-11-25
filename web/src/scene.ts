@@ -469,8 +469,8 @@ export const DEFAULT_TAB = 'Add'
 
 /** The commands Single line's row shows, by menu (Undo and Redo are in the top bar). */
 export const SCENE_PRIMARY: Record<string, readonly string[]> = {
-  Edit: ['edit.duplicate', 'edit.delete', 'select.all', 'select.none'],
-  Add: ['add.cube', 'add.uvSphere', 'add.cylinder', 'add.plane', 'add.light', 'add.camera'],
+  Edit: ['edit.duplicate', 'edit.delete', 'edit.selectAll', 'edit.deselectAll'],
+  Add: ['object.addCube', 'object.addUvSphere', 'object.addCylinder', 'object.addPlane', 'object.addLight', 'object.addCamera'],
   Object: ['edit.duplicate', 'edit.delete', 'object.join', 'object.shadeSmooth', 'object.shadeFlat'],
   Mesh: ['mesh.extrude', 'mesh.inset', 'mesh.subdivide', 'mesh.merge'],
   View: ['view.frameAll', 'view.frameSelected', 'view.camera'],

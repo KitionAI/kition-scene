@@ -63,8 +63,8 @@ fn read_commands_answer_what_they_declare() {
             }
             doc.execute(&command.id, sample_params(&command.id))
         };
-        let edit = [("select.all", json!({})), ("mode.set", json!({ "mode": "edit" }))];
-        let Ok(answer) = run(&[]).or_else(|_| run(&[("select.all", json!({}))])).or_else(|_| run(&edit)) else { continue };
+        let edit = [("edit.selectAll", json!({})), ("mode.set", json!({ "mode": "edit" }))];
+        let Ok(answer) = run(&[]).or_else(|_| run(&[("edit.selectAll", json!({}))])).or_else(|_| run(&edit)) else { continue };
         let schema = json!({ "answer": output });
         let answer = serde_json::Map::from_iter([("answer".to_owned(), answer)]);
         if let Err(error) = kition_kit::schema::check_params(&schema, &answer) {

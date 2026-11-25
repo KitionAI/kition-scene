@@ -61,7 +61,7 @@ fn material_json_members_refuse_out_of_range_path_and_whole_writes_atomically() 
 #[test]
 fn direct_batch_delete_refreshes_the_cache_before_the_next_command() {
     let mut doc = SceneDocument::create("Scene.kscene", 320, 180).unwrap();
-    let group = doc.execute("nodes.newGroup", json!({"name":"G","tree":"shader"})).unwrap()["group"].clone();
+    let group = doc.execute("node.newGroup", json!({"name":"G","tree":"shader"})).unwrap()["group"].clone();
     let record = KitSessionDocument::session(&doc)
         .replica()
         .objects_of_type("NodeGroup")
@@ -70,7 +70,7 @@ fn direct_batch_delete_refreshes_the_cache_before_the_next_command() {
         .unwrap();
     session_batch(&mut doc, &json!({"ops":[{"op":"delete","target":record.to_string()}]}), false).unwrap();
     assert!(doc.scene().node_groups.is_empty(), "the cached scene still holds the deleted group");
-    let replacement = doc.execute("nodes.newGroup", json!({"name":"G","tree":"shader"})).unwrap()["group"].as_u64().unwrap() as u32;
+    let replacement = doc.execute("node.newGroup", json!({"name":"G","tree":"shader"})).unwrap()["group"].as_u64().unwrap() as u32;
     assert_eq!(doc.scene().node_group(replacement).unwrap().name, "G", "name allocation must read the refreshed cache");
     let reopened = SceneDocument::open("Scene.kscene", &doc.save_file(None).unwrap()).unwrap();
     assert_eq!(reopened.scene().node_groups.len(), 1);

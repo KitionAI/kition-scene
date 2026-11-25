@@ -577,7 +577,7 @@ function MaterialSection({ object, info }: { object: SceneObject; info: SceneInf
               choices={[['none', t('noneChoice')], ...info.nodeGroups.filter((group) => group.tree === 'shader').map((group) => [String(group.id), group.name] as const), ['new', t('newShader')]]}
               testId="scene-material-shader"
               onChange={(value) =>
-                value === 'new' ? run('nodes.newGroup', { tree: 'shader', material: material.id }) : run('material.set', { material: material.id, shader: value === 'none' ? null : Number(value) })
+                value === 'new' ? run('node.newGroup', { tree: 'shader', material: material.id }) : run('material.set', { material: material.id, shader: value === 'none' ? null : Number(value) })
               }
             />
           </Row>
@@ -889,7 +889,7 @@ function SceneSection({ info }: { info: SceneInfo }) {
           disabled={readOnly}
           choices={[['none', t('noneChoice')], ...shaderGroups.map((group) => [String(group.id), group.name] as const), ['new', t('newVolume')]]}
           testId="scene-world-volume"
-          onChange={(value) => (value === 'new' ? run('nodes.newGroup', { tree: 'shader', world: true }) : run('world.set', { volume: value === 'none' ? null : Number(value) }))}
+          onChange={(value) => (value === 'new' ? run('node.newGroup', { tree: 'shader', world: true }) : run('world.set', { volume: value === 'none' ? null : Number(value) }))}
         />
       </Row>
     </PanelSection>

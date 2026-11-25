@@ -57,7 +57,7 @@ fn mean(rgba: &[u8]) -> f64 {
 fn on_a_big_floor() -> SceneDocument {
     let mut doc = starter();
     run(&mut doc, "world.set", json!({ "color": "#ffffff", "strength": 1 }));
-    run(&mut doc, "add.plane", json!({ "name": "Floor", "size": 400, "location": [0, 0, -1] }));
+    run(&mut doc, "object.addPlane", json!({ "name": "Floor", "size": 400, "location": [0, 0, -1] }));
     doc
 }
 

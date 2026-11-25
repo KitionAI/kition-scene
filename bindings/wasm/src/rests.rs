@@ -248,28 +248,28 @@ const RULES: &[Rule] = &[
     // primitives' edit-mode path joins the edited mesh: `dynamic`.)
     rule(
         &[
-            "add.plane",
-            "add.backdrop",
-            "add.cube",
-            "add.circle",
-            "add.uvSphere",
-            "add.icoSphere",
-            "add.cylinder",
-            "add.cone",
-            "add.torus",
-            "add.grid",
-            "add.light",
-            "add.empty",
-            "add.armature",
-            "add.curveBezier",
-            "add.curveCircle",
-            "add.curvePath",
-            "add.text",
-            "add.lattice",
+            "object.addPlane",
+            "object.addBackdrop",
+            "object.addCube",
+            "object.addCircle",
+            "object.addUvSphere",
+            "object.addIcoSphere",
+            "object.addCylinder",
+            "object.addCone",
+            "object.addTorus",
+            "object.addGrid",
+            "object.addLight",
+            "object.addEmpty",
+            "object.addArmature",
+            "object.addCurveBezier",
+            "object.addCurveCircle",
+            "object.addCurvePath",
+            "object.addText",
+            "object.addLattice",
             "physics.field.new",
             "action.new",
             "material.new",
-            "nodes.newGroup",
+            "node.newGroup",
             "compositor.new",
         ],
         Who::Nobody,
@@ -277,8 +277,8 @@ const RULES: &[Rule] = &[
         At::Here,
         &[],
     ),
-    // add.camera: the new camera becomes the scene's when it has none.
-    rule(&["add.camera"], Who::Nobody, &[], At::Here, &["camera"]),
+    // object.addCamera: the new camera becomes the scene's when it has none.
+    rule(&["object.addCamera"], Who::Nobody, &[], At::Here, &["camera"]),
     // Undo and redo invert or replay a scope's last transaction (`dynamic`: what its steps wrote).
     rule(&["edit.undo", "edit.redo"], Who::Nobody, &[], At::Here, &[]),
     // object.transform sets the given local values; object.scale multiplies the local scale.
@@ -758,7 +758,15 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
             }
         }
         // The primitives in edit mode join the edited mesh, placed through its world transform.
-        "add.plane" | "add.cube" | "add.circle" | "add.uvSphere" | "add.icoSphere" | "add.cylinder" | "add.cone" | "add.torus" | "add.grid" => {
+        "object.addPlane"
+        | "object.addCube"
+        | "object.addCircle"
+        | "object.addUvSphere"
+        | "object.addIcoSphere"
+        | "object.addCylinder"
+        | "object.addCone"
+        | "object.addTorus"
+        | "object.addGrid" => {
             if let Some(edited) = rests.editor.edited {
                 rests.world(edited);
                 rests.of(edited, &["mesh"]);
@@ -946,13 +954,13 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
                 rests.of(id, &["mesh"]);
             }
         }
-        "anim.insertKey" => insert_key(rests, subjects),
+        "animation.insertKey" => insert_key(rests, subjects),
         // deleteKey: the keys of the properties (every one by default, baseColor's on the
         // material) on a tweak-mapped frame; setInterpolation: on a tweak-mapped frame when it
         // names one; clear: every key, no frame map.
-        "anim.deleteKey" | "anim.clear" | "anim.setInterpolation" => {
-            let mapped =
-                command == "anim.deleteKey" || (command == "anim.setInterpolation" && params.get("frame").is_some_and(|frame| !frame.is_null()));
+        "animation.deleteKey" | "animation.clear" | "animation.setInterpolation" => {
+            let mapped = command == "animation.deleteKey"
+                || (command == "animation.setInterpolation" && params.get("frame").is_some_and(|frame| !frame.is_null()));
             let properties = property_list(params);
             let color = properties.as_ref().is_none_or(|list| list.contains(&"baseColor"));
             let others = properties.as_ref().is_none_or(|list| list.iter().any(|property| *property != "baseColor"));
@@ -1048,7 +1056,7 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
                 rests.of(*id, if reads { &["mesh"] } else { &["~topology"] });
             }
         }
-        "particles.add" => {
+        "particle.add" => {
             for id in subjects {
                 rests.of(*id, &[]);
             }
@@ -1056,9 +1064,9 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
         }
         // set: system by index (0 by default) or name, its settings merged; a change of how the
         // particles are made drops the groom.
-        "particles.set" | "particles.remove" => {
+        "particle.set" | "particle.remove" => {
             let path = system_path(params);
-            let regroom = command == "particles.set"
+            let regroom = command == "particle.set"
                 && ["kind", "seed", "count", "emitFrom", "distribution", "segments", "densityGroup"].iter().any(|key| rests.has(key));
             for id in subjects {
                 rests.of(*id, &[path.as_str()]);
@@ -1071,7 +1079,7 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
         // convert bakes the system at the current frame into a world-space mesh named after the
         // emitter: its evaluated mesh, world, material, the system and groom; every other visible
         // object with collision or a force field acts on the particles.
-        "particles.convert" => {
+        "particle.convert" => {
             let path = system_path(params);
             for id in subjects {
                 rests.world(*id);
@@ -1094,21 +1102,21 @@ fn dynamic(rests: &mut Rests, command: &str, subjects: &[Id]) {
             }
         }
         "physics.constraint.add" | "physics.constraint.set" => rests.exist(&["object1", "object2"]),
-        "nodes.newGroup"
-        | "nodes.removeGroup"
-        | "nodes.renameGroup"
-        | "nodes.addNode"
-        | "nodes.removeNodes"
-        | "nodes.moveNodes"
-        | "nodes.setValue"
-        | "nodes.link"
-        | "nodes.unlink"
-        | "nodes.addInput"
-        | "nodes.addOutput"
-        | "nodes.removeInput"
-        | "nodes.removeOutput"
-        | "nodes.addZoneItem"
-        | "nodes.removeZoneItem" => nodes(rests, command),
+        "node.newGroup"
+        | "node.removeGroup"
+        | "node.renameGroup"
+        | "node.addNode"
+        | "node.removeNodes"
+        | "node.moveNodes"
+        | "node.setValue"
+        | "node.link"
+        | "node.unlink"
+        | "node.addInput"
+        | "node.addOutput"
+        | "node.removeInput"
+        | "node.removeOutput"
+        | "node.addZoneItem"
+        | "node.removeZoneItem" => nodes(rests, command),
         "compositor.new" | "compositor.set" | "compositor.setImage" | "compositor.pickMatte" => compositor(rests, command),
         "camera.move" | "camera.shake" | "camera.handheld" => camera(rests, command),
         // light.studio aims from the scene camera's world place at a point or an object's world
@@ -1225,7 +1233,7 @@ fn point_object(rests: &Rests, key: &str) -> Vec<Id> {
         .collect()
 }
 
-/// anim.insertKey: `keyingSet`, else (with no `properties`) the scene's active keying set, else the
+/// animation.insertKey: `keyingSet`, else (with no `properties`) the scene's active keying set, else the
 /// properties (location, rotation and scale by default), each keyed at its current value into the
 /// object's channels at the tweak-mapped frame; baseColor on the object's material.
 fn insert_key(rests: &mut Rests, subjects: &[Id]) {
@@ -1395,7 +1403,7 @@ fn constraint(rests: &mut Rests, command: &str, subjects: &[Id]) {
 /// Node groups: the group exists (or its interface, links or nodes are read), the nodes named by id
 /// whole; newGroup may give the group to an object's modifier, a material's shader or the world.
 fn nodes(rests: &mut Rests, command: &str) {
-    if command == "nodes.newGroup" {
+    if command == "node.newGroup" {
         for id in rests.named("object").unwrap_or_default() {
             match rests.index("modifier") {
                 Some(index) => rests.of(id, &[format!("modifiers.{index}").as_str()]),
@@ -1411,20 +1419,20 @@ fn nodes(rests: &mut Rests, command: &str) {
         return;
     }
     let fields: &[&str] = match command {
-        "nodes.renameGroup" => &["name"],
-        "nodes.setValue" => &["inputs"],
-        "nodes.link" => &["inputs", "links", "outputs"],
-        "nodes.unlink" => &["links"],
-        "nodes.removeInput" => &["inputs"],
-        "nodes.removeOutput" => &["outputs"],
-        "nodes.addZoneItem" | "nodes.removeZoneItem" => &["nodes"],
+        "node.renameGroup" => &["name"],
+        "node.setValue" => &["inputs"],
+        "node.link" => &["inputs", "links", "outputs"],
+        "node.unlink" => &["links"],
+        "node.removeInput" => &["inputs"],
+        "node.removeOutput" => &["outputs"],
+        "node.addZoneItem" | "node.removeZoneItem" => &["nodes"],
         _ => &[],
     };
     if let Some(group) = rests.group() {
         rests.of(group, fields);
     }
     rests.nodes(&["node", "nodes", "from", "to"]);
-    if command == "nodes.addInput" && matches!(rests.text("type"), Some("object" | "material")) {
+    if command == "node.addInput" && matches!(rests.text("type"), Some("object" | "material")) {
         rests.exist(&["default"]);
     }
 }
@@ -1622,10 +1630,10 @@ const DYNAMIC_WHO: &[(&[&str], Who)] = &[
             "object.originToGeometry",
             "edit.duplicate",
             "material.assign",
-            "anim.insertKey",
-            "anim.deleteKey",
-            "anim.clear",
-            "anim.setInterpolation",
+            "animation.insertKey",
+            "animation.deleteKey",
+            "animation.clear",
+            "animation.setInterpolation",
             "object.clearParent",
             "object.hop",
             "object.gather",
@@ -1633,7 +1641,7 @@ const DYNAMIC_WHO: &[(&[&str], Who)] = &[
         ],
         Who::Objects,
     ),
-    (&["object.parent", "object.reveal", "object.join", "material.delete", "material.set", "nodes.removeGroup"], Who::Nobody),
+    (&["object.parent", "object.reveal", "object.join", "material.delete", "material.set", "node.removeGroup"], Who::Nobody),
     (&["mode.set", "mode.toggle", "mode.armature", "mode.pose", "mode.weightPaint", "mode.sculpt", "mode.particleEdit", "mode.shape"], Who::Object),
     (&["edit.delete"], Who::Objects),
     (
@@ -1645,10 +1653,10 @@ const DYNAMIC_WHO: &[(&[&str], Who)] = &[
             "driver.add",
             "driver.set",
             "driver.remove",
-            "particles.add",
-            "particles.set",
-            "particles.remove",
-            "particles.convert",
+            "particle.add",
+            "particle.set",
+            "particle.remove",
+            "particle.convert",
         ],
         Who::Object,
     ),
@@ -1673,19 +1681,19 @@ const DYNAMIC_WHO: &[(&[&str], Who)] = &[
     ),
     (
         &[
-            "nodes.renameGroup",
-            "nodes.addNode",
-            "nodes.removeNodes",
-            "nodes.moveNodes",
-            "nodes.setValue",
-            "nodes.link",
-            "nodes.unlink",
-            "nodes.addInput",
-            "nodes.addOutput",
-            "nodes.removeInput",
-            "nodes.removeOutput",
-            "nodes.addZoneItem",
-            "nodes.removeZoneItem",
+            "node.renameGroup",
+            "node.addNode",
+            "node.removeNodes",
+            "node.moveNodes",
+            "node.setValue",
+            "node.link",
+            "node.unlink",
+            "node.addInput",
+            "node.addOutput",
+            "node.removeInput",
+            "node.removeOutput",
+            "node.addZoneItem",
+            "node.removeZoneItem",
             "compositor.set",
             "compositor.setImage",
             "compositor.pickMatte",

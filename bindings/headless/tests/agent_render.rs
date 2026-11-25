@@ -26,10 +26,10 @@ fn workspace(name: &str) -> (std::path::PathBuf, HostFolder) {
     let root = std::fs::canonicalize(root).unwrap();
     let mut doc = SceneDocument::create("Scene.kscene", 640, 360).unwrap();
     doc.execute("render.set", json!({ "width": 320, "height": 180 })).unwrap();
-    doc.execute("anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 })).unwrap();
+    doc.execute("animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 1 })).unwrap();
     doc.execute("frame.set", json!({ "frame": 25 })).unwrap();
     doc.execute("object.transform", json!({ "objects": "Cube", "location": [2, 0, 0] })).unwrap();
-    doc.execute("anim.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 25 })).unwrap();
+    doc.execute("animation.insertKey", json!({ "objects": "Cube", "properties": ["location"], "frame": 25 })).unwrap();
     doc.execute("frame.set", json!({ "frame": 1 })).unwrap();
     std::fs::write(root.join("Scene.kscene"), doc.save_file(None).unwrap()).unwrap();
     let folder = HostFolder::new(&root).unwrap();

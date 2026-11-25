@@ -33,14 +33,14 @@ fn describe(id: &str) -> &'static str {
         "edit.duplicate" => {
             "Duplicates `objects` (the selection without it), moved by `offset`, and answers the copies' ids; a person's duplicate selects the copies, an agent's given `objects` leaves the selection as it was."
         }
-        "select.all" => {
+        "edit.selectAll" => {
             "Selects every object in object mode (or every element in edit mode); `action: \"toggle\"`/`\"deselect\"` changes that. Answers whether the selection changed."
         }
-        "select.none" => "Clears the selection. Answers whether it changed.",
+        "edit.deselectAll" => "Clears the selection. Answers whether it changed.",
         "select.objects" => {
             "Selects the objects in `objects` (names or ids), adding with `extend` or removing with `deselect`, for selection-based commands."
         }
-        "add.backdrop" => {
+        "object.addBackdrop" => {
             "Adds a backdrop (a cyclorama): a floor curving up into a wall, smooth, so renders show no horizon. `width`, `depth` (floor in front of the curve, centred on the origin), `height`, and `radius` in metres, `segments` round the curve."
         }
         "camera.move" => {
@@ -70,40 +70,40 @@ fn describe(id: &str) -> &'static str {
         "object.pop" => {
             "Keys `objects` growing from nothing to their size with an overshoot over `duration` frames, one after another `stagger` frames apart (shrinking gaps with `accelerate`), as one undo step."
         }
-        "add.plane" => {
+        "object.addPlane" => {
             "Adds a plane mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.cube" => {
+        "object.addCube" => {
             "Adds a cube mesh of `size` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.circle" => {
+        "object.addCircle" => {
             "Adds a circle mesh of `radius` and vertex count, optionally filled at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.uvSphere" => {
+        "object.addUvSphere" => {
             "Adds a UV sphere mesh of `radius` with segments and rings at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.icoSphere" => {
+        "object.addIcoSphere" => {
             "Adds a icosphere mesh of `radius` and subdivision level at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.cylinder" => {
+        "object.addCylinder" => {
             "Adds a cylinder mesh of `radius` and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.cone" => {
+        "object.addCone" => {
             "Adds a cone mesh with bottom and top radii and `depth` at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.torus" => {
+        "object.addTorus" => {
             "Adds a torus mesh with major and minor radii and segments at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.grid" => {
+        "object.addGrid" => {
             "Adds a grid mesh of `size` with x and y subdivisions at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.light" => {
+        "object.addLight" => {
             "Adds a light (point, sun, spot or area) with color and power at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.camera" => {
+        "object.addCamera" => {
             "Adds a camera with a lens in millimetres at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.empty" => {
+        "object.addEmpty" => {
             "Adds a empty (an axis marker for parenting and targets) at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
         "object.transform" => "Sets location, rotation (degrees) and/or scale of `objects` (names or ids; the selection without it) absolutely.",
@@ -304,12 +304,12 @@ fn describe(id: &str) -> &'static str {
         "mesh.edgeSlide" => {
             "Slides the selected edges along their neighbours by `factor` (-1 to 1), in edit mode on the edited mesh's selected elements (`mode.set {mode: \"edit\"}` and `mesh.select` first)."
         }
-        "anim.insertKey" => {
+        "animation.insertKey" => {
             "Inserts keyframes for `properties` (location, rotation, scale, …) or a keying set of `objects` (names or ids; the selection without it) at `frame`."
         }
-        "anim.deleteKey" => "Deletes the keyframes for `properties` of `objects` (names or ids; the selection without it) at `frame`.",
-        "anim.clear" => "Clears every keyframe (or those of `properties`) of `objects` (names or ids; the selection without it).",
-        "anim.setInterpolation" => {
+        "animation.deleteKey" => "Deletes the keyframes for `properties` of `objects` (names or ids; the selection without it) at `frame`.",
+        "animation.clear" => "Clears every keyframe (or those of `properties`) of `objects` (names or ids; the selection without it).",
+        "animation.setInterpolation" => {
             "Sets the interpolation (constant, linear, bezier, …) of keyframes of `objects` (names or ids; the selection without it) at `frame`."
         }
         "frame.set" => "Goes to frame `frame` and answers it; the scene shows its animated state there.",
@@ -317,8 +317,8 @@ fn describe(id: &str) -> &'static str {
         "frame.previous" => "Goes to the previous frame (wrapping to the end) and answers it.",
         "frame.start" => "Goes to the first frame of the range and answers it.",
         "frame.end" => "Goes to the last frame of the range and answers it.",
-        "anim.nextKey" => "Goes to the next keyframe of the selected objects and answers its frame.",
-        "anim.previousKey" => "Goes to the previous keyframe of the selected objects and answers its frame.",
+        "animation.nextKey" => "Goes to the next keyframe of the selected objects and answers its frame.",
+        "animation.previousKey" => "Goes to the previous keyframe of the selected objects and answers its frame.",
         "frame.range" => "Sets the animation's start and end frames and frames per second.",
         "render.animation" => "Renders frames `start` to `end` (every `step`) and answers them as pictures. Does not change the scene.",
         "driver.add" => "Adds a driver to a property (of an object, bone or shape key) computed from `expression` and its variables.",
@@ -328,7 +328,7 @@ fn describe(id: &str) -> &'static str {
         "keyingSet.remove" => "Removes keying set `name`.",
         "keyingSet.addPaths" => "Adds properties of objects or bones to keying set `name`.",
         "keyingSet.removePath" => "Removes path `index` from keying set `name`.",
-        "keyingSet.setActive" => "Makes keying set `name` the one `anim.insertKey` uses by default.",
+        "keyingSet.setActive" => "Makes keying set `name` the one `animation.insertKey` uses by default.",
         "action.new" => "Creates an action named `name` and assigns it to `object`.",
         "action.assign" => "Assigns action `action` to `objects` (names or ids; the selection without it).",
         "action.remove" => "Deletes action `name` from the file; objects using it lose their animation.",
@@ -355,7 +355,7 @@ fn describe(id: &str) -> &'static str {
         "graph.addModifier" => "Adds an F-curve modifier (cycles, noise, generator, …) to an animated property's curve.",
         "graph.setModifier" => "Changes an F-curve modifier's settings.",
         "graph.removeModifier" => "Removes an F-curve modifier from a curve.",
-        "add.armature" => "Adds an armature with one bone at `location` and answers its name and object id.",
+        "object.addArmature" => "Adds an armature with one bone at `location` and answers its name and object id.",
         "mode.armature" => "Toggles the armature `object` (the active one without it) between object mode and bone edit mode.",
         "mode.pose" => "Turns pose mode on or off for armature `object`.",
         "bone.add" => "Adds a bone with head and tail to the armature in edit mode, optionally parented and connected.",
@@ -436,13 +436,13 @@ fn describe(id: &str) -> &'static str {
         "multires.deleteHigher" => "Deletes the multiresolution levels above the current one.",
         "multires.applyBase" => "Applies the multiresolution detail to the base mesh's shape.",
         "multires.reshape" => "Copies the shape of object `from` into `object`'s multiresolution levels.",
-        "particles.add" => "Adds a particle system (Newtonian or airborne averaged boid emitter, or hair) with its settings to `object`.",
-        "particles.set" => {
+        "particle.add" => "Adds a particle system (Newtonian or airborne averaged boid emitter, or hair) with its settings to `object`.",
+        "particle.set" => {
             "Changes particle system `system`'s settings, including airborne boids with averaged Goal, Avoid, Separate and Flock rules. Targets use their current world-space positions; animated target history, collisions and force fields are unsupported."
         }
-        "particles.remove" => "Removes particle system `system` from `object`.",
-        "particles.convert" => "Converts particle system `system` into a mesh object.",
-        "particles.stats" => "Answers particle system `system`'s counts (particles, alive, children) at `frame`.",
+        "particle.remove" => "Removes particle system `system` from `object`.",
+        "particle.convert" => "Converts particle system `system` into a mesh object.",
+        "particle.stats" => "Answers particle system `system`'s counts (particles, alive, children) at `frame`.",
         "mode.particleEdit" => "Turns particle edit mode on or off for a hair system.",
         "particleEdit.brush" => "Sets the grooming brush (comb, cut, length, puff, smooth, …) and answers it.",
         "particleEdit.stroke" => "Grooms hair along `points` with a brush.",
@@ -450,16 +450,16 @@ fn describe(id: &str) -> &'static str {
         "presence.local" => "Shares this person's pointer and selection with collaborators; answers what it shares.",
         "presence.peers" => "Tells the editor where other people's pointers and selections are, for drawing them.",
         "presence.place" => "Answers where to draw other people's pointers in the viewport.",
-        "add.curveBezier" => {
+        "object.addCurveBezier" => {
             "Adds a Bezier curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.curveCircle" => {
+        "object.addCurveCircle" => {
             "Adds a Bezier circle curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.curvePath" => {
+        "object.addCurvePath" => {
             "Adds a NURBS path curve at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
-        "add.text" => "Adds a text object with `body` and `size` at `location` and answers its name and object id.",
+        "object.addText" => "Adds a text object with `body` and `size` at `location` and answers its name and object id.",
         "mode.shape" => "Toggles the active curve, text or lattice between object mode and its edit mode.",
         "curve.set" => "Changes curve `object`: dimensions, resolution, extrude, bevel depth and resolution, fill, cyclic.",
         "text.set" => "Changes text `object`: body, font size, alignment, extrude, bevel, spacing.",
@@ -475,7 +475,7 @@ fn describe(id: &str) -> &'static str {
         "text.insert" => "Types `text` at the caret of text object `object` in text edit mode.",
         "text.delete" => "Deletes `count` characters backward (or forward) from the caret in text edit mode.",
         "text.caret" => "Moves the caret in text edit mode by `by`, to `to`, or to a place (start, end, line start, …) and answers it.",
-        "add.lattice" => "Adds a lattice of `resolution` at `location` and answers its name and object id.",
+        "object.addLattice" => "Adds a lattice of `resolution` at `location` and answers its name and object id.",
         "lattice.set" => "Changes lattice `object`: resolution and interpolation, or resets its points.",
         "lattice.movePoints" => "Moves lattice points (by index, else the selected ones) by `offset`.",
         "lattice.select" => "Selects lattice points by index in lattice edit mode.",
@@ -520,22 +520,22 @@ fn describe(id: &str) -> &'static str {
             "Bakes `frames` more frames of the simulation and answers the cache state; divergent cloth/soft-body motion fails and stops automatic baking."
         }
         "physics.free" => "Frees the baked physics cache and answers its state.",
-        "nodes.newGroup" => "Creates a node group (geometry, shader, compositor) for a modifier, material, world or as a library group.",
-        "nodes.removeGroup" => "Deletes node group `group`.",
-        "nodes.renameGroup" => "Renames node group `group`.",
-        "nodes.addNode" => "Adds a node of `kind` (see `nodes.describe`) to `group` at `location` with input `values`.",
-        "nodes.removeNodes" => "Removes nodes by index from `group`.",
-        "nodes.moveNodes" => "Moves nodes of `group` to `location` or by `offset` in the node editor.",
-        "nodes.setValue" => "Sets input or property `id` of node `node` in `group` to `value`.",
-        "nodes.link" => "Links output socket `fromSocket` of node `from` to input socket `toSocket` of node `to` in `group`.",
-        "nodes.unlink" => "Removes the link between two sockets in `group`.",
-        "nodes.addInput" => "Adds an input socket of `type` to node group `group`'s interface.",
-        "nodes.removeInput" => "Removes input `name` from node group `group`'s interface.",
-        "nodes.addOutput" => "Adds an output socket of `type` to node group `group`'s interface.",
-        "nodes.removeOutput" => "Removes output `name` from node group `group`'s interface.",
-        "nodes.addZoneItem" => "Adds an item to a repeat or simulation zone node's state.",
-        "nodes.removeZoneItem" => "Removes an item from a repeat or simulation zone node's state.",
-        "nodes.describe" => "Lists the node kinds a tree takes (or one `kind`) with their inputs, outputs and properties, for `nodes.addNode`.",
+        "node.newGroup" => "Creates a node group (geometry, shader, compositor) for a modifier, material, world or as a library group.",
+        "node.removeGroup" => "Deletes node group `group`.",
+        "node.renameGroup" => "Renames node group `group`.",
+        "node.addNode" => "Adds a node of `kind` (see `node.describe`) to `group` at `location` with input `values`.",
+        "node.removeNodes" => "Removes nodes by index from `group`.",
+        "node.moveNodes" => "Moves nodes of `group` to `location` or by `offset` in the node editor.",
+        "node.setValue" => "Sets input or property `id` of node `node` in `group` to `value`.",
+        "node.link" => "Links output socket `fromSocket` of node `from` to input socket `toSocket` of node `to` in `group`.",
+        "node.unlink" => "Removes the link between two sockets in `group`.",
+        "node.addInput" => "Adds an input socket of `type` to node group `group`'s interface.",
+        "node.removeInput" => "Removes input `name` from node group `group`'s interface.",
+        "node.addOutput" => "Adds an output socket of `type` to node group `group`'s interface.",
+        "node.removeOutput" => "Removes output `name` from node group `group`'s interface.",
+        "node.addZoneItem" => "Adds an item to a repeat or simulation zone node's state.",
+        "node.removeZoneItem" => "Removes an item from a repeat or simulation zone node's state.",
+        "node.describe" => "Lists the node kinds a tree takes (or one `kind`) with their inputs, outputs and properties, for `node.addNode`.",
         "compositor.new" => "Creates a compositing node group and uses it for renders when `use`.",
         "compositor.set" => "Turns compositing on or off and sets which group renders use.",
         "compositor.setImage" => "Sets the image an image node of the compositing group reads (workspace path or base64).",
@@ -547,8 +547,8 @@ fn describe(id: &str) -> &'static str {
 
 fn output(id: &str) -> Option<Value> {
     let schema = match id {
-        "select.all" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
-        "select.none" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "edit.selectAll" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "edit.deselectAll" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "select.objects" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "mode.toggle" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "mode.set" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
@@ -625,7 +625,7 @@ fn output(id: &str) -> Option<Value> {
             r#"{"type":"object","additionalProperties":true,"properties":{"frames":{"type":"integer"},"state":{"type":"string","enum":["none","baking","baked","outdated","failed"]},"total":{"type":"integer"},"error":{"type":"string","description":"Failure detail when state is failed; retry explicitly after correcting settings"}}}"#
         }
         "physics.free" => r#"{"type":"object","additionalProperties":true,"properties":{"state":{"type":"string"}}}"#,
-        "nodes.describe" => {
+        "node.describe" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"kinds":{"type":"array","items":{"type":"object","additionalProperties":true,"properties":{"category":{"type":"string"},"id":{"type":"string"},"inputs":{"type":"json"},"outputs":{"type":"json"},"settings":{"type":"json"},"title":{"type":"string"},"trees":{"type":"json"}}}}}}"#
         }
         "render.trace.step" => {
@@ -634,8 +634,8 @@ fn output(id: &str) -> Option<Value> {
         "render.trace.image" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"base64":{"type":"string"},"mime":{"type":"string"},"extension":{"type":"string"},"width":{"type":"integer"},"height":{"type":"integer"}},"description":"the path-traced picture so far"}"#
         }
-        "anim.nextKey" => r#"{"type":"object","additionalProperties":true,"properties":{"frame":{"type":"integer"}}}"#,
-        "anim.previousKey" => r#"{"type":"object","additionalProperties":true,"properties":{"frame":{"type":"integer"}}}"#,
+        "animation.nextKey" => r#"{"type":"object","additionalProperties":true,"properties":{"frame":{"type":"integer"}}}"#,
+        "animation.previousKey" => r#"{"type":"object","additionalProperties":true,"properties":{"frame":{"type":"integer"}}}"#,
         "render.animation" => {
             r#"{"type":"object","additionalProperties":true,"properties":{},"description":"the rendered frames (see the description)"}"#
         }
@@ -658,7 +658,7 @@ fn output(id: &str) -> Option<Value> {
         "sculpt.brush" => r#"{"type":"object","additionalProperties":true,"properties":{"brush":{"type":"json"}}}"#,
         "particleEdit.brush" => r#"{"type":"object","additionalProperties":true,"properties":{"brush":{"type":"json"}}}"#,
         "sculpt.tool" => r#"{"type":"object","additionalProperties":true,"properties":{"tool":{"type":"json"}}}"#,
-        "particles.stats" => r#"{"type":"object","additionalProperties":true,"properties":{},"description":"the selected particle system's counts"}"#,
+        "particle.stats" => r#"{"type":"object","additionalProperties":true,"properties":{},"description":"the selected particle system's counts"}"#,
         "text.caret" => r#"{"type":"object","additionalProperties":true,"properties":{"caret":{"type":"json"}}}"#,
         "physics.bake" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"frames":{"type":"integer"},"state":{"type":"string","enum":["none","baking","baked","outdated","failed"]},"total":{"type":"integer"},"error":{"type":"string","description":"Failure detail when state is failed; retry explicitly after correcting settings"}}}"#

@@ -46,7 +46,7 @@ fn item_types() -> Vec<&'static str> {
 }
 
 static ENTRIES: &[Entry] = &[
-    ("nodes.newGroup", "New Node Group", true, true, || {
+    ("node.newGroup", "New Node Group", true, true, || {
         s::of(vec![
             ("name", s::string("The group's name (Geometry Nodes, Shader, or Volume when left out)")),
             ("tree", s::choice("geometry (the default): a Geometry Nodes group; shader: a material's surface and volume", &["geometry", "shader"])),
@@ -59,21 +59,21 @@ static ENTRIES: &[Entry] = &[
             ("world", s::boolean("shader: the group is the world's volume (a Principled Volume into the Material Output's Volume)")),
         ])
     }),
-    ("nodes.removeGroup", "Remove Node Group", false, true, || s::of(vec![group_ref()])),
-    ("nodes.renameGroup", "Rename Node Group", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The new name")))])),
-    ("nodes.addNode", "Add Node", false, true, || {
+    ("node.removeGroup", "Remove Node Group", false, true, || s::of(vec![group_ref()])),
+    ("node.renameGroup", "Rename Node Group", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The new name")))])),
+    ("node.addNode", "Add Node", false, true, || {
         s::of(vec![
             group_ref(),
-            ("kind", s::required(s::choice("The node's kind (nodes.describe lists their sockets)", &kinds()))),
+            ("kind", s::required(s::choice("The node's kind (node.describe lists their sockets)", &kinds()))),
             ("location", json!({ "type": "array", "items": { "type": "number" }, "description": "[x, y] in the editor's units" })),
             (
                 "values",
-                json!({ "type": "object", "additionalProperties": true, "description": "Socket and setting values by id, as nodes.setValue takes them" }),
+                json!({ "type": "object", "additionalProperties": true, "description": "Socket and setting values by id, as node.setValue takes them" }),
             ),
         ])
     }),
-    ("nodes.removeNodes", "Remove Nodes", false, true, || s::of(vec![group_ref(), ("nodes", s::required(s::indices("The nodes' ids")))])),
-    ("nodes.moveNodes", "Move Nodes", false, true, || {
+    ("node.removeNodes", "Remove Nodes", false, true, || s::of(vec![group_ref(), ("nodes", s::required(s::indices("The nodes' ids")))])),
+    ("node.moveNodes", "Move Nodes", false, true, || {
         s::of(vec![
             group_ref(),
             ("nodes", s::required(s::indices("The nodes' ids"))),
@@ -81,7 +81,7 @@ static ENTRIES: &[Entry] = &[
             ("location", json!({ "type": "array", "items": { "type": "number" }, "description": "[x, y] to put the (one) node at" })),
         ])
     }),
-    ("nodes.setValue", "Set Node Value", false, true, || {
+    ("node.setValue", "Set Node Value", false, true, || {
         s::of(vec![
             group_ref(),
             ("node", s::required(node_ref("The node's id"))),
@@ -92,7 +92,7 @@ static ENTRIES: &[Entry] = &[
             ),
         ])
     }),
-    ("nodes.link", "Link Sockets", false, true, || {
+    ("node.link", "Link Sockets", false, true, || {
         s::of(vec![
             group_ref(),
             ("from", s::required(node_ref("The node whose output to link"))),
@@ -101,7 +101,7 @@ static ENTRIES: &[Entry] = &[
             ("toSocket", s::required(s::string("The input socket's id; a link already there is replaced unless the input takes several"))),
         ])
     }),
-    ("nodes.unlink", "Unlink Sockets", false, true, || {
+    ("node.unlink", "Unlink Sockets", false, true, || {
         s::of(vec![
             group_ref(),
             ("to", s::required(node_ref("The node whose input to unlink"))),
@@ -110,7 +110,7 @@ static ENTRIES: &[Entry] = &[
             ("fromSocket", s::string("Only the link from this output socket")),
         ])
     }),
-    ("nodes.addInput", "Add Group Input", false, true, || {
+    ("node.addInput", "Add Group Input", false, true, || {
         s::of(vec![
             group_ref(),
             ("name", s::required(s::string("The input's name, unique in the group"))),
@@ -118,16 +118,16 @@ static ENTRIES: &[Entry] = &[
             ("default", json!({ "type": "json", "description": "The value a modifier uses when it sets none" })),
         ])
     }),
-    ("nodes.removeInput", "Remove Group Input", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The input's name")))])),
-    ("nodes.addOutput", "Add Group Output", false, true, || {
+    ("node.removeInput", "Remove Group Input", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The input's name")))])),
+    ("node.addOutput", "Add Group Output", false, true, || {
         s::of(vec![
             group_ref(),
             ("name", s::required(s::string("The output's name, unique in the group (a Group node using the group gives it)"))),
             ("type", s::required(s::choice("What the output carries", &item_types()))),
         ])
     }),
-    ("nodes.removeOutput", "Remove Group Output", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The output's name")))])),
-    ("nodes.addZoneItem", "Add Zone Item", false, true, || {
+    ("node.removeOutput", "Remove Group Output", false, true, || s::of(vec![group_ref(), ("name", s::required(s::string("The output's name")))])),
+    ("node.addZoneItem", "Add Zone Item", false, true, || {
         s::of(vec![
             group_ref(),
             ("node", s::required(node_ref("Either node of the zone"))),
@@ -135,10 +135,10 @@ static ENTRIES: &[Entry] = &[
             ("type", s::required(s::choice("What the item carries", &item_types()))),
         ])
     }),
-    ("nodes.removeZoneItem", "Remove Zone Item", false, true, || {
+    ("node.removeZoneItem", "Remove Zone Item", false, true, || {
         s::of(vec![group_ref(), ("node", s::required(node_ref("Either node of the zone"))), ("name", s::required(s::string("The item's name")))])
     }),
-    ("nodes.describe", "Describe Node Kinds", false, false, || {
+    ("node.describe", "Describe Node Kinds", false, false, || {
         s::of(vec![
             ("kind", s::string("One kind; every kind when left out")),
             ("tree", s::choice("Only the kinds a geometry, a compositing, or a shader group takes", &["geometry", "compositor", "shader"])),
@@ -180,7 +180,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
 /// The ones that cannot run now: those that need a group when there is none.
 pub fn disabled(doc: &SceneDocument) -> Vec<String> {
     if doc.scene.node_groups.is_empty() {
-        ENTRIES.iter().map(|entry| entry.0).filter(|id| !matches!(*id, "nodes.newGroup" | "nodes.describe")).map(str::to_owned).collect()
+        ENTRIES.iter().map(|entry| entry.0).filter(|id| !matches!(*id, "node.newGroup" | "node.describe")).map(str::to_owned).collect()
     } else {
         Vec::new()
     }
@@ -266,7 +266,7 @@ fn need_node(params: &Value, key: &str) -> Result<Id, String> {
 pub fn value_objects(scene: &Scene, command: &str, params: &Value) -> Vec<Id> {
     let id = |value: &Value| value.as_u64().and_then(|id| Id::try_from(id).ok());
     let is_object = |kind: SocketType| matches!(kind, SocketType::Object | SocketType::Material);
-    if command == "nodes.addInput" {
+    if command == "node.addInput" {
         return params
             .get("default")
             .and_then(id)
@@ -301,11 +301,11 @@ pub fn value_objects(scene: &Scene, command: &str, params: &Value) -> Vec<Id> {
             .filter_map(|socket| params.get("inputs").and_then(|inputs| inputs.get(&socket.name)).and_then(id))
             .collect();
     }
-    if !matches!(command, "nodes.setValue" | "nodes.addNode") {
+    if !matches!(command, "node.setValue" | "node.addNode") {
         return Vec::new();
     }
     let Some(group) = group_id(scene, params).ok().and_then(|group| scene.node_group(group)) else { return Vec::new() };
-    let node = if command == "nodes.setValue" {
+    let node = if command == "node.setValue" {
         let Some(node) = params.get("node").and_then(id).and_then(|node| group.node(node)) else { return Vec::new() };
         node.clone()
     } else {
@@ -321,7 +321,7 @@ pub fn value_objects(scene: &Scene, command: &str, params: &Value) -> Vec<Id> {
                 .unwrap_or_default(),
         }
     };
-    let values: Vec<(&str, &Value)> = if command == "nodes.setValue" {
+    let values: Vec<(&str, &Value)> = if command == "node.setValue" {
         params.get("id").and_then(Value::as_str).zip(params.get("value")).into_iter().collect()
     } else {
         params.get("values").and_then(Value::as_object).into_iter().flatten().map(|(key, value)| (key.as_str(), value)).collect()
@@ -366,7 +366,7 @@ fn checked_value(group: &NodeGroup, groups: &[NodeGroup], node: &Node, kind: &No
         return Ok(json!(used));
     }
     if node_tree::has_dynamic_sockets(&node.kind) && matches!(id, "items" | "output") {
-        return Err(bad("a zone's pair and items change through nodes.addNode, nodes.addZoneItem, and nodes.removeZoneItem"));
+        return Err(bad("a zone's pair and items change through node.addNode, node.addZoneItem, and node.removeZoneItem"));
     }
     if let Some(setting) = kind.settings.iter().find(|setting| setting.id == id) {
         let text = match value {
@@ -493,7 +493,7 @@ fn checked_ramp(value: &Value) -> Result<Value, String> {
 fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     let scene = &mut doc.scene;
     match command {
-        "nodes.newGroup" if params::string(params, "tree")? == Some("shader") => {
+        "node.newGroup" if params::string(params, "tree")? == Some("shader") => {
             let world = params::boolean(params, "world")?.unwrap_or(false);
             let material = match params.get("material").filter(|value| !value.is_null()) {
                 Some(value) => Some(crate::commands::material_ref_value(scene, value)?),
@@ -520,7 +520,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(json!({ "group": id, "name": name, "output": output, "node": first, "material": material, "world": world }))
         }
-        "nodes.newGroup" => {
+        "node.newGroup" => {
             if !matches!(params::string(params, "tree")?, None | Some("geometry")) {
                 return Err(bad("`tree` is geometry or shader"));
             }
@@ -558,7 +558,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(out)
         }
-        "nodes.removeGroup" => {
+        "node.removeGroup" => {
             let id = group_id(scene, params)?;
             scene.node_groups.retain(|group| group.id != id);
             // Group nodes using it let go of it, and their links to its sockets go.
@@ -592,7 +592,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(json!({ "group": id }))
         }
-        "nodes.renameGroup" => {
+        "node.renameGroup" => {
             let id = group_id(scene, params)?;
             let name = params::string(params, "name")?.filter(|name| !name.trim().is_empty()).ok_or_else(|| bad("`name` must not be empty"))?;
             if scene.node_groups.iter().any(|group| group.id != id && group.name == name) {
@@ -602,7 +602,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             group.name = name.to_owned();
             Ok(json!({ "group": id, "name": name }))
         }
-        "nodes.addNode" => {
+        "node.addNode" => {
             let kind_id = params::string(params, "kind")?.ok_or_else(|| bad("`kind` is required"))?;
             let kind = node_tree::node_kind(kind_id).ok_or_else(|| bad(format!("unknown node kind {kind_id}")))?;
             if node_tree::is_zone_output(kind_id) {
@@ -650,7 +650,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(out)
         }
-        "nodes.removeNodes" => {
+        "node.removeNodes" => {
             let mut ids = params::indices(params, "nodes")?.ok_or_else(|| bad("`nodes` is required"))?;
             let group = group_mut(scene, params)?;
             for id in &ids {
@@ -679,7 +679,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             group.links.retain(|link| !ids.contains(&link.from) && !ids.contains(&link.to));
             Ok(json!({ "group": group.id, "removed": ids }))
         }
-        "nodes.moveNodes" => {
+        "node.moveNodes" => {
             let ids = params::indices(params, "nodes")?.ok_or_else(|| bad("`nodes` is required"))?;
             let offset = location(params, "offset")?;
             let place = location(params, "location")?;
@@ -694,7 +694,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(json!({ "group": group.id, "moved": ids.len() }))
         }
-        "nodes.setValue" => {
+        "node.setValue" => {
             let doc_images: Vec<String> = scene.images.iter().map(|image| image.hash.clone()).collect();
             let id = need_node(params, "node")?;
             let key = params::string(params, "id")?.ok_or_else(|| bad("`id` is required"))?.to_owned();
@@ -704,7 +704,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             let node = group.node(id).ok_or_else(|| format!("not-found: node {id}"))?.clone();
             let kind = node_tree::node_kind(&node.kind).ok_or("failed: the node's kind is unknown")?;
             if value.is_null() && node_tree::has_dynamic_sockets(&node.kind) && matches!(key.as_str(), "items" | "output") {
-                return Err(bad("a zone's pair and items change through nodes.addNode, nodes.addZoneItem, and nodes.removeZoneItem"));
+                return Err(bad("a zone's pair and items change through node.addNode, node.addZoneItem, and node.removeZoneItem"));
             }
             let checked = if value.is_null() { Value::Null } else { checked_value(group, &groups, &node, kind, &key, &value)? };
             if matches!(node.kind.as_str(), "image" | "imageTexture")
@@ -739,7 +739,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(json!({ "group": group_id, "node": id, "id": key }))
         }
-        "nodes.link" => {
+        "node.link" => {
             let (from, to) = (need_node(params, "from")?, need_node(params, "to")?);
             let from_socket = params::string(params, "fromSocket")?.ok_or_else(|| bad("`fromSocket` is required"))?.to_owned();
             let to_socket = params::string(params, "toSocket")?.ok_or_else(|| bad("`toSocket` is required"))?.to_owned();
@@ -776,7 +776,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             }
             Ok(json!({ "group": group.id, "links": group.links.len() }))
         }
-        "nodes.unlink" => {
+        "node.unlink" => {
             let to = need_node(params, "to")?;
             let to_socket = params::string(params, "toSocket")?.ok_or_else(|| bad("`toSocket` is required"))?.to_owned();
             let from = node_id(params, "from")?;
@@ -791,8 +791,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             });
             Ok(json!({ "group": group.id, "removed": before - group.links.len() }))
         }
-        "nodes.addInput" | "nodes.addOutput" => {
-            let outputs = command == "nodes.addOutput";
+        "node.addInput" | "node.addOutput" => {
+            let outputs = command == "node.addOutput";
             let name = params::string(params, "name")?.filter(|name| !name.trim().is_empty()).ok_or_else(|| bad("`name` is required"))?.to_owned();
             let allowed = if outputs { item_types() } else { types() };
             let text = params::string(params, "type")?.ok_or_else(|| bad("`type` is required"))?;
@@ -816,8 +816,8 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             sockets.push(GroupSocket { name: name.clone(), kind, default });
             Ok(json!({ "group": group.id, "name": name }))
         }
-        "nodes.removeInput" | "nodes.removeOutput" => {
-            let outputs = command == "nodes.removeOutput";
+        "node.removeInput" | "node.removeOutput" => {
+            let outputs = command == "node.removeOutput";
             let name = params::string(params, "name")?.ok_or_else(|| bad("`name` is required"))?.to_owned();
             let group = group_mut(scene, params)?;
             let sockets = if outputs { &mut group.outputs } else { &mut group.inputs };
@@ -831,7 +831,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             drop_unfitting(scene);
             Ok(json!({ "group": id, "name": name }))
         }
-        "nodes.addZoneItem" => {
+        "node.addZoneItem" => {
             let node = need_node(params, "node")?;
             let name = params::string(params, "name")?.filter(|name| !name.trim().is_empty()).ok_or_else(|| bad("`name` is required"))?.to_owned();
             let text = params::string(params, "type")?.ok_or_else(|| bad("`type` is required"))?;
@@ -853,7 +853,7 @@ fn run(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, 
             target.values.insert("items".into(), json!(items));
             Ok(json!({ "group": group.id, "node": output, "name": name }))
         }
-        "nodes.removeZoneItem" => {
+        "node.removeZoneItem" => {
             let node = need_node(params, "node")?;
             let name = params::string(params, "name")?.ok_or_else(|| bad("`name` is required"))?.to_owned();
             let group = group_mut(scene, params)?;

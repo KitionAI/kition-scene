@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 fn empty() -> SceneDocument {
     let mut doc = SceneDocument::create("Untitled.kscene", 640, 360).unwrap();
-    run(&mut doc, "select.all", json!({}));
+    run(&mut doc, "edit.selectAll", json!({}));
     run(&mut doc, "edit.delete", json!({}));
     doc
 }
@@ -26,9 +26,9 @@ fn z_of(doc: &SceneDocument, name: &str) -> f64 {
 /// A ground plane and a cube 3 m up, both rigid bodies.
 fn drop_scene() -> SceneDocument {
     let mut doc = empty();
-    run(&mut doc, "add.plane", json!({ "size": 10, "name": "Ground" }));
+    run(&mut doc, "object.addPlane", json!({ "size": 10, "name": "Ground" }));
     run(&mut doc, "physics.rigidBody.add", json!({ "type": "passive" }));
-    run(&mut doc, "add.cube", json!({ "size": 1, "location": [0, 0, 3], "name": "Box" }));
+    run(&mut doc, "object.addCube", json!({ "size": 1, "location": [0, 0, 3], "name": "Box" }));
     run(&mut doc, "physics.rigidBody.add", json!({ "objects": "Box", "mass": 2 }));
     run(&mut doc, "physics.world.set", json!({ "frameEnd": 60 }));
     doc

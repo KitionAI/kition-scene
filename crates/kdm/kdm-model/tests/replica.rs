@@ -153,6 +153,21 @@ fn constraints_and_weights_read_back() {
     assert_eq!(scene.object_named("Camera").unwrap().constraints.len(), 1, "constraints read back");
     let ObjectData::Mesh(mesh) = &scene.object_named("Cube").unwrap().data else { panic!("the cube is a mesh") };
     assert_eq!(mesh.groups.iter().find(|group| group.name == "Group").unwrap().weights[0], 1.0, "the weights read back");
+
+    // The light aims at the cube, then the cube is deleted: the light keeps its constraint,
+    // untargeted.
+    edit(&mut a, &mut blobs_a, |scene| {
+        let (cube, light) = (scene.object_named("Cube").unwrap().id, scene.object_named("Light").unwrap().id);
+        scene.object_mut(light).unwrap().constraints.push(track(cube));
+    });
+    edit(&mut a, &mut blobs_a, |scene| {
+        let cube = scene.object_named("Cube").unwrap().id;
+        scene.remove_objects(&[cube]).unwrap();
+    });
+    let scene = read(&a, &blobs_a);
+    scene.validate().unwrap();
+    let light = &scene.object_named("Light").unwrap().constraints;
+    assert!(light.len() == 1 && light[0].kind.target().is_none(), "the target went");
 }
 
 #[test]

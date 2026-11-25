@@ -305,6 +305,28 @@ fn delete_object_references_in_modifiers_let_go() {
     assert_eq!(modifier_objects(&again, "Cube"), [None, None, None, None]);
 }
 
+/// A constraint whose target is deleted stays on its owner with no target, as clearing its target
+/// field leaves it (the reference application keeps it too), also after saving and reopening.
+#[test]
+fn delete_object_references_in_constraints_let_go() {
+    let mut doc = new_doc();
+    run(&mut doc, "add.empty", json!({ "name": "Goal", "location": [3, 4, 0] }));
+    run(&mut doc, "constraint.add", json!({ "object": "Light", "type": "trackTo", "target": "Goal" }));
+    let constraints = |doc: &SceneDocument| -> Vec<Value> {
+        let inspected = doc.inspect().unwrap();
+        let light = inspected["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Light").unwrap().clone();
+        light["constraints"].as_array().cloned().unwrap_or_default()
+    };
+    assert_eq!(constraints(&doc)[0]["target"]["name"], "Goal", "the control: the light tracks the goal");
+    run(&mut doc, "edit.delete", json!({ "objects": ["Goal"] }));
+    let again = reopened(&mut doc);
+    for doc in [&doc, &again] {
+        let kept = constraints(doc);
+        assert_eq!(kept.len(), 1, "the constraint stays: {kept:?}");
+        assert!(kept[0].get("target").is_none_or(Value::is_null), "and names no object: {kept:?}");
+    }
+}
+
 #[test]
 fn delete_object_references_in_curves_and_texts_let_go() {
     use kition_scene_model::{Curve, Scene, Text};

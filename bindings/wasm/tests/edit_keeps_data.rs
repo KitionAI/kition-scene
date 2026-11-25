@@ -342,6 +342,34 @@ fn delete_object_references_in_curves_and_texts_let_go() {
     assert_eq!(text.follow_curve, None);
 }
 
+/// An Object Info node reading the light lets go of it when the light is deleted by command, as
+/// the repair after a merged draft lets go of an object the person deleted meanwhile
+/// (`kition_scene_kdm::nodes::repair`); undo brings the light and the node's setting back, and
+/// the file keeps the setting cleared (case `regressions/issue-object-info-deleted-object`).
+#[test]
+fn object_info_lets_go_of_a_deleted_object() {
+    let mut doc = new_doc();
+    let made = run(&mut doc, "nodes.newGroup", json!({ "object": "Cube", "name": "Reads" }));
+    let group = made["group"].as_u64().unwrap();
+    let light = u64::from(doc.scene().object_named("Light").unwrap().id);
+    let info =
+        run(&mut doc, "nodes.addNode", json!({ "group": group, "kind": "objectInfo", "values": { "Object": light } }))["node"].as_u64().unwrap();
+    let setting = |doc: &SceneDocument| -> Option<Value> {
+        let tree = doc.scene().node_groups.iter().find(|tree| u64::from(tree.id) == group).unwrap();
+        tree.nodes.iter().find(|node| u64::from(node.id) == info).unwrap().values.get("Object").cloned()
+    };
+    assert_eq!(setting(&doc), Some(json!(light)), "the control: the node reads the light");
+    run(&mut doc, "edit.delete", json!({ "objects": ["Light"] }));
+    assert!(doc.scene().object_named("Light").is_none());
+    assert_eq!(setting(&doc), None, "the node names no object");
+    assert_eq!(setting(&reopened(&mut doc)), None, "nor does the saved file");
+    run(&mut doc, "edit.undo", json!({}));
+    assert_eq!(u64::from(doc.scene().object_named("Light").unwrap().id), light, "the light is back");
+    assert_eq!(setting(&doc), Some(json!(light)), "and the node reads it again");
+    run(&mut doc, "edit.redo", json!({}));
+    assert_eq!(setting(&doc), None);
+}
+
 #[test]
 fn delete_object_references_dangling_ones_are_refused() {
     use kition_scene_model::{Curve, Modifier, ModifierKind, Scene};

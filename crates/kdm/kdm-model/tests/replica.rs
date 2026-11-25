@@ -1,4 +1,5 @@
-//! The scene through a replica: written whole, read back and edited through the bridge.
+//! The scene through a replica: written whole, read back and edited through the bridge; an
+//! agent's draft merged while the person edited, and the repair after it.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::kdm::{ActorId, DocId, Origin, Replica};
@@ -6,7 +7,7 @@ use kition_kit::session::{BlobSink, KitModel, MemoryBlobs};
 use kition_scene_kdm::mesh_blob::MeshCache;
 use kition_scene_kdm::read::read_scene;
 use kition_scene_kdm::write::{Written, stored_form, write_changes, write_scene};
-use kition_scene_kdm::{SceneModel, ids, schema};
+use kition_scene_kdm::{SceneModel, ids, root_id, schema};
 use kition_scene_model::glam::Vec3;
 use kition_scene_model::{ObjectData, Primitive, Scene};
 
@@ -39,6 +40,22 @@ fn edit(replica: &mut Replica, blobs: &mut MemoryBlobs, edit: impl FnOnce(&mut S
     let key = ids::key_of(replica.actor());
     let written = replica.transact(&Origin::person("p"), |tx| write_changes(tx, &before, &after, next.map(|next| (key.as_str(), next)))).unwrap();
     keep(blobs, written);
+}
+
+/// The person's `live` replica and an agent's draft of it (a fork at its version, data model
+/// 6.6): the draft takes `drafted`, the person meanwhile `meanwhile`, and the person merges the
+/// draft as `KitSession::merge_changes` does: one change of the person's, then the repair.
+fn merge_draft(live: &mut Replica, blobs: &mut MemoryBlobs, drafted: impl FnOnce(&mut Scene), meanwhile: impl FnOnce(&mut Scene)) {
+    let base = live.version();
+    let mut draft = live.fork(ActorId::random()).unwrap();
+    let mut draft_blobs = blobs.clone();
+    edit(&mut draft, &mut draft_blobs, drafted);
+    edit(live, blobs, meanwhile);
+    for (hash, bytes) in draft_blobs.0 {
+        blobs.0.entry(hash).or_insert(bytes);
+    }
+    live.merge_changes(&draft.export_changes(&base).unwrap(), &Origin::agent("agent:test")).unwrap();
+    live.transact(&Origin::system("repair"), |tx| Ok(kition_scene_kdm::repair::repair(tx).unwrap())).unwrap();
 }
 
 #[test]
@@ -195,4 +212,65 @@ fn physics_settings_read_back_and_the_bake_stays_out_of_the_replica() {
     });
     let scene = read(&a, &blobs_a);
     assert!(scene.object_named("Cube").unwrap().physics.is_none() && scene.physics.is_default());
+}
+
+/// What a merged draft can leave dangling, the repair clears: the agent parents the cube to the
+/// light while the person deletes the light and the camera (the draft writes only the cube, so
+/// the merge applies, rule D8); the cube's parent goes and no camera is left. And the agent
+/// parents the light to the cube while the person parents the cube to the light (two registers,
+/// each changed by one side, rule D3): the cycle is broken at its highest key.
+#[test]
+fn repair_clears_what_a_merge_left_dangling() {
+    let (mut a, mut blobs_a) = create(&Scene::starter());
+    merge_draft(
+        &mut a,
+        &mut blobs_a,
+        |scene| {
+            let light = scene.object_named("Light").unwrap().id;
+            let cube = scene.object_named("Cube").unwrap().id;
+            scene.set_parent(cube, Some(light)).unwrap();
+        },
+        |scene| {
+            let light = scene.object_named("Light").unwrap().id;
+            let camera = scene.object_named("Camera").unwrap().id;
+            scene.remove_objects(&[light, camera]).unwrap();
+        },
+    );
+    let scene = read(&a, &blobs_a);
+    assert!(scene.object_named("Light").is_none() && scene.object_named("Camera").is_none());
+    assert_eq!(scene.object_named("Cube").unwrap().parent, None, "the parent went");
+    assert_eq!(scene.camera, None, "no camera is left");
+    scene.validate().unwrap();
+
+    // Each side parents one of two objects to the other: the cycle is broken.
+    let (mut c, mut blobs_c) = create(&Scene::starter());
+    let (cube, light) = {
+        let scene = read(&c, &blobs_c);
+        (scene.object_named("Cube").unwrap().id, scene.object_named("Light").unwrap().id)
+    };
+    merge_draft(&mut c, &mut blobs_c, |scene| scene.set_parent(light, Some(cube)).unwrap(), |scene| scene.set_parent(cube, Some(light)).unwrap());
+    let scene = read(&c, &blobs_c);
+    scene.validate().unwrap();
+    let (highest, other) = if cube > light { (cube, light) } else { (light, cube) };
+    assert_eq!(scene.object(highest).unwrap().parent, None, "the object with the highest key lets go of its parent");
+    assert_eq!(scene.object(other).unwrap().parent, Some(highest), "the other keeps its own");
+}
+
+/// A record listed twice in the scene's objects (a state only a file written by another program
+/// can hold: a merge refuses two insertions of one item, rule D6, and minted ids never meet) keeps
+/// its first place when the repair runs (after the next undo, redo, merge or import).
+#[test]
+fn repair_keeps_the_first_place_of_a_record_listed_twice() {
+    let (mut replica, blobs) = create(&Scene::starter());
+    let root = root_id();
+    let listed = replica.list(&root, "objects").unwrap();
+    let first = listed[0].clone();
+    replica.transact(&Origin::system("import"), |tx| tx.list_insert(&root, "objects", listed.len(), &first)).unwrap();
+    let mut doubled = listed.clone();
+    doubled.push(first);
+    assert_eq!(replica.list(&root, "objects").unwrap(), doubled, "the control: the state holds the record twice");
+    replica.transact(&Origin::system("repair"), |tx| Ok(kition_scene_kdm::repair::repair(tx).unwrap())).unwrap();
+    assert_eq!(replica.list(&root, "objects").unwrap(), listed);
+    let scene = read(&replica, &blobs);
+    assert_eq!(scene, stored_form(&Scene::starter(), &Scene::starter()));
 }

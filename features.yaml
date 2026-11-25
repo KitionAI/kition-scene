@@ -203,7 +203,7 @@ features:
     commands: [object.rename, object.hide, material.assign]
     paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/params.rs, bindings/wasm/src/lib.rs, bindings/headless/tests/ids.rs, bindings/wasm/tests/saved.rs, crates/kdm/kdm-model/tests/tool_ids.rs, bindings/wasm/tests/typed_failure.rs]
     requirements: [AX13]
-    cases: [scene.agent.ids/one-id-space, scene.agent.ids/tool-ids-in-replicas, scene.agent.ids/in-memory-is-saved, regressions/issue-saved-multires, regressions/issue-receipt-keys, regressions/issue-digit-names]
+    cases: [scene.agent.ids/one-id-space, scene.agent.ids/tool-ids-in-replicas, scene.agent.ids/in-memory-is-saved, scene.agent.ids/model-reply-names, regressions/issue-saved-multires, regressions/issue-receipt-keys, regressions/issue-digit-names]
     since: "2026-11-17"
   - id: scene.agent.places
     title: World points, element indexes and names are places; a write by them is refused after others changed what they name
@@ -303,7 +303,7 @@ features:
     commands: [add.cube, add.cylinder, add.uvSphere, object.transform, edit.delete]
     paths: [bindings/wasm/src/commands.rs, crates/engine/model/src/scene.rs, bindings/wasm/tests/round_trip.rs]
     target: Blender 5.2.3 LTS
-    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-outliner-delete-save, regressions/issue-object-kind-surface]
+    cases: [scene.object.basics/save-reopen, regressions/issue-delete-named-objects, regressions/issue-delete-object-references, regressions/issue-object-info-deleted-object, regressions/issue-outliner-delete-save, regressions/issue-object-kind-surface]
     since: "2026-11-17"
   - id: scene.material.basics
     title: Make, rename, colour and assign materials (roughness, transmission, IOR)
@@ -344,7 +344,7 @@ features:
     paths: [bindings/wasm/src/commands_rig.rs, bindings/wasm/examples/bench.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/examples/conformance.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    cases: [regressions/issue-undo-holds-its-step, regressions/issue-undo-passed-over-history]
+    cases: [regressions/issue-undo-holds-its-step, regressions/issue-undo-passed-over-history, regressions/issue-merge-restore-undo-labels]
     since: "2026-11-17"
   - id: scene.object.add
     title: "Add meshes, curves, lights, cameras and empties"

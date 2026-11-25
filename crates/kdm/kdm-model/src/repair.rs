@@ -62,7 +62,7 @@ fn constraint_records(tx: &Tx<'_>, id: &ObjectId) -> KdmResult<Vec<(ObjectId, Ob
 
 fn break_constraint_cycles(tx: &mut Tx<'_>, keys: &BTreeMap<u64, ObjectId>, parents: &BTreeMap<u64, u64>) -> KdmResult<bool> {
     let mut wrote = false;
-    // Targets that a peer deleted go (the constraint stays, with no target).
+    // Targets deleted while a draft was made go (the constraint stays, with no target).
     for id in keys.values() {
         for (_, record, value) in constraint_records(tx, id)? {
             let mut fixed = value.clone();
@@ -172,7 +172,7 @@ fn repair_nla(tx: &mut Tx<'_>, keys: &BTreeMap<u64, ObjectId>) -> KdmResult<bool
             held::write(tx, id, "nla", &held::NLA_TRACK, &tracks, Mint::Derived)?;
             wrote = true;
         }
-        // Tweak mode holds while a strip still plays its action (found again if a peer moved
+        // Tweak mode holds while a strip still plays its action (found again if a merge moved
         // it); otherwise it ends and the keys put aside come back as the object's own.
         let value = tx.get(id, "tweak")?;
         if value.is_null() {
@@ -269,8 +269,8 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
         }
     }
 
-    // Held lists: their entries, the records they hold, and names and channels two peers added
-    // at once.
+    // Held lists: their entries, the records they hold, and names and channels a draft and the
+    // person added both.
     wrote |= held::repair(tx)?;
 
     // Keys (the records' tool ids, one id space) found twice: the first record in list order keeps
@@ -360,7 +360,7 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
             at = next;
         }
     }
-    // Constraints: a cycle through targets (two people adding constraints at once, each fine
+    // Constraints: a cycle through targets (a draft and the person adding constraints, each fine
     // alone) is broken at its highest key, whose constraints on the next object in the cycle go.
     wrote |= break_constraint_cycles(tx, &keys, &parents)?;
     let cameras: Vec<u64> = objects
@@ -479,7 +479,7 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
         }
     }
 
-    // NLA: strips playing an action that is gone (a peer removed or renamed it) go; tweak mode
+    // NLA: strips playing an action that is gone (removed or renamed while a draft was made) go; tweak mode
     // on such a strip ends, the keys put aside coming back as the object's own.
     wrote |= repair_nla(tx, &keys)?;
 

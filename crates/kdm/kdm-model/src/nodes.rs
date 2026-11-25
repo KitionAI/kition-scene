@@ -1,13 +1,13 @@
 //! Node groups in the replica: the scene's `nodeGroups` list holds each group as a record of its
 //! own (a compositing or shader group names its `tree`; a geometry group none; `inputs` and
 //! `outputs` are its interface, which Group nodes using it give), with its nodes and links as
-//! records of their own, so two people editing different nodes (or different values of one node:
-//! `values` is a map) both keep their edits. Links are identified by their ends; the repair drops
+//! records of their own, so an agent's draft and the person's edits of different nodes (or different
+//! values of one node: `values` is a map) merge. Links are identified by their ends; the repair drops
 //! links whose nodes or sockets are gone, a second link into an input that takes one, and a link
 //! that closes a cycle, and lets go of groups, objects, and materials that modifiers and nodes
 //! name but no record holds. Group nodes let go of a group that is gone, not a geometry group, or
-//! that would use itself (two people each putting one group into the other: the later Group node,
-//! in key order, lets go); zone inputs let go of an output that is gone or another input already
+//! that would use itself (a draft and the person each putting one group into the other: the later
+//! Group node, in key order, lets go); zone inputs let go of an output that is gone or another input already
 //! pairs with.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -385,7 +385,7 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
         }
     }
     // Links that do not fit (a node or socket gone, a second link into a single input, a cycle
-    // two people closed at once) go: the earlier link in list order stays.
+    // a merged draft closed) go: the earlier link in list order stays.
     let objects: BTreeSet<u64> = tx.list_items(&root, "objects")?.iter().filter_map(|id| tx.get(id, "key").ok()?.as_u64()).collect();
     let materials: BTreeSet<u64> = tx.list_items(&root, "materials")?.iter().filter_map(|id| tx.get(id, "key").ok()?.as_u64()).collect();
     let mut geometry_keys = BTreeSet::new();
@@ -479,7 +479,7 @@ pub fn repair(tx: &mut Tx<'_>) -> KdmResult<bool> {
         }
     }
     // Links that do not fit (a node or socket gone, a second link into a single input, a cycle
-    // two people closed at once) go: the earlier link in list order stays.
+    // a merged draft closed) go: the earlier link in list order stays.
     let all: Vec<NodeGroup> = loaded.iter().map(|(_, group, _)| group.clone()).collect();
     for (group_id, group, _) in &loaded {
         let tree = group.tree;

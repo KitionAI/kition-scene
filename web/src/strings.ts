@@ -941,6 +941,8 @@ export const PHRASES: Record<string, Record<string, string>> = {
     ...NODE_PHRASES,
     ...COMPOSITOR_PHRASES,
     File: '文件',
+    'Merge Draft': '合并草稿',
+    'Restore Version': '恢复版本',
     Edit: '编辑',
     View: '视图',
     Add: '添加',

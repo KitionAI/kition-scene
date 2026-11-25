@@ -1241,6 +1241,15 @@ impl Scene {
                 _ => {}
             }
         }
+        // A node's Object setting (Object Info) lets go of a deleted object, as the repair after
+        // a merged draft lets go of one the draft named.
+        for group in &mut self.node_groups {
+            for node in &mut group.nodes {
+                if node.values.get("Object").and_then(serde_json::Value::as_u64).is_some_and(|target| ids.iter().any(|id| u64::from(*id) == target)) {
+                    node.values.remove("Object");
+                }
+            }
+        }
         self.prune_animation();
         crate::particles::forget(self, ids);
         self.forget_physics(ids);

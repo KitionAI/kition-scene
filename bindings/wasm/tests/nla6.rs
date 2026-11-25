@@ -183,3 +183,76 @@ fn transitions_follow_moved_and_resized_neighbors() {
     run(&mut doc, "nla.setStrip", json!({"object":"Cube","track":0,"strip":0,"start":18}));
     assert_eq!(bounds(&doc), reference["states"]["metaMoved"]);
 }
+
+/// Removing an action takes away the strips that play it inside meta strips too, with the
+/// transition beside them (`Nla::follow_action`): the cube's two strips, A then B with a
+/// transition between, are grouped into a meta strip and that one into another, and the person
+/// removes action A by command. Only B plays; undo gives back the nested strips exactly, redo
+/// takes them away again. (Before the plain model this was a concurrent removal and grouping,
+/// merged; one person now reaches the same state through the command.)
+#[test]
+fn removing_an_action_takes_its_nested_strips_away() {
+    use kition_kit::kdm::{ActorId, DocId, Origin, Replica};
+    use kition_scene_model::animation::{Action, ActionChannel, Property};
+    use kition_scene_model::{Interpolation, Keyframe, ObjectData, Scene};
+    let mut scene = Scene::empty();
+    let id = scene.add_object("Cube", ObjectData::Empty { size: 1.0 });
+    for (name, value) in [("A", 0.0), ("B", 30.0)] {
+        scene.animation.actions.push(Action {
+            name: name.into(),
+            channels: vec![ActionChannel {
+                property: Property::Location,
+                index: 0,
+                path: String::new(),
+                keys: vec![
+                    Keyframe { frame: 1.0, value, interpolation: Interpolation::Linear },
+                    Keyframe { frame: 11.0, value: value + 10.0, interpolation: Interpolation::Linear },
+                ],
+                modifiers: Vec::new(),
+            }],
+        });
+    }
+    scene.nla_add_strip(id, None, "A", 1.0).unwrap();
+    scene.nla_add_strip(id, Some(0), "B", 21.0).unwrap();
+    scene.nla_add_transition(id, 0, 0).unwrap();
+    scene.nla_make_meta(id, 0, 0, 2).unwrap();
+    scene.nla_make_meta(id, 0, 0, 0).unwrap();
+    scene.object_mut(id).unwrap().nla.tracks[0].strips[0].resize_meta(11.0, 71.0).unwrap();
+    scene.validate().unwrap();
+    let (replica, _) =
+        Replica::create_with(kition_scene_kdm::schema(), DocId::new(), ActorId::from_u64(1).unwrap(), &Origin::system("create"), |tx| {
+            kition_scene_kdm::write::write_scene(tx, &scene)
+        })
+        .unwrap();
+    let file = kition_scene_kscene::File {
+        meta: kition_scene_kscene::Meta { kdm: kition_kit::kdm::KDM_VERSION, schema_version: 1, doc_id: replica.doc_id().to_string() },
+        content: replica.content_snapshot().unwrap(),
+        ..Default::default()
+    };
+    let mut doc = SceneDocument::open("Nested.kscene", &kition_scene_kscene::write(&file).unwrap()).unwrap();
+    let played = |doc: &SceneDocument| {
+        let mut played = Vec::new();
+        for track in &doc.scene().object_named("Cube").unwrap().nla.tracks {
+            for strip in &track.strips {
+                strip.visit_actions(&mut |name| played.push(name.to_string()));
+            }
+        }
+        played
+    };
+    assert_eq!(played(&doc), ["A", "B"], "the control: both play, nested");
+    let before = cube(&doc)["nla"].clone();
+    run(&mut doc, "action.remove", json!({ "name": "A" }));
+    doc.scene().validate().unwrap();
+    assert_eq!(played(&doc), ["B"]);
+    let removed = cube(&doc)["nla"].clone();
+    let back = SceneDocument::open("Saved.kscene", &doc.save_file(None).unwrap()).unwrap();
+    assert_eq!(played(&back), ["B"], "the saved file plays B alone");
+    assert_eq!(cube(&back)["nla"], removed);
+    back.scene().validate().unwrap();
+    run(&mut doc, "edit.undo", json!({}));
+    assert_eq!(cube(&doc)["nla"], before, "undo gives back the nested strips");
+    assert_eq!(played(&doc), ["A", "B"]);
+    run(&mut doc, "edit.redo", json!({}));
+    assert_eq!(cube(&doc)["nla"], removed);
+    assert_eq!(played(&doc), ["B"]);
+}

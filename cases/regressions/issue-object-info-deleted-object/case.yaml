@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-object-info-deleted-object
+feature: scene.object.basics
+intent: >-
+  Deleting an object by command lets go of an Object Info node's Object setting that names it,
+  as the repair after a merged draft does; undo brings the object and the setting back, and the
+  saved file keeps the cleared setting. Before, the command left the setting naming an object no
+  record holds (only a merge's repair cleared it), so the scene in memory and in the file named
+  a missing object.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/edit_keeps_data.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: edit_keeps_data
+      filter: object_info_lets_go_of_a_deleted_object
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 300

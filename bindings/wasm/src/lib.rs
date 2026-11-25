@@ -80,6 +80,12 @@ pub const EDITOR_STATE: &[&str] = &["/selection", "/view", "/mode", "/tool", "/a
 pub const DEFAULT_VIEWPORT: (u32, u32) = (1280, 720);
 /// The largest viewport side.
 const MAX_VIEWPORT: u32 = 4096;
+
+/// The undo label of a draft merged into the scene (the editor translates it like a command's).
+pub const MERGE_DRAFT_LABEL: &str = "Merge Draft";
+
+/// The undo label of an earlier version written over the scene (a checkpoint restored).
+pub const RESTORE_VERSION_LABEL: &str = "Restore Version";
 /// The origin of the host's own person (contract 1's `execute`).
 pub fn person() -> Origin {
     Origin::person("person:local")
@@ -576,6 +582,17 @@ impl SceneDocument {
         Ok(outcome.is_done())
     }
 
+    /// Names a step the replica recorded in `scope` outside a command (a merged draft, a restored
+    /// version) as `label`, with what it wrote: the stored scene's change from `before`. Like a
+    /// command's step, it clears the scope's redo steps; without it the labels would lag one step
+    /// behind the replica's, and every later undo would be named by the step above it.
+    fn recorded_outside(&mut self, scope: UndoScope, label: &str, before: &Scene) {
+        let touched = rests::Touched::between(before, &self.replica.model().stored);
+        let labels = self.history.of(scope);
+        labels.undo.push(Recorded { label: label.to_string(), touched });
+        labels.redo.clear();
+    }
+
     /// Whether `scope` (either, when `None`) has a step to undo or redo.
     fn can_step(&self, scope: Option<UndoScope>, undo: bool) -> bool {
         match (scope, undo) {
@@ -1059,23 +1076,30 @@ impl KitSessionDocument for SceneDocument {
         Ok(damage)
     }
 
-    /// A draft's changes taken in as one undo step of the person: a step the kit recorded
-    /// nothing of, like a model batch's.
+    /// A draft's changes taken in as one undo step of the person, whoever made the draft (KitModel
+    /// M12a): the replica records it in the person's history (none for a `system` or `import`
+    /// origin), and the labels name it [`MERGE_DRAFT_LABEL`] with what it wrote.
     fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage, String> {
+        let before = self.replica.model().stored.clone();
         let damage = self.replica.merge_changes(bytes, origin).map_err(|error| error.to_string())?;
         if damage != Damage::None {
-            self.history.untold = true;
+            if UndoScope::of(origin.kind).is_some() {
+                self.recorded_outside(UndoScope::Person, MERGE_DRAFT_LABEL, &before);
+            }
             self.replica_changed();
         }
         Ok(damage)
     }
 
     /// A snapshot's state written over the scene as one transaction of `origin` (a checkpoint
-    /// restored): a step the kit recorded nothing of.
+    /// restored): one undo step in `origin`'s scope, named [`RESTORE_VERSION_LABEL`].
     fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage, String> {
+        let before = self.replica.model().stored.clone();
         let damage = self.replica.restore_state(snapshot, origin).map_err(|error| error.to_string())?;
         if damage != Damage::None {
-            self.history.untold = true;
+            if let Some(scope) = UndoScope::of(origin.kind) {
+                self.recorded_outside(scope, RESTORE_VERSION_LABEL, &before);
+            }
             self.replica_changed();
         }
         Ok(damage)

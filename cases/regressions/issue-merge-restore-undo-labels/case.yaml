@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-merge-restore-undo-labels
+feature: scene.edit.history
+intent: >-
+  A draft an agent made, merged into the scene while the person added an object of their own, is
+  one undo step of the person named "Merge Draft" (the agent's undo does not take it back); a
+  restored version is one named "Restore Version". Undo gives back the exact state before each
+  (the replica's state hash and the engine's view), redo the exact state after, and the next
+  undo is named by the step below. Before, neither pushed a label: the undo took back the merge
+  or the restore but was named by the person's step below it, and every label below was one
+  step off.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+      filter: a_merge_and_a_restore_are_named_steps_of_the_person
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 600

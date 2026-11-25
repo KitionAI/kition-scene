@@ -1,0 +1,24 @@
+format: 1
+id: scene.agent.ids/model-reply-names
+feature: scene.agent.ids
+intent: >-
+  An agent's reply sent through modelReply, in a scene of 2000 objects, names the one object it
+  holds by the same tool id as the whole document's table gives it (also right after a change),
+  leaves text that merely mentions an id as it is, and a reply naming no object comes back
+  unchanged; the SDK reads the tool ids of the objects the reply names only.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/model_reply.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: model_reply
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 600

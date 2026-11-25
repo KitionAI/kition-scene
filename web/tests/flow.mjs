@@ -1446,7 +1446,7 @@ try {
   await until(async () => (await page.evaluate(() => window.devHost.files.get('Sample.kscene').version)) > 1)
   const saved = Buffer.from(await page.evaluate(() => Array.from(new Uint8Array(window.devHost.files.get('Sample.kscene').bytes))))
   step('saves a .kscene through the host', saved[0] === 0x50 && saved[1] === 0x4b)
-  step('the saved file holds no editor state', !saved.includes('editor.json') && saved.includes('content.kdm'))
+  step('the saved file holds no editor state', !saved.includes('editor.json') && saved.includes('content.json'))
   const keptView = () => page.evaluate(() => window.devHost.history.viewState('Sample.kscene'))
   const kept = await until(async () => {
     const view = (await keptView()).state

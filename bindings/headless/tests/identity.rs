@@ -1,6 +1,6 @@
 //! `document.identity` and `document.fork` (Kit Process Protocol section 5.6, KitModel M7a)
 //! through the real `kition-scene` process: a `.kscene` embeds its replica as the document's
-//! content (`content.kdm`, a content snapshot with no history, `docs/design.md` section 7.5), so a
+//! content (`content.json`, the state with no history, `docs/design.md` section 7.5), so a
 //! byte copy of a file is the same document. A host reads the identity a file carries without parsing the scene, and forks a file
 //! into a new document: a new docId, the same objects, ids and values, no history, only the blobs
 //! the scene references, and nothing of a person's session (a `.kscene` holds no editor state).
@@ -18,7 +18,7 @@ use sha2::{Digest, Sha256};
 
 const LIMIT: Duration = Duration::from_secs(30);
 
-/// The name of an object deleted before the save: in the session's history, in neither file.
+/// The name of an object deleted before the save: in the first save, in neither file.
 const SECRET: &str = "SECRET-DELETED-BEFORE-THE-FORK";
 
 /// A blob no object references (another program left it in the file).
@@ -51,7 +51,7 @@ fn scene() -> Vec<u8> {
     let mut doc = SceneDocument::open("Plan.kscene", &first).unwrap();
     doc.execute("edit.delete", json!({ "objects": [SECRET] })).unwrap();
     let saved = doc.save_file(None).unwrap();
-    assert!(holds(&kition_kit::session::__snapshot(&doc).unwrap(), SECRET), "the control: the session's history holds the deleted name");
+    assert!(holds(&kition_scene_kscene::read(&first).unwrap().content, SECRET), "the control: the first save holds the name");
     let mut parts = kition_scene_kscene::read(&saved).unwrap();
     parts.blobs.push((sha256(STRAY), STRAY.to_vec()));
     kition_scene_kscene::write(&parts).unwrap()
@@ -123,14 +123,13 @@ async fn a_scene_tells_its_identity_and_forks_into_a_new_document_without_histor
     let entries =
         |bytes: &[u8]| zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap().file_names().map(str::to_owned).collect::<Vec<_>>();
     for name in entries(&fork_bytes) {
-        assert!(["mimetype", "meta.json", "content.kdm"].contains(&name.as_str()) || name.starts_with("blobs/"), "the fork's file holds {name}");
+        assert!(["mimetype", "meta.json", "content.json"].contains(&name.as_str()) || name.starts_with("blobs/"), "the fork's file holds {name}");
     }
     assert_eq!(forked.meta.doc_id, fork_id, "meta.json's docId is the fork's");
     assert_eq!(forked.meta.schema_version, source.meta.schema_version);
-    assert!(
-        kition_kit::kdm::Replica::load(kition_scene_kdm::schema(), &forked.content, kition_kit::kdm::ActorId::random()).unwrap().is_sealed(),
-        "the fork's content is sealed"
-    );
+    let content = String::from_utf8(forked.content.clone()).unwrap();
+    assert!(content.starts_with(&format!("{{\"kdm\":1,\"kit\":\"kit.scene\",\"docId\":\"{fork_id}\",")), "the fork's content names the fork");
+    assert!(!content.contains("\"version\"") && !content.contains("\"lineage\""), "the fork's content holds no version");
     let stray = sha256(STRAY);
     assert!(source.blobs.iter().any(|(hash, _)| *hash == stray));
     let referenced: Vec<_> = source.blobs.iter().filter(|(hash, _)| *hash != stray).cloned().collect();

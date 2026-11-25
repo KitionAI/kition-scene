@@ -1,5 +1,5 @@
-//! The Scene kit's adapter for kition-sdk's convergence suite: replicas of a scene edited through
-//! the engine's own commands.
+//! The Scene kit's adapter for kition-sdk's `kition_convergence` performance mode (`perf.rs`):
+//! replicas of a scene edited through the engine's own commands.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
 use kition_convergence::{Blobs, KitAdapter, Result, Rng, Script};
@@ -21,8 +21,16 @@ pub fn decode_blobs(bytes: &[u8]) -> Result<Blobs> {
     Ok(out)
 }
 
+/// Blobs as a blob bundle (`decode_bundle`'s input): each hash, its length (8 bytes,
+/// little-endian) and its bytes.
 pub fn encode_blobs(blobs: &Blobs) -> Vec<u8> {
-    kition_convergence::wasm::encode_blobs(blobs)
+    let mut out = Vec::new();
+    for (hash, bytes) in blobs {
+        out.extend_from_slice(hash.as_bytes());
+        out.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+        out.extend_from_slice(bytes);
+    }
+    out
 }
 
 fn exec(doc: &mut SceneDocument, command: &str, params: Value) -> Result<Value> {
@@ -313,10 +321,7 @@ impl KitAdapter for SceneKit {
         let fresh = self.join(&snapshot, &blobs)?;
         let (mine, theirs) = (content(doc), content(&fresh));
         if mine != theirs {
-            return Err(format!(
-                "the view differs from a fresh replica's: {}",
-                kition_convergence::state::first_difference(&mine, &theirs).unwrap_or_default()
-            ));
+            return Err(format!("the view differs from a fresh replica's: {mine} against {theirs}"));
         }
         Ok(())
     }

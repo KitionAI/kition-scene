@@ -1,7 +1,7 @@
 format: 1
 id: scene.physics.motors/blender-and-round-trip
 feature: scene.physics.motors
-intent: Motors independently drive relative linear and angular velocity along the constraint X axis with bounded impulses; observed trajectories, command atomicity, undo, reopening a saved scene with a rigid body (the released-0.15.0.kscene fixture, a current .kscene despite its name) and replica repair remain covered.
+intent: Motors independently drive relative linear and angular velocity along the constraint X axis with bounded impulses; observed trajectories, command atomicity, undo and reopening a saved scene with a rigid body (the released-0.15.0.kscene fixture, a current .kscene despite its name) remain covered.
 layer: gate
 dimension: fidelity
 source:
@@ -14,7 +14,6 @@ input:
 steps:
   - cargo-test: { package: kition-scene-physics, test: motors8 }
   - cargo-test: { package: kition-scene-kit, test: motors8 }
-  - cargo-test: { package: kition-scene-kdm, test: motors8 }
 expected:
   - { actual: "out:steps", compare: exit, value: 0 }
 reference:

@@ -1,13 +1,13 @@
 //! Compositing groups through a replica: their tree and the render's choice of group written
-//! and read back, a peer's edits to their nodes merged, and a group a peer deleted let go of.
+//! and read back.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::kdm::{ActorId, DocId, Origin, Replica};
 use kition_kit::session::{BlobSink, MemoryBlobs};
 use kition_scene_kdm::mesh_blob::MeshCache;
 use kition_scene_kdm::read::read_scene;
-use kition_scene_kdm::write::{Written, stored_form, write_changes, write_scene};
-use kition_scene_kdm::{ids, schema};
+use kition_scene_kdm::schema;
+use kition_scene_kdm::write::{Written, write_scene};
 use kition_scene_model::node_tree::Tree;
 use kition_scene_model::{Id, Link, Node, NodeGroup, Scene};
 use serde_json::json;
@@ -28,42 +28,6 @@ fn create(scene: &Scene) -> (Replica, MemoryBlobs) {
 
 fn read(replica: &Replica, blobs: &MemoryBlobs) -> Scene {
     read_scene(replica, blobs, &mut MeshCache::default()).unwrap()
-}
-
-/// Runs `edit` on what `replica` holds and records it, as the document's bridge does.
-fn edit(replica: &mut Replica, blobs: &mut MemoryBlobs, edit: impl FnOnce(&mut Scene)) {
-    let before = read(replica, blobs);
-    let mut after = before.clone();
-    ids::allocate(replica, replica.actor(), &mut after);
-    edit(&mut after);
-    let next = after.allocator.0.map(|(next, _)| next);
-    let after = stored_form(&after, &before);
-    let key = ids::key_of(replica.actor());
-    let written = replica.transact(&Origin::person("p"), |tx| write_changes(tx, &before, &after, next.map(|next| (key.as_str(), next)))).unwrap();
-    keep(blobs, written);
-}
-
-fn sync(a: &mut Replica, b: &mut Replica, blobs_a: &mut MemoryBlobs, blobs_b: &mut MemoryBlobs) {
-    let to_b = a.export_changes(&b.version()).unwrap();
-    let to_a = b.export_changes(&a.version()).unwrap();
-    b.import_changes(&to_b).unwrap();
-    a.import_changes(&to_a).unwrap();
-    for (hash, bytes) in blobs_a.0.clone() {
-        blobs_b.0.entry(hash).or_insert(bytes);
-    }
-    for (hash, bytes) in blobs_b.0.clone() {
-        blobs_a.0.entry(hash).or_insert(bytes);
-    }
-    for replica in [&mut *a, &mut *b] {
-        replica.transact(&Origin::system("repair"), |tx| Ok(kition_scene_kdm::repair::repair(tx).unwrap())).unwrap();
-    }
-}
-
-fn peers(scene: &Scene) -> (Replica, Replica, MemoryBlobs, MemoryBlobs) {
-    let (a, blobs_a) = create(scene);
-    let b = Replica::load(schema(), &a.snapshot().unwrap(), ActorId::random()).unwrap();
-    let blobs_b = blobs_a.clone();
-    (a, b, blobs_a, blobs_b)
 }
 
 /// The starter scene with a compositing group (Render Layers, Glare, output) renders use.
@@ -103,51 +67,4 @@ fn a_compositing_group_and_the_renders_choice_of_it_round_trip() {
     // A geometry group stays without a tree in the replica, as files before compositing have it.
     let state = replica.state_json().unwrap().to_string();
     assert!(state.contains("\"tree\":\"compositor\""), "{state}");
-}
-
-#[test]
-fn peers_edit_different_compositing_nodes_and_both_edits_stay() {
-    let (scene, group, glare) = with_compositor();
-    let (mut a, mut b, mut blobs_a, mut blobs_b) = peers(&scene);
-    edit(&mut a, &mut blobs_a, |scene| {
-        scene.node_group_mut(group).unwrap().node_mut(glare).unwrap().values.insert("Strength".into(), json!(0.5));
-    });
-    let mut exposure = 0;
-    edit(&mut b, &mut blobs_b, |scene| {
-        exposure = scene.take_id();
-        scene.node_group_mut(group).unwrap().nodes.push(Node {
-            id: exposure,
-            kind: "exposure".into(),
-            location: [0.0, 0.0],
-            values: Default::default(),
-        });
-        scene.render.compositing = false;
-    });
-    sync(&mut a, &mut b, &mut blobs_a, &mut blobs_b);
-    assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    let scene = read(&a, &blobs_a);
-    let tree = scene.node_group(group).unwrap();
-    assert_eq!(tree.node(glare).unwrap().values["Strength"], json!(0.5));
-    assert!(tree.node(exposure).is_some());
-    assert!(!scene.render.compositing);
-    scene.validate().unwrap();
-}
-
-#[test]
-fn renders_let_go_of_a_compositing_group_a_peer_deleted() {
-    let (mut scene, group, glare) = with_compositor();
-    scene.render.compositor = None;
-    let (mut a, mut b, mut blobs_a, mut blobs_b) = peers(&scene);
-    // A deletes the group; B, at the same time, makes renders use it and edits a node in it.
-    edit(&mut a, &mut blobs_a, |scene| scene.node_groups.clear());
-    edit(&mut b, &mut blobs_b, |scene| {
-        scene.render.compositor = Some(group);
-        scene.node_group_mut(group).unwrap().node_mut(glare).unwrap().values.insert("Size".into(), json!(0.8));
-    });
-    sync(&mut a, &mut b, &mut blobs_a, &mut blobs_b);
-    assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    let scene = read(&a, &blobs_a);
-    assert!(scene.node_groups.is_empty());
-    assert_eq!(scene.render.compositor, None);
-    scene.validate().unwrap();
 }

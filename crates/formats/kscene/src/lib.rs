@@ -1,8 +1,8 @@
 //! The `.kscene` file (`docs/design.md` section 7.5): a ZIP holding `mimetype` (stored first, so
 //! the file identifies itself), `meta.json` (what identifies the content: the format, its version,
-//! the kit, the KDM version, the schema version and the document id), `content.kdm` (the scene's
-//! content: the replica's sealed content snapshot, its state and of its history only the seal;
-//! kition-sdk data model 7.3, rule M16b), `blobs/<sha256>` (the meshes and images the state
+//! the kit, the KDM version, the schema version and the document id), `content.json` (the scene's
+//! content, DEFLATE at a fixed level: the KDM content encoding, its state and nothing else;
+//! kition-sdk data model 7.3 and 7.4, rule M16b), `blobs/<sha256>` (the meshes and images the state
 //! references). Nothing else: no editor state (a person's view, selection and current frame are
 //! the host's view state, Kit UI protocol section 7n), no preview image. Writing is deterministic
 //! for the same parts, so two sessions that save the same content write the same bytes.
@@ -24,6 +24,10 @@ pub const VERSION: u32 = 1;
 const MAX_ENTRY: u64 = 512 * 1024 * 1024;
 /// The most blobs a file may hold.
 const MAX_BLOBS: usize = 100_000;
+/// The entry that holds the content.
+const CONTENT: &str = "content.json";
+/// The DEFLATE level of `content.json`: fixed, so the same content is the same bytes for one build.
+const CONTENT_LEVEL: i64 = 6;
 
 /// What identifies a file's content (`meta.json`, besides `format`, `formatVersion` and `kit`).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -41,7 +45,7 @@ pub struct Meta {
 pub struct File {
     /// What identifies the content.
     pub meta: Meta,
-    /// The content: the replica's sealed content snapshot.
+    /// The content: the replica's content (`Replica::content_snapshot`, `content.json`).
     pub content: Vec<u8>,
     /// Blobs by their SHA-256 (lowercase hex), sorted by hash.
     pub blobs: Vec<(String, Vec<u8>)>,
@@ -84,7 +88,7 @@ pub fn write(file: &File) -> Result<Vec<u8>, Error> {
     };
     put("mimetype", stored, MIME.as_bytes())?;
     put("meta.json", deflated, &meta)?;
-    put("content.kdm", deflated, &file.content)?;
+    put(CONTENT, deflated.compression_level(Some(CONTENT_LEVEL)), &file.content)?;
     let mut blobs: Vec<&(String, Vec<u8>)> = file.blobs.iter().collect();
     blobs.sort_by(|a, b| a.0.cmp(&b.0));
     blobs.dedup_by(|a, b| a.0 == b.0);
@@ -103,7 +107,7 @@ pub fn sniff(bytes: &[u8]) -> bool {
 }
 
 /// Reads a file's parts. Blob names must be lowercase SHA-256 hex; the store that takes the
-/// bytes checks they hash to their name. A file without `meta.json` or `content.kdm` is damaged.
+/// bytes checks they hash to their name. A file without `meta.json` or `content.json` is damaged.
 pub fn read(bytes: &[u8]) -> Result<File, Error> {
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|_| invalid("not a .kscene file (not a ZIP)"))?;
     if entry(&mut archive, "mimetype")? != MIME.as_bytes() {
@@ -132,7 +136,7 @@ pub fn read(bytes: &[u8]) -> Result<File, Error> {
             .ok_or_else(|| invalid("meta.json names no document"))?
             .to_owned(),
     };
-    let content = entry(&mut archive, "content.kdm")?;
+    let content = entry(&mut archive, CONTENT)?;
     let names: Vec<String> = archive.file_names().filter(|name| name.starts_with("blobs/")).map(str::to_owned).collect();
     if names.len() > MAX_BLOBS {
         return Err(invalid("the file holds too many blobs"));
@@ -194,7 +198,7 @@ mod tests {
         sorted.sort_unstable();
         let blob_a = format!("blobs/{}", "a".repeat(64));
         let blob_b = format!("blobs/{}", "b".repeat(64));
-        let mut wanted = vec!["content.kdm", "meta.json", "mimetype", blob_a.as_str(), blob_b.as_str()];
+        let mut wanted = vec!["content.json", "meta.json", "mimetype", blob_a.as_str(), blob_b.as_str()];
         wanted.sort_unstable();
         assert_eq!(sorted, wanted, "{names:?}");
         assert_eq!(names.first(), Some(&"mimetype"), "mimetype comes first");
@@ -238,6 +242,6 @@ mod tests {
         zip.write_all(br#"{"format":"kition-scene","formatVersion":1,"kit":"kit.scene","kdm":1,"schemaVersion":1,"docId":"doc"}"#).unwrap();
         let bytes = zip.finish().unwrap().into_inner();
         let error = read(&bytes).unwrap_err();
-        assert!(error.0.contains("content.kdm"), "{error}");
+        assert!(error.0.contains("content.json"), "{error}");
     }
 }

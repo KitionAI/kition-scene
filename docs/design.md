@@ -43,8 +43,9 @@ Blender executable.
 ## 3. File
 
 `.kscene` is a ZIP: `mimetype` (stored first), `meta.json` (what identifies the content: format,
-format version 1, kit, KDM and schema versions, document id), `content.kdm` (the scene's content:
-the replica's sealed content snapshot, no history), content-addressed mesh and image data under
+format version 1, kit, KDM and schema versions, document id), `content.json` (the scene's
+content: the KDM content encoding of the replica's state, DEFLATE at a fixed level, no history),
+content-addressed mesh and image data under
 `blobs/<sha256>` (those the state references); nothing of a person's session and no preview
 image. Writing the same parts gives the same bytes. Reading validates the archive, the content
 against `meta.json`'s document id, referenced blobs, and scene and refuses damaged files. See section 7.5 for the replica's file boundary.
@@ -157,17 +158,19 @@ keeps the scene and only describes it (`bindings/wasm/src/gl.rs`):
 
 Engine contract 2 (the document is a KDM replica, section 7), KHP `basic` (agent-ready once it passes the shared agent-ready check, W1-41), object model
 namespace `Scene`. The headless conformance suite passes 13/13 and reports L1–L5 (the object model
-served as `scene_*`); the convergence suite passes level 6 (`bindings/wasm/tests/convergence.rs`:
-every scenario, the text ones typing in a text object's body), and the native and
-WebAssembly engines reach one state from one change log. `check-manifest` reports L5 and L6 once
-kition-sdk carries the generated object-model typings (`packages/script/kits/scene.ts`).
+served as `scene_*`). The KDM is a plain object store with an ordered change log (kition-sdk
+91cf510): concurrent edits are not merged, so the convergence suite and level 6 are gone; its
+performance mode stays (`bindings/wasm/tests/perf.rs`).
 
 ## 7. Collaboration
 
 The document is a KDM replica (`kition-sdk` `session`, engine contract 2), schema `kit.scene`
 version 1 in `crates/kdm/kdm-model/model/schema.json` (frozen before the first release: an
-existing type never gains a container field). People and agents edit one scene at once; every
-replica converges to the same state.
+existing type never gains a container field). A person and agents edit one scene through one
+ordered line of changes; another session follows it by taking the changes in order, and a draft
+comes back as one step (`mergeChanges`). The choices below say how the scene is laid out in
+records; where they speak of two people, that is the layout's reason, kept for Kition One's
+collaboration.
 
 ### 7.1 Schema
 
@@ -227,7 +230,8 @@ imported the same way. A command that fails writes nothing.
 
 ### 7.3 Repair
 
-After a merge (`SceneModel::validate`), deterministic for every replica:
+After an import, a file read again or a model batch (`SceneModel::validate`), deterministic for
+every replica:
 - list entries of deleted records go, records no list names go, and a record listed twice
   keeps its first place (held records too, with what they hold);
 - an item of a stack named like an earlier one (two people added one name at once) gets a name
@@ -277,11 +281,12 @@ never saved, undone, or part of the replica.
 
 A `.kscene` file (format version 1) holds the scene's content, not its history (kition-sdk data
 model 7.3, rule M16b). It is a ZIP of `mimetype`, `meta.json` (`format`, `formatVersion`, `kit`,
-`kdm`, `schemaVersion`, `docId`, and nothing a save changes), `content.kdm` (the replica's sealed
-content snapshot: the state with its document id and object ids, and of the history only one
-`system` change, the `content-seal`; no deleted or overwritten content, no person's or agent's
-origin), and `blobs/<sha256>` (every mesh and image the state references); no preview image. The
-history lives in the host's history store (`snapshot()` of the live replica), never in the file.
+`kdm`, `schemaVersion`, `docId`, and nothing a save changes), `content.json` (the KDM content
+encoding, kition-sdk data model 7.4, DEFLATE at a fixed level: the state with its document id and
+object ids, and no version, lineage, actor or origin; no deleted or overwritten content), and
+`blobs/<sha256>` (every mesh and image the state references); no preview image. The
+history lives with the host (`snapshot()` of the live replica and its checkpoints), never in the
+file.
 
 The person's view (the viewport's camera, shading, grid and overlays, the selection and the active
 object, the current frame, the UV options) is never in the file either, so two sessions that open
@@ -292,27 +297,25 @@ puts it back with `view.restore`, and `useKitSession`'s `viewState` option keeps
 keeps none: the scene opens with the default view and nothing selected. `view.restore` ignores a
 state whose `v` is not 1 and leaves out objects the scene no longer has. The viewport's size is
 the editor's canvas (`view.resize`), not part of the view state. A file without
-`content.kdm`, or whose content names another document than `meta.json`, is damaged; files of the
-earlier layout (`replica.kdm` with its history) are not read.
+`content.json`, or whose content names another document than `meta.json`, is damaged; files of
+earlier layouts (`replica.kdm`, `content.kdm`) are not read.
 
-Saving: every host calls `prepare_save` before `save`, which seals the live replica
-(`KitSession::seal`, no edit and no undo step), and `save` writes `sealed_content_snapshot`; an
-unchanged scene saves to the same bytes. A save of a replica changed since its last seal is
-refused (`not-allowed`): `save` sees the replica read-only and cannot seal it.
-`SceneDocument::save_file` does both, for code that saves a scene itself (tests, sample builders).
+Saving: `save` writes `Replica::content_snapshot`, which depends on the state alone, so an
+unchanged scene saves to the same bytes and a save writes no change. `SceneDocument::save_file`
+is the same, for code that saves a scene itself (tests, sample builders). Every committed sample
+opens and saves to its own bytes (`bindings/wasm/tests/samples.rs`).
 
 Opening: a file opened alone is the same document with the same object ids and takes edits. A file
 opened on the replica the host stored for it goes through `kition_kit::session::take_file`:
-nothing when the store has the file's version, the file's changes when its history reaches the
-store's version, and otherwise its state written by object id as one `system` `import`
-transaction. A file another program saved while the scene is open is taken in the same way
-(`reconcile_reread`).
+nothing when both hold the same state, otherwise the file's state written by object id as one
+`system` `import` transaction on the stored replica's line of changes. A file another program
+saved while the scene is open is taken in the same way (`reconcile_reread`).
 
 Identity and forks (Kit Process Protocol 5.6, KitModel M7a; `kition_scene::SceneFiles`, served as
 `document.identity` and `document.fork`): the file embeds its content replica, so a byte copy is
-the same document. Its identity is the docId of `content.kdm`; an empty file has none, and other
+the same document. Its identity is the docId of `content.json`; an empty file has none, and other
 bytes or damaged content are refused. A fork writes the SDK's copy under a new docId as
-`content.kdm` (a copy's birth is its seal), sets `meta.json`'s docId to it, keeps only the blobs
+`content.json`, sets `meta.json`'s docId to it, keeps only the blobs
 its state references, and nothing else.
 
 ### Rigid body motors

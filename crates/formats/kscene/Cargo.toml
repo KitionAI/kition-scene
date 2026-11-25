@@ -1,6 +1,6 @@
 [package]
 name = "kition-scene-kscene"
-description = "The .kscene file: a ZIP of the scene's content (a sealed KDM content snapshot), its blobs, its metadata and the editor's state."
+description = "The .kscene file: a ZIP of the scene's content (the KDM content encoding, content.json), its blobs and its metadata."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

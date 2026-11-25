@@ -1,13 +1,13 @@
-//! Particle systems through a replica: settings and groomed hair are written, read back, and
-//! merged; simulated particles are never stored.
+//! Particle systems through a replica: settings and groomed hair are written and read back;
+//! simulated particles are never stored.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::kdm::{ActorId, DocId, Origin, Replica};
 use kition_kit::session::{BlobSink, MemoryBlobs};
 use kition_scene_kdm::mesh_blob::MeshCache;
 use kition_scene_kdm::read::{blob_hashes, read_scene};
-use kition_scene_kdm::write::{Written, stored_form, write_changes, write_scene};
-use kition_scene_kdm::{ids, schema};
+use kition_scene_kdm::schema;
+use kition_scene_kdm::write::{Written, write_scene};
 use kition_scene_model::particles::{self, Kind, ParticleSystem, hair};
 use kition_scene_model::{ObjectData, Primitive, Scene};
 
@@ -27,35 +27,6 @@ fn create(scene: &Scene) -> (Replica, MemoryBlobs) {
 
 fn read(replica: &Replica, blobs: &MemoryBlobs) -> Scene {
     read_scene(replica, blobs, &mut MeshCache::default()).unwrap()
-}
-
-/// Runs `edit` on what `replica` holds and records it, as the document's bridge does.
-fn edit(replica: &mut Replica, blobs: &mut MemoryBlobs, edit: impl FnOnce(&mut Scene)) {
-    let before = read(replica, blobs);
-    let mut after = before.clone();
-    ids::allocate(replica, replica.actor(), &mut after);
-    edit(&mut after);
-    let next = after.allocator.0.map(|(next, _)| next);
-    let after = stored_form(&after, &before);
-    let key = ids::key_of(replica.actor());
-    let written = replica.transact(&Origin::person("p"), |tx| write_changes(tx, &before, &after, next.map(|next| (key.as_str(), next)))).unwrap();
-    keep(blobs, written);
-}
-
-fn sync(a: &mut Replica, b: &mut Replica, blobs_a: &mut MemoryBlobs, blobs_b: &mut MemoryBlobs) {
-    let to_b = a.export_changes(&b.version()).unwrap();
-    let to_a = b.export_changes(&a.version()).unwrap();
-    b.import_changes(&to_b).unwrap();
-    a.import_changes(&to_a).unwrap();
-    for (hash, bytes) in blobs_a.0.clone() {
-        blobs_b.0.entry(hash).or_insert(bytes);
-    }
-    for (hash, bytes) in blobs_b.0.clone() {
-        blobs_a.0.entry(hash).or_insert(bytes);
-    }
-    for replica in [&mut *a, &mut *b] {
-        replica.transact(&Origin::system("repair"), |tx| Ok(kition_scene_kdm::repair::repair(tx).unwrap())).unwrap();
-    }
 }
 
 /// The starter scene with a floor, an emitter on the cube bouncing off it, and groomed hair on a
@@ -102,41 +73,4 @@ fn settings_and_groomed_hair_round_trip() {
     assert!(state.contains("\"Rain\"") && !state.contains("velocity\":["), "{}", &state[..200]);
     let loaded = Replica::load(schema(), &replica.snapshot().unwrap(), ActorId::random()).unwrap();
     assert_eq!(read(&loaded, &blobs).object_named("Sphere").unwrap().particles, scene.object_named("Sphere").unwrap().particles);
-}
-
-#[test]
-fn concurrent_particle_edits_converge() {
-    let (mut a, mut blobs_a) = create(&with_particles());
-    let mut b = Replica::load(schema(), &a.snapshot().unwrap(), ActorId::random()).unwrap();
-    let mut blobs_b = blobs_a.clone();
-    // A deletes the floor and changes the fur's count (its groom no longer fits); B grooms again
-    // and raises the emitter's count.
-    edit(&mut a, &mut blobs_a, |scene| {
-        let floor = scene.object_named("Floor").unwrap().id;
-        scene.remove_objects(&[floor]).unwrap();
-        let sphere = scene.object_named("Sphere").unwrap().id;
-        let fur = &mut scene.object_mut(sphere).unwrap().particles[0];
-        fur.count = 60;
-        fur.groomed.clear();
-    });
-    edit(&mut b, &mut blobs_b, |scene| {
-        let sphere = scene.object_named("Sphere").unwrap().id;
-        for strand in &mut scene.object_mut(sphere).unwrap().particles[0].groomed {
-            strand[1].x += 0.05;
-        }
-        let cube = scene.object_named("Cube").unwrap().id;
-        scene.object_mut(cube).unwrap().particles[0].count = 2000;
-    });
-    sync(&mut a, &mut b, &mut blobs_a, &mut blobs_b);
-    assert_eq!(a.state_json().unwrap(), b.state_json().unwrap());
-    let scene = read(&a, &blobs_a);
-    assert_eq!(read(&b, &blobs_b), scene);
-    scene.validate().unwrap();
-    // The floor is gone and the emitter lets go of it; the fur has a count of 60 and B's groom,
-    // made for 40 strands, is dropped.
-    let rain = &scene.object_named("Cube").unwrap().particles[0];
-    assert!(rain.colliders.is_empty());
-    let fur = &scene.object_named("Sphere").unwrap().particles[0];
-    assert_eq!(fur.count, 60);
-    assert!(fur.groomed.is_empty());
 }

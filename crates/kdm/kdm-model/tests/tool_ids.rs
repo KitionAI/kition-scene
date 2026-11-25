@@ -3,10 +3,10 @@
 //! field, and every image its content hash in `hash`, which the schema names as the type's tool
 //! id. The ids are stored in the `.kscene` file's replica, so they survive saving, reopening and
 //! another program rewriting the file. Objects, materials, node groups and nodes share one id
-//! space (no prefix: the engine mints them from one counter per actor). The post-merge repair
-//! numbers a record that has no key (a batch created it: the field is read-only) and gives
-//! another key to an object or material whose key another object or material holds, the same on
-//! every replica.
+//! space (no prefix: the engine mints them from one counter per actor). The repair numbers a
+//! record that has no key (a batch created it: the field is read-only) and gives another key to
+//! an object or material whose key another object or material holds, the same on every replica
+//! that takes the same changes.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, Replica};
@@ -28,14 +28,15 @@ fn create(scene: &Scene) -> (Replica, MemoryBlobs) {
     (replica, blobs)
 }
 
-fn sync(a: &mut Replica, b: &mut Replica) {
-    let to_b = a.export_changes(&b.version()).unwrap();
-    let to_a = b.export_changes(&a.version()).unwrap();
-    b.import_changes(&to_b).unwrap();
-    a.import_changes(&to_a).unwrap();
-    for replica in [&mut *a, &mut *b] {
+/// A second replica of `base` (a snapshot of `a` before its edits) takes `a`'s changes in order;
+/// then each repairs on its own.
+fn follow_and_repair(a: &mut Replica, base: &[u8]) -> Replica {
+    let mut b = Replica::load(schema(), base, ActorId::random()).unwrap();
+    b.import_changes(&a.export_changes(&b.version()).unwrap()).unwrap();
+    for replica in [&mut *a, &mut b] {
         replica.transact(&Origin::system("repair"), |tx| Ok(repair::repair(tx).unwrap())).unwrap();
     }
+    b
 }
 
 /// The schema names `key` as the tool id of objects, materials, node groups and nodes (read-only
@@ -75,17 +76,17 @@ fn without_key(replica: &Replica, object: &ObjectId) -> Map<String, Value> {
     fields
 }
 
-/// An object and a material a peer's batch created without a key are numbered by the repair, the
-/// same on both replicas, and the scene reads them with those keys (before, an object without a
-/// key was left out of the scene).
+/// An object and a material a batch created without a key are numbered by the repair, the same
+/// on every replica that takes the batch, and the scene reads them with those keys (before, an
+/// object without a key was left out of the scene).
 #[test]
 fn records_created_without_a_key_are_numbered_alike_on_every_replica() {
     let (mut a, blobs) = create(&Scene::starter());
-    let mut b = Replica::load(schema(), &a.snapshot().unwrap(), ActorId::random()).unwrap();
+    let base = a.snapshot().unwrap();
     let cube = a.list(&root_id(), "objects").unwrap()[0].clone();
     let material = a.list(&root_id(), "materials").unwrap()[0].clone();
     let (object_fields, material_fields) = (without_key(&a, &cube), without_key(&a, &material));
-    b.transact(&Origin::person("b"), |tx| {
+    a.transact(&Origin::person("b"), |tx| {
         let made = tx.create("Object", object_fields.clone())?;
         tx.list_insert(&root_id(), "objects", 0, &made)?;
         let made = tx.create("Material", material_fields.clone())?;
@@ -93,7 +94,7 @@ fn records_created_without_a_key_are_numbered_alike_on_every_replica() {
         Ok(())
     })
     .unwrap();
-    sync(&mut a, &mut b);
+    let b = follow_and_repair(&mut a, &base);
     assert_eq!(a.state_json().unwrap(), b.state_json().unwrap(), "both replicas write the same keys");
     let keys: Vec<Value> =
         ["objects", "materials"].iter().flat_map(|list| a.list(&root_id(), list).unwrap()).map(|object| a.get(&object, "key").unwrap()).collect();
@@ -107,17 +108,17 @@ fn records_created_without_a_key_are_numbered_alike_on_every_replica() {
     assert_eq!(scene.materials.len(), 2);
 }
 
-/// A material whose key an object holds (two replicas that each numbered a new record alike) is
-/// given another: objects and materials share one id space.
+/// A material whose key an object holds (a batch wrote it) is given another: objects and
+/// materials share one id space.
 #[test]
 fn a_material_holding_an_objects_key_is_given_another() {
     let (mut a, _) = create(&Scene::starter());
-    let mut b = Replica::load(schema(), &a.snapshot().unwrap(), ActorId::random()).unwrap();
+    let base = a.snapshot().unwrap();
     let cube = a.list(&root_id(), "objects").unwrap()[0].clone();
     let material = a.list(&root_id(), "materials").unwrap()[0].clone();
     let taken = a.get(&cube, "key").unwrap();
-    b.transact(&Origin::person("b"), |tx| tx.set(&material, "key", taken.clone())).unwrap();
-    sync(&mut a, &mut b);
+    a.transact(&Origin::person("b"), |tx| tx.set(&material, "key", taken.clone())).unwrap();
+    let b = follow_and_repair(&mut a, &base);
     let now = a.get(&material, "key").unwrap();
     assert_eq!(now, b.get(&material, "key").unwrap(), "the same on both replicas");
     assert_ne!(now, taken, "the material was given a key of its own");

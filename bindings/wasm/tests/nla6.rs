@@ -131,7 +131,6 @@ fn transition_and_group_commands_count_nested_descendants() {
             kition_scene_kdm::write::write_scene(tx, &scene)
         })
         .unwrap();
-    let mut replica = replica;
     let file = kition_scene_kscene::File {
         meta: kition_scene_kscene::Meta { kdm: kition_kit::kdm::KDM_VERSION, schema_version: 1, doc_id: replica.doc_id().to_string() },
         content: replica.content_snapshot().unwrap(),

@@ -207,7 +207,7 @@ try {
   // A file saved in the dark scheme holds no editor state (the view state is the host's, Kit UI
   // protocol 7n), and the view state kept with it holds no scheme.
   const dark = await savedWith('dark', sample)
-  assert.ok(zipEntry(dark, 'content.kdm') && !Buffer.from(dark).includes('editor.json'), 'no editor state in the file')
+  assert.ok(zipEntry(dark, 'content.json') && !Buffer.from(dark).includes('editor.json'), 'no editor state in the file')
   const kept = JSON.stringify((await page.evaluate(() => window.devHost.history.viewState('Sample.kscene'))).state)
   assert.ok(!/scheme|dark|light/i.test(kept), `no scheme in the view state: ${kept}`)
 

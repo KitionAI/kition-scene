@@ -51,8 +51,8 @@ cameras, renders) whose engine is Kition's own, in Rust.
   screenshot gets. View, shading, selection and the current frame are the person's session
   state: never in the `.kscene` (the editor keeps them with the host as view state, `view.state`
   and `view.restore`, Kit UI protocol section 7n), and they never make the document dirty.
-- **The file holds the content, not the history.** A `.kscene` is a ZIP of the replica's sealed
-  content snapshot, the blobs the state references and `meta.json` (format, kit, KDM and schema
+- **The file holds the content, not the history.** A `.kscene` is a ZIP of the replica's content
+  (`content.json`, `Replica::content_snapshot`), the blobs the state references and `meta.json` (format, kit, KDM and schema
   versions, docId); nothing of a person's session and no preview image (`docs/design.md` section
   7.5, kition-sdk rule M16b).
   Never write `snapshot()`, a change log or anything a save changes (times, counters) into the

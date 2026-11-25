@@ -1,21 +1,20 @@
-//! A `.kscene` file holds the scene's content, not its history (kition-sdk data model 7.3, rule
-//! M16b; feature `scene.file.content-only`): its `content.kdm` holds one change (the seal) and none
-//! of the deleted or overwritten content; an unchanged scene saves to the same bytes; a file opened
-//! without a store is the same document and edits; a replica from the file and one with the whole
-//! history converge; undo after a save takes back the last edit; and a file opens on top of a
-//! stored replica, by its changes or by its state. Hosts seal before saving (`prepare_save`); a save
-//! nobody sealed for after an edit is refused. The file holds nothing of a person's session: two
-//! sessions that open the same file and save it without an edit write the same bytes, whatever
-//! each one's view, selection and frame (those are the person's view state, which the host keeps).
+//! A `.kscene` file holds the scene's content, not its history (kition-sdk data model 7.3 and 7.4,
+//! rule M16b; feature `scene.file.content-only`): its `content.json` holds the state, no version,
+//! lineage, actor or origin, and none of the deleted or overwritten content; an unchanged scene
+//! saves to the same bytes; a file opened without a store is the same document, with the same
+//! object ids, and edits; undo after a save takes back the last edit; and a file opens on top of a
+//! stored replica, as it is when both hold the same state and by the file's state otherwise. The
+//! file holds nothing of a person's session: two sessions that open the same file and save it
+//! without an edit write the same bytes, whatever each one's view, selection and frame (those are
+//! the person's view state, which the host keeps).
 //!
 //! The needles below are written once each and share no run of four characters with anything else
-//! in the scene, so the engine's compression keeps each one literal in the bytes that hold it:
-//! every test checks the session's full snapshot holds them (the control) before it checks the
-//! file's content does not (the method of kition-sdk's `crates/kition-kdm/tests/content_snapshot.rs`).
+//! in the scene: every test checks the session's change log holds them (the control) before it
+//! checks the file's content does not.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
 use kition_kit::KitDocument;
-use kition_kit::kdm::{ActorId, Origin, OriginKind, Replica, Version};
+use kition_kit::kdm::Version;
 use kition_kit::session::{__export_changes, __snapshot, KitSessionDocument};
 use kition_scene_kit::SceneDocument;
 use serde_json::{Value, json};
@@ -39,19 +38,19 @@ fn parts(bytes: &[u8]) -> Vec<u8> {
     all
 }
 
-/// The file as a host saves it: sealed first (`prepare_save`), then the bytes.
+/// The file as a host saves it.
 fn host_save(doc: &mut SceneDocument) -> Vec<u8> {
-    doc.prepare_save().unwrap();
     doc.save(Some(FILE)).unwrap()
+}
+
+/// The session's changes since `since` (the version it was made at): its change log, which holds
+/// what it deleted and overwrote (the control for the needles).
+fn change_log(doc: &SceneDocument, since: &Version) -> Vec<u8> {
+    __export_changes(doc, &since.encode()).unwrap()
 }
 
 fn version(doc: &SceneDocument) -> Version {
     KitSessionDocument::session(doc).version()
-}
-
-/// The version a file's content holds.
-fn file_version(bytes: &[u8]) -> Version {
-    Replica::load(kition_scene_kdm::schema(), &kition_scene_kscene::read(bytes).unwrap().content, ActorId::random()).unwrap().version()
 }
 
 fn state(doc: &SceneDocument) -> Value {
@@ -76,7 +75,13 @@ fn body(doc: &SceneDocument, name: &str) -> String {
 /// A scene whose history holds typed-then-deleted text (in a 3D text's body), a deleted object and
 /// an overwritten name; the text `Words` and the cube `Kept` stay.
 fn scene_with_history() -> SceneDocument {
+    scene_with_history_made_at().0
+}
+
+/// [`scene_with_history`] and the version it was made at.
+fn scene_with_history_made_at() -> (SceneDocument, Version) {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
+    let made_at = version(&doc);
     doc.execute("add.text", json!({ "name": "Words", "body": "Kept", "location": [0, 4, 0] })).unwrap();
     doc.execute("text.insert", json!({ "object": "Words", "text": TYPED_THEN_DELETED })).unwrap();
     doc.execute("text.set", json!({ "object": "Words", "body": "Kept" })).unwrap();
@@ -85,28 +90,26 @@ fn scene_with_history() -> SceneDocument {
     doc.execute("add.cube", json!({ "name": OVERWRITTEN, "location": [-3, 0, 0] })).unwrap();
     doc.execute("object.rename", json!({ "object": OVERWRITTEN, "name": "Kept" })).unwrap();
     assert_eq!(body(&doc, "Words"), "Kept");
-    doc
+    (doc, made_at)
 }
 
 #[test]
-fn the_file_holds_the_content_and_of_the_history_only_the_seal() {
-    let mut doc = scene_with_history();
-    let full = __snapshot(&doc).unwrap();
+fn an_unchanged_scene_saves_to_the_same_bytes_and_its_content_holds_no_history() {
+    let (mut doc, made_at) = scene_with_history_made_at();
+    let log = change_log(&doc, &made_at);
     for needle in NEEDLES {
-        assert!(contains(&full, needle), "the control: the session's history holds {needle}");
+        assert!(contains(&log, needle), "the control: the session's change log holds {needle}");
     }
     let bytes = host_save(&mut doc);
     for needle in NEEDLES {
         assert!(!contains(&parts(&bytes), needle), "the file holds {needle}");
     }
-    let held = Replica::snapshot_origins(&kition_scene_kscene::read(&bytes).unwrap().content).unwrap();
-    assert_eq!(held.len(), 1, "of the history, the file holds one change: {held:?}");
-    let origin = held[0].clone().unwrap();
-    assert_eq!(origin, Origin::system("content-seal"));
-    assert_eq!(origin.kind, OriginKind::System);
-    assert!(Replica::snapshot_origins(&full).unwrap().len() > 1, "the control: the history holds every change");
-    // The direct path: the seal is the session's own.
-    assert_eq!(version(&doc), file_version(&bytes));
+    let content = String::from_utf8(kition_scene_kscene::read(&bytes).unwrap().content).unwrap();
+    let header = content.lines().next().unwrap();
+    assert!(header.starts_with(&format!("{{\"kdm\":1,\"kit\":\"kit.scene\",\"docId\":\"{}\",\"schemaVersion\":", doc.doc_id())), "{header}");
+    for key in ["\"version\"", "\"lineage\"", "\"seq\"", "\"actor\"", "\"origin\""] {
+        assert!(!content.contains(key), "the content holds no {key}");
+    }
     let meta = kition_scene_kscene::read(&bytes).unwrap().meta;
     assert_eq!(meta.doc_id, doc.doc_id());
     assert_eq!(meta.schema_version, 1);
@@ -121,12 +124,14 @@ fn the_file_holds_the_content_and_of_the_history_only_the_seal() {
 fn an_unchanged_scene_saves_to_the_same_bytes() {
     let mut doc = scene_with_history();
     let first = host_save(&mut doc);
-    let sealed = version(&doc);
+    let saved = version(&doc);
     assert_eq!(host_save(&mut doc), first, "two saves with nothing between");
-    assert_eq!(version(&doc), sealed, "a sealed scene seals nothing more");
+    assert_eq!(version(&doc), saved, "a save writes no change");
     doc.mark_saved();
     assert_eq!(host_save(&mut doc), first, "and after the host stored the first");
     let mut opened = SceneDocument::open(FILE, &first).unwrap();
+    assert_eq!(ids(&opened), ids(&doc), "the file opened again holds the same object ids");
+    assert_eq!(state(&opened), state(&doc), "and the same state, KDM object ids included");
     assert_eq!(host_save(&mut opened), first, "and from the file opened again");
 }
 
@@ -138,7 +143,7 @@ fn a_file_opened_without_a_store_is_the_same_document_and_edits() {
     let mut back = SceneDocument::open(FILE, &bytes).unwrap();
     assert_eq!(back.doc_id(), doc.doc_id());
     assert_eq!(ids(&back), ids(&doc), "the same object ids");
-    assert_eq!(version(&back), version(&doc), "the same version: the seal is the session's");
+    assert_eq!(state(&back), state(&doc), "the same state, KDM object ids included");
     let kept = id(&back, "Kept");
     back.execute("object.rename", json!({ "object": kept, "name": "Edited" })).unwrap();
     back.execute("text.insert", json!({ "object": "Words", "text": "!" })).unwrap();
@@ -152,34 +157,6 @@ fn a_file_opened_without_a_store_is_the_same_document_and_edits() {
 }
 
 #[test]
-fn a_replica_from_the_file_and_one_with_the_whole_history_converge() {
-    let mut full = scene_with_history();
-    let bytes = host_save(&mut full);
-    full.mark_saved();
-    let mut file = SceneDocument::open(FILE, &bytes).unwrap();
-    let kept = id(&full, "Kept");
-    // Edits on both after the save.
-    full.execute("object.translate", json!({ "objects": [kept], "offset": [0, 0, 2] })).unwrap();
-    full.execute("add.cube", json!({ "name": "Full", "location": [6, 6, 0] })).unwrap();
-    file.execute("object.rename", json!({ "object": kept, "name": "From the file" })).unwrap();
-    file.execute("add.cube", json!({ "name": "File", "location": [-6, 6, 0] })).unwrap();
-    for _ in 0..4 {
-        let (to_file, to_full) =
-            (__export_changes(&full, &version(&file).encode()).unwrap(), __export_changes(&file, &version(&full).encode()).unwrap());
-        KitSessionDocument::import_changes(&mut full, &to_full).unwrap();
-        KitSessionDocument::import_changes(&mut file, &to_file).unwrap();
-        if version(&full) == version(&file) {
-            break;
-        }
-    }
-    assert_eq!(version(&full), version(&file));
-    assert_eq!(state(&full), state(&file), "both replicas hold the same document");
-    let object = full.scene().object(kept).unwrap();
-    assert_eq!((object.name.as_str(), object.location.z), ("From the file", 2.0), "both edits survive");
-    assert!(full.scene().object_named("Full").is_some() && full.scene().object_named("File").is_some());
-}
-
-#[test]
 fn undo_after_a_save_takes_back_the_last_edit() {
     let mut doc = SceneDocument::create(FILE, 320, 180).unwrap();
     doc.execute("add.cube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
@@ -187,7 +164,7 @@ fn undo_after_a_save_takes_back_the_last_edit() {
     doc.execute("object.translate", json!({ "objects": [a], "offset": [1, 0, 0] })).unwrap();
     host_save(&mut doc);
     doc.mark_saved();
-    assert!(doc.inspect().unwrap()["canUndo"].as_bool().unwrap(), "the seal is no undo step and clears none");
+    assert!(doc.inspect().unwrap()["canUndo"].as_bool().unwrap(), "a save is no undo step and clears none");
     doc.execute("edit.undo", json!({})).unwrap();
     assert_eq!(doc.scene().object(a).unwrap().location.x, 3.0, "the undo took back the move");
     doc.execute("edit.undo", json!({})).unwrap();
@@ -197,18 +174,15 @@ fn undo_after_a_save_takes_back_the_last_edit() {
 }
 
 #[test]
-fn a_file_opens_on_the_stored_replica_that_holds_its_version() {
+fn a_file_opens_on_the_stored_replica_that_holds_its_state() {
     let mut doc = scene_with_history();
     let bytes = host_save(&mut doc);
     doc.mark_saved();
     let stored = __snapshot(&doc).unwrap();
     let mut opened = SceneDocument::open_with_replica(FILE, &bytes, &stored, &doc.blobs_bundle()).unwrap();
     assert_eq!(version(&opened), version(&doc), "the stored replica, as it was");
-    assert!(!KitSessionDocument::session(&opened).replica().is_shallow(), "with its whole history");
-    for needle in NEEDLES {
-        assert!(contains(&__snapshot(&opened).unwrap(), needle), "the history keeps {needle}");
-    }
-    assert_eq!(file_version(&host_save(&mut opened)), file_version(&bytes), "and saves the document it opened, sealing nothing new");
+    assert_eq!(ids(&opened), ids(&doc));
+    assert_eq!(host_save(&mut opened), bytes, "and saves the document it opened, writing nothing new");
 }
 
 #[test]
@@ -227,25 +201,8 @@ fn a_file_saved_elsewhere_opens_on_the_stored_replica_by_its_state() {
     assert_eq!(opened.doc_id(), doc.doc_id());
     assert_eq!(state(&opened), state(&elsewhere), "the file's state, by object id");
     assert_eq!(ids(&opened), ids(&elsewhere));
-    assert!(!KitSessionDocument::session(&opened).replica().is_shallow(), "on top of the stored history");
-    assert!(contains(&__snapshot(&opened).unwrap(), DELETED_OBJECT), "which it keeps");
-}
-
-/// A save of a scene changed since its last seal, which only `prepare_save` makes, is refused
-/// and changes nothing: the file is only ever the sealed content.
-#[test]
-fn a_save_nobody_sealed_for_is_refused() {
-    let mut doc = scene_with_history();
-    let before = version(&doc);
-    let refused = doc.save(Some(FILE)).unwrap_err();
-    assert!(refused.contains("prepare_save"), "{refused}");
-    assert_eq!(version(&doc), before, "a refused save seals nothing");
-    assert!(doc.dirty(), "and leaves the scene unsaved");
-    let bytes = host_save(&mut doc);
-    assert_eq!(Replica::snapshot_origins(&kition_scene_kscene::read(&bytes).unwrap().content).unwrap(), vec![Some(Origin::system("content-seal"))]);
-    // An edit after the seal needs another one.
-    doc.execute("add.cube", json!({ "name": "After", "location": [0, 9, 0] })).unwrap();
-    assert!(doc.save(Some(FILE)).is_err(), "an edit since the seal");
+    assert!(version(&opened).includes(&version(&doc)), "on the stored replica's line of changes");
+    assert_ne!(version(&opened), version(&doc), "one change further: the file's state");
 }
 
 /// Two sessions open the same file, each moves its own view, selection, frame, shading, grid and

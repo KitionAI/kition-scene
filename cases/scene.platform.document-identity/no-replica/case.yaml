@@ -4,7 +4,7 @@ feature: scene.platform.document-identity
 intent: >-
   Through the real kition-scene process: an empty .kscene (made for the kit before it saved a
   scene) carries no identity, and its fork is the same bytes with no docId; bytes that are not a
-  scene, and a scene whose content.kdm is damaged, are refused as unsupported_format by both
+  scene, and a scene whose content.json is damaged, are refused as unsupported_format by both
   document.identity and document.fork, never answered with no identity, and the fork writes
   nothing.
 layer: gate

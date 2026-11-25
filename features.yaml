@@ -72,51 +72,51 @@ features:
     since: "2026-11-17"
   - id: scene.physics.effector-weights
     title: Independent cloth and soft-body field weights
-    dimension: [function, fidelity, conversion, collab, robustness]
+    dimension: [function, fidelity, conversion, robustness]
     priority: P1
     status: has
     commands: [physics.cloth.add, physics.cloth.set, physics.softBody.add, physics.softBody.set, physics.bake, physics.bakeStep, physics.free]
     paths: [crates/engine/model/src/physics_weights.rs, crates/engine/model/src/physics.rs, crates/engine/physics/src/bake.rs, crates/engine/physics/src/cloth.rs, crates/engine/physics/src/soft.rs, bindings/wasm/src/commands_field_weights.rs, bindings/wasm/src/commands_physics.rs, bindings/wasm/src/described.rs, web/src/EffectorWeights.tsx, web/src/PhysicsInfo.ts, web/src/PhysicsPanel.tsx, web/src/PhysicsPanel.css]
     target: Blender 5.2.3 LTS
     gap: Cloth and soft bodies only, for the five existing field kinds; weight-transfer identities match public observations while the existing solvers retain their trajectory and flow limitations. No particle, hair, rigid-world, fluid, collection-filter or unsupported-field weights.
-    cases: [scene.physics.effector-weights/blender-and-round-trip, scene.physics.effector-weights/collaborative-settings, scene.physics.effector-weights/editor-flow, scene.physics.effector-weights/released-spline-editing, regressions/issue-fields10-extreme, regressions/issue-fields10-grid, regressions/issue-fields10-schema, regressions/issue-fields10-failure-ui]
+    cases: [scene.physics.effector-weights/blender-and-round-trip, scene.physics.effector-weights/editor-flow, scene.physics.effector-weights/released-spline-editing, regressions/issue-fields10-extreme, regressions/issue-fields10-grid, regressions/issue-fields10-schema, regressions/issue-fields10-failure-ui]
     since: "2026-11-17"
   - id: scene.camera.sensor-fit
     title: Camera sensor fit and sensor height
-    dimension: [function, fidelity, conversion, collab, robustness]
+    dimension: [function, fidelity, conversion, robustness]
     priority: P1
     status: has
     commands: [camera.set]
     paths: [crates/engine/model/src/scene.rs, crates/render/raster/src/view.rs, crates/render/raster/src/lib.rs, crates/formats/blend/src/lib.rs, crates/formats/exchange/src/gltf.rs, crates/formats/fbx/src/**, crates/formats/usd/src/**, bindings/wasm/src/commands.rs, bindings/wasm/src/commands_compositor.rs, bindings/wasm/src/gl.rs, bindings/wasm/src/inspect.rs, web/src/SidePanel.tsx]
     target: Blender 5.2.3 LTS
     gap: Square pixels only. Exchange formats preserve the fitted frame at matching output aspect, not the editable fit policy or original sensor identity; FBX import retains its existing focal-length limits. Blender 5.2.3 imports native USD orthographic apertures at 10 times their specified span.
-    cases: [scene.camera.sensor-fit/blender-and-round-trip, scene.camera.sensor-fit/editor-flow, scene.camera.sensor-fit/peer-register, regressions/issue-camera9-defocus, regressions/issue-camera9-extreme, regressions/issue-camera9-fbx-gate, regressions/issue-camera9-picking, regressions/issue-camera9-portrait-usd]
+    cases: [scene.camera.sensor-fit/blender-and-round-trip, scene.camera.sensor-fit/editor-flow, regressions/issue-camera9-defocus, regressions/issue-camera9-extreme, regressions/issue-camera9-fbx-gate, regressions/issue-camera9-picking, regressions/issue-camera9-portrait-usd]
     since: "2026-11-17"
   - id: scene.particles.boids
     title: Airborne boids with averaged steering rules
-    dimension: [function, fidelity, conversion, collab, robustness, performance]
+    dimension: [function, fidelity, conversion, robustness, performance]
     priority: P1
     status: has
     commands: [particles.add, particles.set, particles.stats, particles.convert]
     paths: [crates/engine/particles/src/boids.rs, crates/engine/particles/src/settings.rs, crates/engine/particles/src/sim.rs, crates/engine/model/src/particles.rs, crates/kdm/kdm-model/src/repair.rs, bindings/wasm/src/commands_boids.rs, bindings/wasm/src/commands_particles.rs, web/src/Boids.tsx, web/src/Particles.tsx]
     target: Blender 5.2.3 LTS
     gap: Average airborne Goal/Avoid/Separate/Flock only; at-rest births, current target snapshots, bounded neighborhoods and deterministic turns differ from Blender's hidden seed state; no ground, scene forces, collisions, volume emission or cross-system flocking.
-    cases: [scene.particles.boids/blender-and-round-trip, scene.particles.boids/collaborative-settings, scene.particles.boids/editor-flow, scene.particles.boids/released-camera-framing, regressions/issue-boids9-fractional-events, regressions/issue-boids9-rule-target, regressions/issue-boids9-schema]
+    cases: [scene.particles.boids/blender-and-round-trip, scene.particles.boids/editor-flow, scene.particles.boids/released-camera-framing, regressions/issue-boids9-fractional-events, regressions/issue-boids9-rule-target, regressions/issue-boids9-schema]
     since: "2026-11-17"
   - id: scene.sculpt.multires-recovery
     title: Multiresolution Unsubdivide and Rebuild Subdivisions
-    dimension: [function, fidelity, conversion, collab, robustness]
+    dimension: [function, fidelity, conversion, robustness]
     priority: P1
     status: has
     commands: [multires.unsubdivide, multires.rebuildSubdivisions]
     paths: [crates/engine/model/src/multires*, bindings/wasm/src/commands_multires.rs, web/src/SculptPanel.tsx]
     target: Blender 5.2.3 LTS
     gap: Complete manifold quad subdivisions with an identifying corner or extraordinary vertex per component only; up to six levels, 100000 base faces and 250000 highest-level faces. Nonlinear UV detail, groups, shape keys, masks, face sets, hiding, seams and pins are refused. Intermediate recovered surfaces may differ from Blender.
-    cases: [scene.sculpt.multires-recovery/blender-and-round-trip, scene.sculpt.multires-recovery/editor-flow, scene.sculpt.multires-recovery/mesh-merge]
+    cases: [scene.sculpt.multires-recovery/blender-and-round-trip, scene.sculpt.multires-recovery/editor-flow]
     since: "2026-11-17"
   - id: scene.animation.nla-groups
     title: NLA transition and meta strips
-    dimension: [function, fidelity, conversion, collab]
+    dimension: [function, fidelity, conversion]
     priority: P1
     status: has
     commands: [nla.addTransition, nla.makeMeta, nla.dissolveMeta, nla.setStrip]
@@ -282,11 +282,11 @@ features:
     paths: [crates/engine/model/src/unwrap.rs, bindings/wasm/src/commands_uvedit.rs, bindings/wasm/src/lib.rs, web/src/UvEditor.tsx]
     target: Blender 5.2.3 LTS
     gap: UV selection remains synchronized with the mesh. Live unwrap is the UV Editor option; automatic seam or mesh-edit unwrapping in the 3D viewport is not implemented.
-    cases: [scene.uv.live-unwrap/commands-and-reference, scene.uv.live-unwrap/editor-flow, scene.uv.live-unwrap/mesh-merge, regressions/issue-uv7-rendered-preview]
+    cases: [scene.uv.live-unwrap/commands-and-reference, scene.uv.live-unwrap/editor-flow, regressions/issue-uv7-rendered-preview]
     since: "2026-11-17"
   - id: scene.physics.motors
     title: Rigid body constraint motors
-    dimension: [function, fidelity, conversion, collab, robustness]
+    dimension: [function, fidelity, conversion, robustness]
     priority: P1
     status: has
     commands: [physics.constraint.add, physics.constraint.set, physics.constraint.connect, physics.bake]
@@ -448,11 +448,11 @@ features:
     cases: [scene.platform.document-identity/fork, scene.platform.document-identity/no-replica]
     since: "2026-11-20"
   - id: scene.file.content-only
-    title: "A .kscene holds the scene's content, not its history: a sealed content snapshot and the blobs the state references, no deleted content, no overwritten values, no origins (kition-sdk rule M16b); it opens as the same document alone or on the host's stored replica"
+    title: "A .kscene holds the scene's content, not its history: content.json (the KDM content encoding, kition-sdk data model 7.4) and the blobs the state references, no deleted content, no overwritten values, no version, no origins (kition-sdk rule M16b); it opens as the same document alone or on the host's stored replica"
     dimension: [platform, data-safety]
     priority: P0
     status: has
-    paths: [crates/formats/kscene/src/lib.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/headless/src/lib.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/content_file.rs]
+    paths: [crates/formats/kscene/src/lib.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/collab.rs, bindings/headless/src/lib.rs, bindings/wasm/tests/content_file.rs, bindings/headless/tests/content_file.rs, bindings/wasm/tests/samples.rs]
     cases: [scene.file.content-only/no-history, scene.file.content-only/reopen-and-converge]
     since: "2026-11-23"
   - id: scene.view.state

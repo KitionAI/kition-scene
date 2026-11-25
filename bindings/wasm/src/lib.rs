@@ -394,11 +394,9 @@ impl SceneDocument {
         Ok(opened)
     }
 
-    /// The file as a host saves it: [`KitDocument::prepare_save`] (the seal), then
-    /// [`KitDocument::save`]. For code that saves the document itself (tests, the sample
-    /// builders); a host calls the two in turn.
+    /// The file as a host saves it ([`KitDocument::save`]). For code that saves the document
+    /// itself (tests, the sample builders).
     pub fn save_file(&mut self, name: Option<&str>) -> Result<Vec<u8>, String> {
-        self.prepare_save()?;
         self.save(name)
     }
 
@@ -721,8 +719,8 @@ pub fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Result<Vec<u8>, Strin
 }
 
 impl KitDocument for SceneDocument {
-    /// Opens a `.kscene` file: its content (the same document, the same object ids; of the
-    /// history only the seal) as a new actor's replica.
+    /// Opens a `.kscene` file: its content (the same document, the same object ids) as a replica
+    /// on a new line of changes.
     fn open(_name: &str, bytes: &[u8]) -> Result<Self, String> {
         let blobs = SharedBlobs::default();
         let (_, replica) = open_file(bytes, &blobs)?;
@@ -857,14 +855,12 @@ impl KitDocument for SceneDocument {
 
     /// The scene as a `.kscene` file: the document's content (no history, rule M16b) and the blobs
     /// its state references; nothing of the person's session (the view state is the host's), so
-    /// the same content saves to the same bytes in every session.
-    ///
-    /// The content is sealed (kition-sdk data model 7.3): hosts call [`KitDocument::prepare_save`]
-    /// first, which seals the session, and the file holds the replica's own content snapshot. A
-    /// save of a replica nobody sealed since its last change is refused (`not-allowed`).
+    /// the same content saves to the same bytes in every session. The content is
+    /// `Replica::content_snapshot` (kition-sdk data model 7.3 and 7.4): it depends on the state
+    /// alone, so an unchanged scene saves to the same bytes.
     fn save(&self, _name: Option<&str>) -> Result<Vec<u8>, String> {
         let replica = self.replica.replica();
-        let content = content(replica)?;
+        let content = replica.content_snapshot().map_err(|error| error.to_string())?;
         let blobs = read::blob_hashes(replica)
             .into_iter()
             .filter_map(|hash| kition_kit::session::BlobSource::get(&self.blobs, &hash).map(|bytes| (hash, bytes.to_vec())))
@@ -875,13 +871,6 @@ impl KitDocument for SceneDocument {
             doc_id: replica.doc_id().to_string(),
         };
         kition_scene_kscene::write(&kition_scene_kscene::File { meta, content, blobs }).map_err(|error| error.to_string())
-    }
-
-    /// Seals the session (rule M16b) so `save` writes its content snapshot, and the seal is in the
-    /// replica the host stores and syncs: a `system` change, no edit, no undo step, no revision.
-    fn prepare_save(&mut self) -> Result<(), String> {
-        self.replica.seal().map_err(|error| error.to_string())?;
-        Ok(())
     }
 
     /// Records that the file holds the last save (no edit: the scene, the revision and the undo
@@ -1000,7 +989,7 @@ pub(crate) fn typed(error: String) -> String {
     failure(reason, error)
 }
 
-/// A `.kscene` file opened: its parts and its content as a new actor's replica (checked against
+/// A `.kscene` file opened: its parts and its content as a replica on a new line of changes (checked against
 /// the docId `meta.json` names), its blobs put in `blobs`.
 pub(crate) fn open_file(bytes: &[u8], blobs: &SharedBlobs) -> Result<(kition_scene_kscene::File, KitSession<SceneModel>), String> {
     let file = kition_scene_kscene::read(bytes).map_err(|error| error.to_string())?;
@@ -1014,16 +1003,6 @@ pub(crate) fn open_file(bytes: &[u8], blobs: &SharedBlobs) -> Result<(kition_sce
         return Err(format!("invalid-file: damaged: meta.json names document {}, the content {doc_id}", file.meta.doc_id));
     }
     Ok((file, replica))
-}
-
-/// What `replica` saves as `content.kdm`: its own content snapshot, which the host sealed
-/// (`KitDocument::prepare_save`, every host calls it right before `save`). A replica changed since
-/// its last seal is refused: `save` sees it read-only and cannot seal it.
-fn content(replica: &Replica) -> Result<Vec<u8>, String> {
-    if !replica.is_sealed() {
-        return Err("not-allowed: save before prepare_save: the scene changed since it was last sealed".into());
-    }
-    replica.sealed_content_snapshot().map_err(|error| error.to_string())
 }
 
 impl KitSessionDocument for SceneDocument {
@@ -1060,6 +1039,28 @@ impl KitSessionDocument for SceneDocument {
     fn import_changes(&mut self, bytes: &[u8]) -> Result<Damage, String> {
         let damage = self.replica.import_changes(bytes).map_err(|error| error.to_string())?;
         self.replica_changed();
+        Ok(damage)
+    }
+
+    /// A draft's changes taken in as one undo step of the person: a step the kit recorded
+    /// nothing of, like a model batch's.
+    fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage, String> {
+        let damage = self.replica.merge_changes(bytes, origin).map_err(|error| error.to_string())?;
+        if damage != Damage::None {
+            self.history.untold = true;
+            self.replica_changed();
+        }
+        Ok(damage)
+    }
+
+    /// A snapshot's state written over the scene as one transaction of `origin` (a checkpoint
+    /// restored): a step the kit recorded nothing of.
+    fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage, String> {
+        let damage = self.replica.restore_state(snapshot, origin).map_err(|error| error.to_string())?;
+        if damage != Damage::None {
+            self.history.untold = true;
+            self.replica_changed();
+        }
         Ok(damage)
     }
 
@@ -1134,8 +1135,8 @@ mod web {
             self.0.trace_merge(sums).map(|value| value.to_string()).map_err(|error| JsError::new(&error))
         }
 
-        /// The scene as it is now, as file bytes, for workers to open: sealed first, as a save is
-        /// (no edit; nothing is marked saved). The file holds no current frame: the render dialog
+        /// The scene as it is now, as file bytes, for workers to open, as a save writes them
+        /// (nothing is marked saved). The file holds no current frame: the render dialog
         /// gives the workers the frame it shows.
         #[wasm_bindgen(js_name = traceSnapshot)]
         pub fn trace_snapshot(&mut self) -> Result<Vec<u8>, JsError> {

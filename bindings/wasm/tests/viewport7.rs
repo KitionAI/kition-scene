@@ -101,49 +101,33 @@ fn large_view_picking_and_overlays_keep_full_resolution_and_camera_margins() {
 }
 
 #[test]
-fn peer_edits_invalidate_samples_in_both_orders_with_fixed_actors() {
-    use kition_kit::{
-        kdm::{ActorId, Replica},
-        session::{KitSession, KitSessionDocument},
-    };
-    use kition_scene_kdm::{SceneModel, blobs::SharedBlobs};
-    fn fixed(bytes: &[u8], actor: u64) -> SceneDocument {
-        let file = kition_scene_kscene::read(bytes).unwrap();
-        let blobs = SharedBlobs::default();
-        for (hash, bytes) in file.blobs {
-            blobs.insert(&hash, &bytes).unwrap();
-        }
-        let replica = Replica::load(kition_scene_kdm::schema(), &file.content, ActorId::from_u64(actor).unwrap()).unwrap();
-        let mut doc = SceneDocument::open("Peer.kscene", bytes).unwrap();
-        *KitSessionDocument::session_mut(&mut doc) = KitSession::<SceneModel>::from_replica(replica, Box::new(blobs)).unwrap();
+fn imported_edits_invalidate_samples() {
+    use kition_kit::session::{__export_changes, __snapshot, __version, KitSessionDocument};
+    fn rendered(mut doc: SceneDocument) -> SceneDocument {
         run(&mut doc, "view.resize", json!({"width":32,"height":24}));
         run(&mut doc, "view.rendered", json!({}));
         doc
     }
     let bytes = starter().save_file(None).unwrap();
-    for _ in 0..20 {
-        let mut left = fixed(&bytes, 101);
-        let mut right = fixed(&bytes, 202);
-        run(&mut left, "object.transform", json!({"objects":"Cube","location":[1,0,0]}));
-        run(&mut right, "light.set", json!({"object":"Light","power":100}));
-        let changes = [kition_kit::session::__snapshot(&left).unwrap(), kition_kit::session::__snapshot(&right).unwrap()];
-        let mut pictures = Vec::new();
-        for order in [[0, 1], [1, 0]] {
-            let mut viewer = fixed(&bytes, 303);
-            complete(&mut viewer, 1);
-            let original = rgba(&viewer);
-            for index in order {
-                viewer.import_changes(&changes[index]).unwrap();
-                assert_eq!(viewer.inspect().unwrap()["view"]["rendered"]["samples"], 0);
-                complete(&mut viewer, 1);
-            }
-            let merged = rgba(&viewer);
-            assert_ne!(merged, original);
-            assert_eq!(viewer.inspect().unwrap()["view"]["rendered"]["generation"], 3);
-            pictures.push(merged);
-        }
-        assert_eq!(pictures[0], pictures[1]);
+    let mut author = rendered(SceneDocument::open("Peer.kscene", &bytes).unwrap());
+    let (base, blobs) = (__snapshot(&author).unwrap(), author.blobs_bundle());
+    // Two edits on the document's line of changes, taken by another session in order.
+    let start = __version(&author);
+    run(&mut author, "object.transform", json!({"objects":"Cube","location":[1,0,0]}));
+    let first = __export_changes(&author, &start).unwrap();
+    let middle = __version(&author);
+    run(&mut author, "light.set", json!({"object":"Light","power":100}));
+    let second = __export_changes(&author, &middle).unwrap();
+    let mut viewer = rendered(SceneDocument::open_with_replica("Peer.kscene", &[], &base, &blobs).unwrap());
+    complete(&mut viewer, 1);
+    let original = rgba(&viewer);
+    for changes in [&first, &second] {
+        KitSessionDocument::import_changes(&mut viewer, changes).unwrap();
+        assert_eq!(viewer.inspect().unwrap()["view"]["rendered"]["samples"], 0);
+        complete(&mut viewer, 1);
     }
+    assert_ne!(rgba(&viewer), original);
+    assert_eq!(viewer.inspect().unwrap()["view"]["rendered"]["generation"], 3);
 }
 
 #[test]

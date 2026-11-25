@@ -2,10 +2,10 @@ format: 1
 id: scene.file.content-only/reopen-and-converge
 feature: scene.file.content-only
 intent: >-
-  A content-only .kscene opened without a store keeps its docId and object ids and takes edits; a
-  replica from the file and one with the whole history converge after edits made after the save;
-  Undo after a save takes back the last edit; a file opens on a stored replica that has its
-  version as that replica, and on one that does not as the file's state written by object id.
+  A content-only .kscene opened without a store keeps its docId, object ids and state and takes
+  edits; Undo after a save takes back the last edit; a file opens on a stored replica that holds
+  its state as that replica, saving the same bytes, and on one that does not as the file's state
+  written by object id, on the stored replica's line of changes.
 layer: gate
 source:
   kind: synthetic

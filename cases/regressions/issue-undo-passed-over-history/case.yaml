@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-undo-passed-over-history
+feature: scene.edit.history
+intent: >-
+  A person's undo whose last step's object an agent deleted since: the replica passes that step
+  over and takes back the one below in the same call (UndoOutcome, KitSession::undo_in_outcome).
+  The kit's undo labels take both steps off together and keep one redo step named by the step
+  taken back, so they stay in line with the replica's steps: the next undo takes back exactly the
+  step below them and is named by it, and the redos bring them back in order. Before, the labels
+  kept one step the replica had already taken back, and every later undo was named (and its
+  premises read) from the step above the one it took back.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+      filter: an_undo_that_passes_over_a_step_takes_the_one_below_with_it
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 600

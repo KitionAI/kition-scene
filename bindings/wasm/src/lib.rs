@@ -543,20 +543,37 @@ impl SceneDocument {
     }
 
     /// Undoes (or redoes) the last step of `scope`; answers whether there was one.
+    ///
+    /// The replica passes over a step with nothing left to change (say an agent deleted the
+    /// object the person's last step moved) and takes back the one below in the same call
+    /// (`UndoOutcome`): every step it took off its stack leaves the labels too, and the ones it
+    /// took back together become one step on the other stack, named by the one taken back and
+    /// writing what all of them wrote. So the labels stay in line with the replica's steps.
     fn step_history(&mut self, scope: UndoScope, undo: bool) -> Result<bool, String> {
-        let (done, _) = if undo { self.replica.undo_in(scope) } else { self.replica.redo_in(scope) }.map_err(|error| error.to_string())?;
-        if done {
-            let labels = self.history.of(scope);
-            if undo {
-                if let Some(label) = labels.undo.pop() {
-                    labels.redo.push(label);
+        let (outcome, _) =
+            if undo { self.replica.undo_in_outcome(scope) } else { self.replica.redo_in_outcome(scope) }.map_err(|error| error.to_string())?;
+        let labels = self.history.of(scope);
+        let (from, to) = if undo { (&mut labels.undo, &mut labels.redo) } else { (&mut labels.redo, &mut labels.undo) };
+        let mut joined: Option<Recorded> = None;
+        for _ in 0..outcome.steps() {
+            let Some(step) = from.pop() else { break };
+            joined = Some(match joined {
+                None => step,
+                Some(mut above) => {
+                    above.label = step.label;
+                    above.touched.ids.extend(step.touched.ids);
+                    above.touched.root.extend(step.touched.root);
+                    above
                 }
-            } else if let Some(label) = labels.redo.pop() {
-                labels.undo.push(label);
+            });
+        }
+        if outcome.is_done() {
+            if let Some(step) = joined {
+                to.push(step);
             }
             self.replica_changed();
         }
-        Ok(done)
+        Ok(outcome.is_done())
     }
 
     /// Whether `scope` (either, when `None`) has a step to undo or redo.

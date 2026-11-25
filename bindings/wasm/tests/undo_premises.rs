@@ -54,3 +54,45 @@ fn an_undo_holds_the_objects_of_the_steps_it_takes_back() {
     fresh.batch_applied();
     assert_eq!(held(&fresh, "edit.undo", json!({})), vec![(json!("scene"), true, true)]);
 }
+
+/// A person's undo whose last step's object an agent deleted since: the replica passes that step
+/// over and takes back the one below in the same call (`KitSession::undo_in_outcome`). The kit's
+/// labels take both steps off together and keep one redo step, named by the step taken back and
+/// holding what both wrote, so they stay in line with the replica's steps: the next undo takes
+/// back exactly the step below, and the redos bring them back in order. Before, the labels kept
+/// a step the replica had already taken back, and every later undo was named by the step above
+/// the one it took back.
+#[test]
+fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
+    let mut doc = SceneDocument::create("Undo.kscene", 320, 180).unwrap();
+    let agent = Origin::agent("agent:test");
+    let label = |doc: &SceneDocument, key: &str| doc.inspect().unwrap()[key].clone();
+    let x = |doc: &SceneDocument| doc.scene().object_named("A").map(|object| object.location.x);
+    doc.execute("add.cube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
+    let added = label(&doc, "undo");
+    doc.execute("object.translate", json!({ "objects": "A", "offset": [1, 0, 0] })).unwrap();
+    let moved = label(&doc, "undo");
+    let (a, cube) = (named(&doc, "A"), named(&doc, "Cube"));
+    doc.execute("object.rename", json!({ "object": cube.clone(), "name": "Gone" })).unwrap();
+    doc.execute_as("edit.delete", json!({ "objects": "Gone" }), &agent).unwrap();
+    assert_eq!(x(&doc), Some(4.0));
+
+    doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(x(&doc), Some(3.0), "the step below the rename is taken back");
+    assert!(doc.scene().object_named("Gone").is_none() && doc.scene().object_named("Cube").is_none(), "the agent's deletion stays");
+    assert_eq!(label(&doc, "undo"), added, "the next undo is named by the step below both");
+    assert_eq!(label(&doc, "redo"), moved, "the one redo step is named by the step taken back");
+    let redo = held(&doc, "edit.redo", json!({ "scope": "person" }));
+    assert!(redo.contains(&(a, true, true)), "the redo holds what the step taken back wrote: {redo:?}");
+
+    // The next undo takes back the step below those, exactly.
+    doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(x(&doc), None, "the cube added first is taken back");
+    assert_eq!(label(&doc, "redo"), added);
+    doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(x(&doc), Some(3.0), "the redo brings the cube back");
+    doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(x(&doc), Some(4.0), "the redo brings the move back");
+    assert_eq!(label(&doc, "redo"), Value::Null, "nothing of the person's is left to redo");
+    assert_eq!(label(&doc, "undo"), moved);
+}

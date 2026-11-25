@@ -5,6 +5,7 @@
 //! it is.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
+use kition_kit::KitDocument;
 use kition_kit::kdm::tool_ids::ToolIds;
 use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, Replica};
 use kition_kit::session::{__model_reply, KitSessionDocument};

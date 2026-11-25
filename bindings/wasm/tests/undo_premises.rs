@@ -97,9 +97,11 @@ fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
     assert_eq!(label(&doc, "undo"), moved);
 }
 
-/// The replica's state (its hash) and the engine's own view of it: each object's name, place and
-/// parent, in scene order.
-fn exact(doc: &SceneDocument) -> (String, Vec<(String, [f32; 3], Option<u32>)>) {
+/// Each object's name, place and parent, in scene order.
+type View = Vec<(String, [f32; 3], Option<u32>)>;
+
+/// The replica's state (its hash) and the engine's own view of it.
+fn exact(doc: &SceneDocument) -> (String, View) {
     let hash = KitSessionDocument::session(doc).state_hash().unwrap();
     let view = doc.scene().objects.iter().map(|object| (object.name.clone(), object.location.to_array(), object.parent)).collect();
     (hash, view)

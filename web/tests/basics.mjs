@@ -207,6 +207,7 @@ try {
       return { gpu, count, total: data.length / 4 }
     })
   await page.keyboard.press('KeyW')
+  await until(async () => (await details()).tool.id === 'select', 'W picks the select tool')
   await settle()
   const quiet = await ink()
   await page.mouse.move(box.x + 60, box.y + 60)
@@ -225,6 +226,7 @@ try {
   await page.mouse.click(cube[0], cube[1])
   await until(async () => (await selectedNames()).join() === 'Cube', 'the cube is selected again')
   await page.keyboard.press('KeyR')
+  await until(async () => (await details()).tool.id === 'rotate', 'R picks the rotate tool')
   await settle()
   await page.mouse.move(cube[0] + 80, cube[1])
   await page.mouse.down()
@@ -245,6 +247,7 @@ try {
 
   // B10: Shift+box adds, Cmd/Ctrl+box takes away.
   await page.keyboard.press('KeyW')
+  await until(async () => (await details()).tool.id === 'select', 'W picks the select tool')
   const lightBox = [light[0] - 30, light[1] - 30, light[0] + 30, light[1] + 30]
   const boxDrag = async (rect, modifier) => {
     if (modifier) await page.keyboard.down(modifier)
@@ -256,7 +259,7 @@ try {
     await settle()
   }
   await boxDrag(lightBox, 'Shift')
-  await until(async () => (await selectedNames()).join() === 'Cube,Light', 'Shift+box adds the light')
+  await until(async () => (await selectedNames()).join() === 'Cube,Light', `Shift+box adds the light (${JSON.stringify(await selectedNames())})`)
   await boxDrag(lightBox, 'Shift')
   await until(async () => (await selectedNames()).join() === 'Cube,Light', 'Shift+box never takes away')
   await boxDrag(lightBox, mod)

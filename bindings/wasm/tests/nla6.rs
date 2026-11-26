@@ -236,6 +236,8 @@ fn removing_an_action_takes_its_nested_strips_away() {
                 strip.visit_actions(&mut |name| played.push(name.to_string()));
             }
         }
+        // The actions played, in name order (a meta strip visits its children in its own order).
+        played.sort();
         played
     };
     assert_eq!(played(&doc), ["A", "B"], "the control: both play, nested");

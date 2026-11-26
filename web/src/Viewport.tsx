@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { CameraIcon, FocusIcon, Grid2x2Icon } from '@kition/tessera/icons/react'
-import { ContextMenu, IconButton, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
+import { ContextMenu, IconButton, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
 import type { SceneInfo } from './scene'
 import { WeightPaintControls } from './WeightPaint'
 import { SculptControls } from './Sculpt'
@@ -10,6 +10,8 @@ import { useGpuViewport } from './GlViewport'
 import { RenderedViewport } from './RenderedViewport'
 import { orbit, pan, zoom } from './gl/camera'
 import { useColorScheme } from './colorScheme'
+import { toolGesture } from './gesture'
+import { useToolOverlay } from './ToolOverlay'
 
 /** Degrees the view turns per CSS pixel of an orbit drag. */
 const ORBIT_SPEED = 0.4
@@ -54,6 +56,8 @@ export function SceneViewport({
   const gpu = useGpuViewport(region, info?.shading !== 'rendered')
   const gpuRef = useRef(gpu)
   gpuRef.current = gpu
+  // The tools' overlays over the GPU picture (the software picture, which carries them, is hidden).
+  useToolOverlay(region, gpu.active)
   const wheelCommit = useRef(0)
   // The document that was the viewport's size once: until then, the viewport is not ready.
   const [readyDoc, setReadyDoc] = useState<typeof doc>(null)
@@ -197,7 +201,10 @@ export function SceneViewport({
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       const orbit = event.button === 1 || (event.button === 0 && event.altKey)
       if (!orbit) {
-        if (event.button === 0) toolDrag.current = true
+        if (event.button === 0) {
+          toolDrag.current = true
+          toolGesture.held = true
+        }
         return
       }
       event.preventDefault()
@@ -230,7 +237,10 @@ export function SceneViewport({
       schedule()
     }
     const up = (event: PointerEvent) => {
-      if (event.button === 0) toolDrag.current = false
+      if (event.button === 0) {
+        toolDrag.current = false
+        toolGesture.held = false
+      }
       if (!drag && unready(event)) return
       if (!drag || event.pointerId !== drag.id) return
       event.stopPropagation()
@@ -252,6 +262,7 @@ export function SceneViewport({
     // A tool drag can end outside the viewport.
     const release = () => {
       toolDrag.current = false
+      toolGesture.held = false
     }
     window.addEventListener('pointerup', release)
     window.addEventListener('pointercancel', release)
@@ -291,6 +302,23 @@ export function SceneViewport({
     }
   }, [])
 
+  const tools = useKitTools()
+  /**
+   * Before the context menu opens, the engine's tools hear where the pointer is and the menu key:
+   * an object there that is not selected becomes the selection, so the menu acts on it (a
+   * selected one keeps the selection). Tools with their own use of the pointer (Knife, Loop Cut,
+   * a brush) are left alone.
+   */
+  const selectForMenu = async (target: HTMLCanvasElement, at: { x: number; y: number }) => {
+    const { doc: open } = latest.current
+    if (!open || !readyRef.current || !['select', 'move', 'rotate', 'scale'].includes(tools?.active ?? '')) return
+    const box = target.getBoundingClientRect()
+    const dpr = window.devicePixelRatio || 1
+    const point = { action: 'move', x: (at.x - box.left) * dpr, y: (at.y - box.top) * dpr, mods: {}, pressure: 1, zoom: 1 / dpr }
+    const tool = latest.current.editor.session.tool
+    await tool('pointer', [JSON.stringify(point)]).catch(() => null)
+    await tool('toolKey', ['ContextMenu', '{}', 1 / dpr], true).catch(() => null)
+  }
   const { phrase: p, enabled, run } = editor
   const command = (id: string, label: string) => <MenuItem key={id} label={p(label)} disabled={!enabled(id)} onSelect={() => void run(id, {})} testId={`scene-context-${id}`} />
   const nav = (id: string, label: string, short: string) => (
@@ -308,7 +336,8 @@ export function SceneViewport({
       onContextMenu={(event) => {
         if (!(event.target instanceof HTMLCanvasElement)) return
         event.preventDefault()
-        setMenu({ x: event.clientX, y: event.clientY })
+        const at = { x: event.clientX, y: event.clientY }
+        void selectForMenu(event.target, at).finally(() => setMenu(at))
       }}
     >
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} testId="scene-canvas" />

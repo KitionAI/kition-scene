@@ -1,6 +1,9 @@
-//! The viewport's tools, driven by the host's pointer: Select (click, Shift to toggle, drag for
-//! a box), Move, Rotate, and Scale (drag; Shift for fine steps, Cmd to snap), and Loop Cut in
-//! edit mode (hover to see the loop, click to cut). A drag is one undo step; Escape cancels it.
+//! The viewport's tools, driven by the host's pointer: Select (click, Shift to toggle, Cmd/Ctrl
+//! to pick by the origin; drag for a box, Shift to add to the selection, Cmd/Ctrl to take from it,
+//! both to keep what is in both), Move, Rotate, and Scale (drag; Shift for fine steps, Cmd to snap;
+//! a click selects as the Select tool's does), and Loop Cut in edit mode (hover to see the loop,
+//! click to cut). A drag is one undo step; Escape cancels it. The context-menu key selects the
+//! object under the pointer when it is not selected, before the editor opens its menu.
 
 use std::collections::BTreeSet;
 
@@ -31,6 +34,12 @@ const EDIT_TOOLS: &[&str] = &["loopCut", "knife", "slide"];
 /// Screen pixels of drag for a full slide (factor 1).
 const SLIDE_PIXELS: f64 = 200.0;
 
+/// Screen pixels a press may travel and still be a click.
+const CLICK_PIXELS: f64 = 4.0;
+
+/// Screen pixels from an object's origin within which a Cmd/Ctrl+click picks it by the origin.
+const ORIGIN_PIXELS: f32 = 75.0;
+
 const ORANGE: [u8; 4] = [241, 88, 0, 255];
 const YELLOW: [u8; 4] = [255, 214, 0, 255];
 
@@ -43,6 +52,48 @@ struct Drag {
     pivot_screen: (f32, f32),
     before: Step,
     moved: bool,
+    /// What the drag shows now (the box, the readout, the dashed line): kept with the drag, so an
+    /// answer to the tools' state while it is under way shows them too.
+    overlays: Vec<ToolOverlay>,
+}
+
+impl Drag {
+    fn new(start: (f64, f64), pivot: Vec3, pivot_screen: (f32, f32), before: Step) -> Self {
+        Self { start, last: start, pivot, pivot_screen, before, moved: false, overlays: Vec::new() }
+    }
+
+    /// Whether the pointer, now at `at`, stayed close enough to the press for a click.
+    fn click(&self, at: (f64, f64)) -> bool {
+        (at.0 - self.start.0).hypot(at.1 - self.start.1) <= CLICK_PIXELS
+    }
+}
+
+/// How a click or a box changes the selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pick {
+    /// What is found becomes the selection.
+    Set,
+    /// A click with Shift: the object becomes active and selected, or, already active, unselected.
+    Toggle,
+    /// A box with Shift: what is found is added.
+    Extend,
+    /// A box with Cmd/Ctrl: what is found is taken out.
+    Subtract,
+    /// A box with Shift and Cmd/Ctrl: only what is both selected and found stays.
+    Intersect,
+}
+
+impl Pick {
+    fn of(mods: ToolMods, boxed: bool) -> Self {
+        match (boxed, mods.shift, mods.command) {
+            (false, true, _) => Pick::Toggle,
+            (false, false, _) => Pick::Set,
+            (true, true, true) => Pick::Intersect,
+            (true, true, false) => Pick::Extend,
+            (true, false, true) => Pick::Subtract,
+            (true, false, false) => Pick::Set,
+        }
+    }
 }
 
 /// The active tool and what it is doing.
@@ -55,11 +106,13 @@ pub struct ToolState {
     /// The knife's points so far, and where the pointer is.
     knife: Vec<(f64, f64)>,
     hover: Option<(f64, f64)>,
+    /// Where the pointer last was over the viewport, for the context-menu key.
+    pointer: Option<(f64, f64)>,
 }
 
 impl Default for ToolState {
     fn default() -> Self {
-        Self { tool: "select", drag: None, hover_edge: None, knife: Vec::new(), hover: None }
+        Self { tool: "select", drag: None, hover_edge: None, knife: Vec::new(), hover: None, pointer: None }
     }
 }
 
@@ -123,10 +176,15 @@ impl SceneDocument {
         }
     }
 
-    /// Selects what is under the pointer (or in the box from `start`); Shift toggles.
-    fn select_at(&mut self, start: (f64, f64), end: (f64, f64), toggle: bool) {
+    /// Selects what is under the pointer (or in the box from `start`) as `mods` say: a click sets
+    /// the selection, with Shift toggles the object, with Cmd/Ctrl in object mode picks by the
+    /// origin; a box sets it, with Shift adds to it, with Cmd/Ctrl takes from it, with both keeps
+    /// what is in both.
+    fn select_at(&mut self, start: (f64, f64), end: (f64, f64), mods: ToolMods) {
         let projector = self.projector();
         let boxed = (end.0 - start.0).abs() > 4.0 || (end.1 - start.1).abs() > 4.0;
+        let pick = Pick::of(mods, boxed);
+        let through = self.session.editor.view.camera;
         let rect = [start.0 as f32, start.1 as f32, end.0 as f32, end.1 as f32];
         match self.session.mode {
             Mode::Object => {
@@ -157,28 +215,55 @@ impl SceneDocument {
                             }
                         }
                         ids.into_iter().collect()
+                    } else if mods.command {
+                        kition_scene_raster::pick_origin(&self.scene, &projector, end.0 as f32, end.1 as f32, ORIGIN_PIXELS).into_iter().collect()
                     } else {
-                        kition_scene_raster::pick_object(&self.scene, &cached.canvas, &projector, end.0 as f32, end.1 as f32).into_iter().collect()
+                        kition_scene_raster::pick_object(&self.scene, &cached.canvas, &projector, end.0 as f32, end.1 as f32, through)
+                            .into_iter()
+                            .collect()
                     }
                 });
                 let found = crate::commands_particles::owners(self, found);
                 let editor = &mut self.session.editor;
-                if toggle {
-                    for id in found {
-                        if editor.selected.contains(&id) && (boxed || editor.active == Some(id)) {
-                            editor.selected.retain(|other| *other != id);
-                            if editor.active == Some(id) {
+                match pick {
+                    Pick::Set => {
+                        editor.active = found.last().copied();
+                        editor.selected = found;
+                    }
+                    Pick::Toggle => {
+                        for id in found {
+                            if editor.selected.contains(&id) && editor.active == Some(id) {
+                                editor.selected.retain(|other| *other != id);
                                 editor.active = editor.selected.last().copied();
+                            } else {
+                                editor.selected.retain(|other| *other != id);
+                                editor.selected.push(id);
+                                editor.active = Some(id);
                             }
-                        } else {
-                            editor.selected.retain(|other| *other != id);
-                            editor.selected.push(id);
-                            editor.active = Some(id);
                         }
                     }
-                } else {
-                    editor.active = found.last().copied();
-                    editor.selected = found;
+                    Pick::Extend => {
+                        for id in found {
+                            if !editor.selected.contains(&id) {
+                                editor.selected.push(id);
+                            }
+                        }
+                        if editor.active.is_none() {
+                            editor.active = editor.selected.last().copied();
+                        }
+                    }
+                    Pick::Subtract => {
+                        editor.selected.retain(|id| !found.contains(id));
+                        if editor.active.is_some_and(|id| !editor.selected.contains(&id)) {
+                            editor.active = editor.selected.last().copied();
+                        }
+                    }
+                    Pick::Intersect => {
+                        editor.selected.retain(|id| found.contains(id));
+                        if editor.active.is_some_and(|id| !editor.selected.contains(&id)) {
+                            editor.active = editor.selected.last().copied();
+                        }
+                    }
                 }
             }
             Mode::Edit(id) => {
@@ -214,15 +299,19 @@ impl SceneDocument {
                         }
                     }
                 });
-                if toggle {
-                    let all_in = !found.is_empty() && found.iter().all(|vertex| self.session.vertices.contains(vertex));
-                    if all_in {
-                        self.session.vertices.retain(|vertex| !found.contains(vertex));
-                    } else {
-                        self.session.vertices.extend(found);
+                match pick {
+                    Pick::Set => self.session.vertices = found,
+                    Pick::Toggle => {
+                        let all_in = !found.is_empty() && found.iter().all(|vertex| self.session.vertices.contains(vertex));
+                        if all_in {
+                            self.session.vertices.retain(|vertex| !found.contains(vertex));
+                        } else {
+                            self.session.vertices.extend(found);
+                        }
                     }
-                } else {
-                    self.session.vertices = found;
+                    Pick::Extend => self.session.vertices.extend(found),
+                    Pick::Subtract => self.session.vertices.retain(|vertex| !found.contains(vertex)),
+                    Pick::Intersect => self.session.vertices.retain(|vertex| found.contains(vertex)),
                 }
             }
         }
@@ -454,6 +543,34 @@ impl SceneDocument {
         overlays
     }
 
+    /// Before the context menu opens at the pointer (the right button, or the menu key): in object
+    /// mode an object under the pointer that is not selected becomes the selection, as a click
+    /// would make it; a selected one keeps the selection as it is, and nothing under the pointer
+    /// changes nothing.
+    fn select_for_menu(&mut self) {
+        let Some(at) = self.tool.pointer else { return };
+        if self.tool.drag.is_some() || self.session.mode != Mode::Object || self.special_session() {
+            return;
+        }
+        let projector = self.projector();
+        let through = self.session.editor.view.camera;
+        let found =
+            self.with_frame(|cached| kition_scene_raster::pick_object(&self.scene, &cached.canvas, &projector, at.0 as f32, at.1 as f32, through));
+        let Some(found) = crate::commands_particles::owners(self, found.into_iter().collect()).last().copied() else { return };
+        if !self.session.editor.selected.contains(&found) {
+            self.session.editor.selected = vec![found];
+            self.session.editor.active = Some(found);
+            self.touched();
+        }
+    }
+
+    /// Whether a mode with its own pointer handling is on (sculpt, weight paint, Particle Edit,
+    /// a curve's, text's or lattice's edit mode, an armature's edit or pose mode).
+    fn special_session(&self) -> bool {
+        let session = &self.session;
+        session.sculpt.is_some() || session.paint.is_some() || session.particle_edit.is_some() || session.shape.is_some() || session.rig.is_some()
+    }
+
     fn respond(&self) -> ToolResponse {
         let mut overlays = Vec::new();
         if self.tool.tool == "loopCut" {
@@ -461,6 +578,9 @@ impl SceneDocument {
         }
         if self.tool.tool == "knife" {
             overlays = self.knife_overlays();
+        }
+        if let Some(drag) = &self.tool.drag {
+            overlays.extend(drag.overlays.iter().cloned());
         }
         let busy = self.tool.drag.is_some() || !self.tool.knife.is_empty();
         // Text edit mode takes typed text.
@@ -519,6 +639,7 @@ impl KitTools for SceneDocument {
         }
         let at = (event.x, event.y);
         let mods = event.mods;
+        self.tool.pointer = Some(at);
         if EDIT_TOOLS.contains(&self.tool.tool) && !matches!(self.session.mode, Mode::Edit(_)) {
             self.tool.knife.clear();
             return Ok(self.respond());
@@ -537,8 +658,7 @@ impl KitTools for SceneDocument {
                 self.confirm_knife()?;
             }
             ("slide", PointerAction::Down) => {
-                self.tool.drag =
-                    Some(Drag { start: at, last: at, pivot: Vec3::ZERO, pivot_screen: (0.0, 0.0), before: self.step("Edge Slide"), moved: false });
+                self.tool.drag = Some(Drag::new(at, Vec3::ZERO, (0.0, 0.0), self.step("Edge Slide")));
             }
             ("slide", PointerAction::Drag) => {
                 if let Some(mut drag) = self.tool.drag.take() {
@@ -553,13 +673,9 @@ impl KitTools for SceneDocument {
                     self.touched();
                     drag.last = at;
                     drag.moved = true;
+                    drag.overlays = vec![ToolOverlay::Measure { x: at.0, y: at.1, text: format!("Factor: {factor:.3}") }];
                     self.tool.drag = Some(drag);
-                    return Ok(ToolResponse {
-                        overlays: vec![ToolOverlay::Measure { x: at.0, y: at.1, text: format!("Factor: {factor:.3}") }],
-                        cursor: cursor("slide"),
-                        busy: true,
-                        ..Default::default()
-                    });
+                    return Ok(self.respond());
                 }
             }
             ("slide", PointerAction::Up) => {
@@ -585,29 +701,24 @@ impl KitTools for SceneDocument {
                 }
             }
             ("select", PointerAction::Down) => {
-                self.tool.drag =
-                    Some(Drag { start: at, last: at, pivot: Vec3::ZERO, pivot_screen: (0.0, 0.0), before: self.step("Select"), moved: false });
+                self.tool.drag = Some(Drag::new(at, Vec3::ZERO, (0.0, 0.0), self.step("Select")));
             }
             ("select", PointerAction::Drag) => {
                 if let Some(drag) = &mut self.tool.drag {
                     drag.last = at;
                     let (x0, y0) = drag.start;
-                    return Ok(ToolResponse {
-                        overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
-                        cursor: cursor("select"),
-                        busy: true,
-                        ..Default::default()
-                    });
+                    drag.overlays = vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }];
+                    return Ok(self.respond());
                 }
             }
             ("select", PointerAction::Up) => {
                 if let Some(drag) = self.tool.drag.take() {
-                    self.select_at(drag.start, at, mods.shift);
+                    self.select_at(drag.start, at, mods);
                 }
             }
             ("move" | "rotate" | "scale", PointerAction::Down) => {
                 if !self.has_tool_selection() {
-                    self.select_at(at, at, false);
+                    self.select_at(at, at, ToolMods::default());
                 }
                 if let Some(pivot) = self.pivot() {
                     let projector = self.projector();
@@ -617,8 +728,7 @@ impl KitTools for SceneDocument {
                         "rotate" => "Rotate",
                         _ => "Scale",
                     };
-                    self.tool.drag =
-                        Some(Drag { start: at, last: at, pivot, pivot_screen: (screen.x, screen.y), before: self.step(label), moved: false });
+                    self.tool.drag = Some(Drag::new(at, pivot, (screen.x, screen.y), self.step(label)));
                 }
             }
             ("move" | "rotate" | "scale", PointerAction::Drag) => {
@@ -643,13 +753,22 @@ impl KitTools for SceneDocument {
                     if let Some(circle) = self.proportional_circle(&drag) {
                         overlays.push(circle);
                     }
+                    drag.overlays = overlays;
                     self.tool.drag = Some(drag);
-                    return Ok(ToolResponse { overlays, cursor: cursor(self.tool.tool), busy: true, ..Default::default() });
+                    return Ok(self.respond());
                 }
             }
             ("move" | "rotate" | "scale", PointerAction::Up) => {
-                if let Some(drag) = self.tool.drag.take()
-                    && drag.moved && self.scene != drag.before.scene {
+                match self.tool.drag.take() {
+                    // A click, as with the Select tool: it selects what is under the pointer, or
+                    // clears the selection on nothing (Blender's transform tools select so too).
+                    Some(drag) if drag.click(at) => {
+                        if self.scene != drag.before.scene {
+                            self.restore(drag.before);
+                        }
+                        self.select_at(at, at, mods);
+                    }
+                    Some(drag) if drag.moved && self.scene != drag.before.scene => {
                         if self.scene.validate().is_ok() {
                             self.committed(drag.before)?;
                         } else {
@@ -657,11 +776,15 @@ impl KitTools for SceneDocument {
                             self.touched();
                         }
                     }
+                    Some(_) => {}
+                    // A press that started no drag (nothing to move): a click on nothing.
+                    None => self.select_at(at, at, mods),
+                }
             }
             (_, PointerAction::DoubleClick)
                 // A double click on a mesh in object mode edits it.
                 if self.session.mode == Mode::Object => {
-                    self.select_at(at, at, false);
+                    self.select_at(at, at, ToolMods::default());
                     if self.session.editor.active.is_some_and(|id| self.scene.object(id).is_ok_and(|object| object.mesh().is_some())) {
                         self.execute("mode.set", json!({ "mode": "edit" }))?;
                     }
@@ -706,6 +829,7 @@ impl KitTools for SceneDocument {
                     self.touched();
                 }
             }
+            "ContextMenu" => self.select_for_menu(),
             "Delete" | "Backspace" if self.tool.drag.is_none() && self.has_tool_selection() => {
                 self.execute("edit.delete", json!({}))?;
             }

@@ -40,6 +40,9 @@ import { SculptToggle } from './Sculpt'
 import { RenderDialog } from './RenderDialog'
 import { UvEditor } from './UvEditor'
 import { useSceneViewState, type SceneViewState } from './viewState'
+import { toolGesture } from './gesture'
+import { RENAME_EVENT } from './SidePanel'
+import { focusEditor } from './NumberBox'
 
 const EXPORT_FORMATS = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'usda', 'usdc', 'usdz', 'png'] as const
 type ExportFormat = (typeof EXPORT_FORMATS)[number]
@@ -66,7 +69,8 @@ function plainShortcut(shortcut: string | null | undefined) {
 function keyMatches(shortcut: string, event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>) {
   if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return false
   if (/^[A-Za-z]$/.test(shortcut)) return event.code === `Key${shortcut.toUpperCase()}`
-  if (/^[0-9]$/.test(shortcut)) return event.code === `Digit${shortcut}` || event.code === `Numpad${shortcut}`
+  // The number row only: the numeric keypad is Blender's views, not the edit mode's select modes.
+  if (/^[0-9]$/.test(shortcut)) return event.code === `Digit${shortcut}`
   if (shortcut === '.') return event.code === 'Period' || event.code === 'NumpadDecimal'
   return event.key === shortcut
 }
@@ -79,7 +83,24 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const sessionOptions = useMemo(() => ({ viewState: () => (viewState.current ? { state: viewState.current } : undefined) }), [])
   const session = useKitSession(host, manifest, describe, sessionOptions)
   useSceneViewState(host, session, viewState)
-  const editor = useKitEditorState(session, host, t, 'scene', phrase)
+  // A command refused because there is nothing for it to act on (Show Hidden with nothing hidden,
+  // Delete with nothing selected) says so in the status bar, not as an error card.
+  const [note, setNote] = useState<{ text: string; serial: number } | null>(null)
+  const editorOptions = useMemo(
+    () => ({
+      report: (title: string, error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error)
+        const nothing = /^not-allowed: (nothing is hidden|select an object first)/.exec(message)
+        if (nothing) {
+          setNote({ text: t(nothing[1] === 'nothing is hidden' ? 'nothingHidden' : 'noSelection'), serial: Date.now() })
+          return
+        }
+        toast('error', title, message)
+      },
+    }),
+    [t],
+  )
+  const editor = useKitEditorState(session, host, t, 'scene', phrase, undefined, editorOptions)
   const { doc, change, state } = session
   const presence = useScenePresence(host, editor, state)
   // A key pressed while the tools were busy (a pointer event in flight) comes back here once they
@@ -106,11 +127,13 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // an agent's ai/run keeps an editor state of its own (C3b), so it cannot set the person's.
   useEffect(() => {
     if (!import.meta.env.DEV) return
-    const page = window as Window & { kitScene?: { run: (steps: Array<{ command: string; params?: Record<string, unknown> }>) => Promise<void> } }
+    const page = window as Window & { kitScene?: { run: (steps: Array<{ command: string; params?: Record<string, unknown> }>) => Promise<void>; state: () => unknown } }
     page.kitScene = {
       run: async (steps) => {
         for (const step of steps) await latest.current.editor.run(step.command, step.params ?? {})
       },
+      // The scene as the person's editor shows it now (a number field's preview included).
+      state: () => latest.current.editor.session.state,
     }
     return () => {
       delete page.kitScene
@@ -139,7 +162,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       const parsed = answer ? (JSON.parse(answer) as { base64: string }) : null
       if (!parsed) throw new Error('nothing exported')
       const written = await connection.exportFile(`${base}.${format}`, decodeBase64(parsed.base64))
-      toast('success', t('saved', { name: written.split('/').pop() ?? written }))
+      toast('success', t('exported', { name: written.split('/').pop() ?? written }))
     } catch (error) {
       current.report(t('exportFailed'), error)
     }
@@ -188,6 +211,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     return true
   }
   deferredKey.current = (key, shift) => {
+    // A key held back while a pointer event was on its way, and the gesture still under way.
+    if (toolGesture.held) return
     const wanted = (shift ? `Shift+${key}` : key).toLowerCase()
     const matching = commands.filter((item: KitCommand) => item.shortcut?.toLowerCase() === wanted)
     const command = matching.find((item: KitCommand) => editor.enabled(item.id))
@@ -229,6 +254,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   useEffect(() => {
     const keyDown = (event: globalThis.KeyboardEvent) => {
       if (event.target !== document.body && event.target !== document.documentElement) return
+      if (toolGesture.held) return
       if (!latestPlain.current(event)) return
       event.preventDefault()
       document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
@@ -238,6 +264,20 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }, [])
   // F12 renders (the engine's command answers the picture).
   const frameKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // While the left button holds a tool's gesture on the viewport (a move, a box), keys run no
+    // shortcut: X there deleted the object being moved. Escape still cancels the gesture.
+    if (toolGesture.held && !['Escape', 'Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) {
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+    const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
+      event.preventDefault()
+      event.stopPropagation()
+      renameActive()
+      return
+    }
     if (event.key === 'F12' && !event.metaKey && !event.ctrlKey) {
       event.preventDefault()
       event.stopPropagation()
@@ -259,6 +299,41 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       event.preventDefault()
       event.stopPropagation()
       event.currentTarget.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
+    }
+  }
+
+  // The note stays a few seconds, or until the next change.
+  useEffect(() => {
+    if (!note) return undefined
+    const timer = window.setTimeout(() => setNote(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [note])
+  const noteRevision = useRef(change)
+  useEffect(() => {
+    if (noteRevision.current === change) return
+    noteRevision.current = change
+    setNote((current) => (current && Date.now() - current.serial > 300 ? null : current))
+  }, [change])
+
+  // The page opens with the keyboard for the editor: its shortcuts answer before any click.
+  const focusedDoc = useRef<typeof doc>(null)
+  useEffect(() => {
+    if (!doc || focusedDoc.current === doc) return
+    focusedDoc.current = doc
+    if (document.activeElement === document.body || document.activeElement == null) focusEditor()
+  }, [doc])
+
+  // F2 renames the active object: in its outliner row, or, with no row shown, in a small box.
+  const [renaming, setRenaming] = useState<{ id: number; name: string } | null>(null)
+  const renameActive = () => {
+    const active = state?.objects.find((object) => object.id === state.active)
+    if (!active || host.readOnly) return
+    const row = document.querySelector<HTMLElement>(`[data-testid="scene-outliner-item"][data-id="${active.id}"]`)
+    if (row && row.offsetParent != null) {
+      row.scrollIntoView({ block: 'nearest' })
+      window.dispatchEvent(new CustomEvent(RENAME_EVENT, { detail: active.id }))
+    } else {
+      setRenaming({ id: active.id, name: active.name })
     }
   }
 
@@ -289,6 +364,11 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
             : t('objectsSelected', { selected: state.selected.length, count: state.objects.length })}
       </span>
       {tools.status ? <span>{phrase(tools.status)}</span> : null}
+      {note ? (
+        <span className="scene-status-note" role="status" data-testid="scene-status-note">
+          {note.text}
+        </span>
+      ) : null}
     </span>
   ) : null
   const statusEnd = state ? (
@@ -373,6 +453,58 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
             compositing={state && state.render.compositor != null ? state.render.compositing : null}
             onClose={() => setRendering(false)}
           /> : null}
+        {renaming ? (
+          <Dialog
+            title={t('renameTitle')}
+            testId="scene-rename-dialog"
+            onClose={() => {
+              setRenaming(null)
+              focusEditor()
+            }}
+            actions={
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const name = renaming.name.trim()
+                    setRenaming(null)
+                    if (name) void editor.run('object.rename', { object: renaming.id, name })
+                    focusEditor()
+                  }}
+                  data-testid="scene-rename-run"
+                >
+                  {t('rename')}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setRenaming(null)
+                    focusEditor()
+                  }}
+                >
+                  {t('close')}
+                </Button>
+              </>
+            }
+          >
+            <input
+              className="kui-field scene-rename"
+              aria-label={t('name')}
+              value={renaming.name}
+              autoFocus
+              onFocus={(event) => event.currentTarget.select()}
+              onChange={(event) => setRenaming({ ...renaming, name: event.target.value })}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                const name = renaming.name.trim()
+                setRenaming(null)
+                if (name) void editor.run('object.rename', { object: renaming.id, name })
+                focusEditor()
+              }}
+              data-testid="scene-rename-field"
+            />
+          </Dialog>
+        ) : null}
         {exporting ? (
           <Dialog
             title={t('exportTitle')}

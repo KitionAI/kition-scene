@@ -154,6 +154,7 @@
   "object.shadeSmooth": ["mode", "selection"],
   "object.shadeSmoothByAngle": ["mode", "selection"],
   "object.transform": ["selection"],
+  "object.previewTransform": ["selection"],
   "object.translate": ["selection"],
   "object.wave": ["selection", "time"],
   "paint.brush": ["mode"],

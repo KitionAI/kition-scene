@@ -696,23 +696,85 @@ pub fn hit(canvas: &Canvas, x: u32, y: u32) -> Option<Hit> {
     Some(Hit { object, face: canvas.face.get(slot).copied().unwrap_or(NONE) })
 }
 
-/// The objects drawn near a pixel, nearest first (lights, cameras, and empties have no surface,
-/// so a click near their origin selects them).
-pub fn pick_object(scene: &Scene, canvas: &Canvas, projector: &Projector, x: f32, y: f32) -> Option<Id> {
+/// Screen pixels from a drawn line of an object without a surface (a light's rings, a camera's
+/// pyramid, an empty's axes) within which a click picks it.
+const LINE_PICK_RADIUS: f32 = 6.0;
+/// Screen pixels from an object's origin within which a click picks it.
+const ORIGIN_PICK_RADIUS: f32 = 12.0;
+
+/// The object a click at pixel (`x`, `y`) of a drawn viewport picks: an object without a surface
+/// whose drawn lines pass within a few pixels and are not hidden behind a surface there (a light's
+/// rings, a camera's pyramid, an empty's axes, nearest first), else the surface drawn at the pixel,
+/// else the object whose origin is nearest within a few pixels. `through` is the camera the view
+/// looks through, which is not drawn.
+pub fn pick_object(scene: &Scene, canvas: &Canvas, projector: &Projector, x: f32, y: f32, through: Option<Id>) -> Option<Id> {
+    if let Some(id) = pick_lines(scene, canvas, projector, x, y, through) {
+        return Some(id);
+    }
     if let Some(found) = hit(canvas, x.max(0.0) as u32, y.max(0.0) as u32) {
         return Some(found.object);
     }
     let mut best: Option<(f32, Id)> = None;
     for object in scene.objects.iter().filter(|object| !object.hidden) {
-        let Ok(world) = scene.world_matrix(object.id) else { continue };
-        let clip = projector.view_projection() * world.transform_point3(Vec3::ZERO).extend(1.0);
-        if clip.w <= 0.0 || clip.z < 0.0 {
-            continue;
-        }
-        let screen = projector.to_screen(clip);
-        let distance = ((screen.x - x).powi(2) + (screen.y - y).powi(2)).sqrt();
-        if distance <= 12.0 && best.is_none_or(|(nearest, _)| distance < nearest) {
+        let Some((screen, _)) = origin_on_screen(scene, projector, object.id) else { continue };
+        let distance = (screen.x - x).hypot(screen.y - y);
+        if distance <= ORIGIN_PICK_RADIUS && best.is_none_or(|(nearest, _)| distance < nearest) {
             best = Some((distance, object.id));
+        }
+    }
+    best.map(|(_, id)| id)
+}
+
+/// The visible object whose origin is drawn nearest pixel (`x`, `y`), within `radius` pixels
+/// (Blender's Ctrl+click picks by the origin rather than the surface).
+pub fn pick_origin(scene: &Scene, projector: &Projector, x: f32, y: f32, radius: f32) -> Option<Id> {
+    let mut best: Option<(f32, Id)> = None;
+    for object in scene.objects.iter().filter(|object| !object.hidden) {
+        let Some((screen, _)) = origin_on_screen(scene, projector, object.id) else { continue };
+        let distance = (screen.x - x).hypot(screen.y - y);
+        if distance <= radius && best.is_none_or(|(nearest, _)| distance < nearest) {
+            best = Some((distance, object.id));
+        }
+    }
+    best.map(|(_, id)| id)
+}
+
+/// An object's origin on the screen (and its clip position), unless it is behind the eye.
+fn origin_on_screen(scene: &Scene, projector: &Projector, id: Id) -> Option<(Vec3, Vec4)> {
+    let world = scene.world_matrix(id).ok()?;
+    let clip = projector.view_projection() * world.transform_point3(Vec3::ZERO).extend(1.0);
+    if clip.w <= 0.0 || clip.z < 0.0 {
+        return None;
+    }
+    Some((projector.to_screen(clip), clip))
+}
+
+/// The object without a surface whose drawn lines pass nearest pixel (`x`, `y`), within
+/// [`LINE_PICK_RADIUS`], where no surface is drawn in front of them.
+fn pick_lines(scene: &Scene, canvas: &Canvas, projector: &Projector, x: f32, y: f32, through: Option<Id>) -> Option<Id> {
+    let matrix = projector.view_projection();
+    let mut best: Option<(f32, Id)> = None;
+    for object in scene.objects.iter().filter(|object| !object.hidden && !object.has_geometry() && through != Some(object.id)) {
+        let Ok(world) = scene.world_matrix(object.id) else { continue };
+        for [a, b] in gizmo_segments(scene, &object.data) {
+            let (a, b) = (world.transform_point3(a), world.transform_point3(b));
+            let (clip_a, clip_b) = (matrix * a.extend(1.0), matrix * b.extend(1.0));
+            if clip_a.w <= 0.0 || clip_b.w <= 0.0 {
+                continue;
+            }
+            let (sa, sb) = (projector.to_screen(clip_a), projector.to_screen(clip_b));
+            let (ex, ey) = (sb.x - sa.x, sb.y - sa.y);
+            let length = ex * ex + ey * ey;
+            let t = if length > 0.0 { (((x - sa.x) * ex + (y - sa.y) * ey) / length).clamp(0.0, 1.0) } else { 0.0 };
+            let (px, py) = (sa.x + ex * t, sa.y + ey * t);
+            let distance = (x - px).hypot(y - py);
+            if !distance.is_finite() || distance > LINE_PICK_RADIUS || best.is_some_and(|(nearest, _)| nearest <= distance) {
+                continue;
+            }
+            let depth = -projector.view.transform_point3(a.lerp(b, t)).z;
+            if canvas.visible(px.floor() as i64, py.floor() as i64, depth) {
+                best = Some((distance, object.id));
+            }
         }
     }
     best.map(|(_, id)| id)
@@ -958,7 +1020,17 @@ fn draw_gizmo(
         draw_marks(canvas, projector, &marks);
         return;
     }
-    let mut line = |a: Vec3, b: Vec3| canvas.line(projector, world.transform_point3(a), world.transform_point3(b), color, 1.0, 1, true);
+    for [a, b] in gizmo_segments(scene, data) {
+        canvas.line(projector, world.transform_point3(a), world.transform_point3(b), color, 1.0, 1, true);
+    }
+}
+
+/// The lines an object without a surface is drawn with, in its own space: a camera's pyramid to
+/// its frame one unit in front with a triangle marking up, a light's three rings (and its direction
+/// for a sun, spot or area light), an empty's axes, a lattice's cage. Other objects have none.
+pub fn gizmo_segments(scene: &Scene, data: &ObjectData) -> Vec<[Vec3; 2]> {
+    let mut lines = Vec::new();
+    let mut line = |a: Vec3, b: Vec3| lines.push([a, b]);
     match data {
         ObjectData::Camera(camera) => {
             // A pyramid to the frame one unit in front, with a triangle marking up.
@@ -1005,6 +1077,7 @@ fn draw_gizmo(
         }
         ObjectData::Mesh(_) | ObjectData::Armature(_) | ObjectData::Curve(_) | ObjectData::Text(_) | ObjectData::Surface(_) => {}
     }
+    lines
 }
 
 /// Draws an armature's marks: the custom shapes' faces (depth-tested, not picked), then the

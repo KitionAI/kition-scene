@@ -251,6 +251,9 @@ pub struct SceneDocument {
     /// Evaluated meshes and shadow maps kept between pictures (orbiting reuses them).
     meshes: RefCell<kition_scene_raster::MeshCache>,
     tool: ToolState,
+    /// A number field's drag under way (`object.previewTransform`): the scene and selection as
+    /// they were before it, put back when it ends or before any other change (never saved).
+    field_preview: Option<Step>,
     /// The path-traced render under way (session state, never saved).
     trace: Option<kition_scene_trace::Tracer>,
     /// The progressive viewport, independent of the final render and never saved.
@@ -371,6 +374,7 @@ impl SceneDocument {
             cache: RefCell::new(None),
             meshes: RefCell::new(kition_scene_raster::MeshCache::new()),
             tool: ToolState::default(),
+            field_preview: None,
             trace: None,
             viewport_trace: RefCell::default(),
             particles: RefCell::default(),
@@ -438,6 +442,8 @@ impl SceneDocument {
     /// this replica's ids to mint, and drops session state that no longer applies.
     fn view_from_replica(&mut self, frame: Option<i32>) {
         let frame = frame.unwrap_or(self.scene.animation.timeline.frame);
+        // The replica's scene replaces the view: a number field's preview is over.
+        self.field_preview = None;
         let mut scene = self.replica.model().stored.clone();
         let actor = self.replica.replica().actor();
         ids::allocate(self.replica.replica(), actor, &mut scene);
@@ -563,7 +569,11 @@ impl SceneDocument {
                     let (depth, grouped) = (self.replica.undo_depth(scope), self.replica.in_undo_group());
                     self.history.record(scope, &label, touched.unwrap_or_default(), depth, grouped);
                 }
-                self.content += 1;
+                // A command that wrote nothing (Apply Transform on an object with nothing to apply)
+                // leaves the file as it was: it is not an unsaved change.
+                if self.replica.version() != version {
+                    self.content += 1;
+                }
                 self.revision += 1;
                 Ok(())
             }

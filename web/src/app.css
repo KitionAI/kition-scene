@@ -1018,3 +1018,26 @@
   color: var(--kui-fg, #222);
   font-size: 12px;
 }
+
+/* The tools' overlays over the GPU picture (web/src/ToolOverlay.ts). */
+.scene-tool-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* A number field whose row already names it: a narrow grip to drag stands in for its label. */
+.kui-number-field-label.scene-number-grip {
+  min-width: 8px;
+  width: 8px;
+  padding: 0;
+  cursor: ew-resize;
+  background: radial-gradient(circle, var(--kit-text-muted, #8a8a94) 1px, transparent 1.5px) center / 4px 4px repeat-y;
+  opacity: 0.6;
+}
+
+.scene-status-note {
+  color: var(--kit-text-muted, #6b6b76);
+}

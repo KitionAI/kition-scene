@@ -203,7 +203,7 @@ export function RenderDialog({
               if (!picture) return
               try {
                 const written = await host.exportFile(`${base}.png`, picture.bytes)
-                toast('success', t('saved', { name: written.split('/').pop() ?? written }))
+                toast('success', t('exported', { name: written.split('/').pop() ?? written }))
               } catch (error) {
                 editor.report(t('exportFailed'), error)
               }

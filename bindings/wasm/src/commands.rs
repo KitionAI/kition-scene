@@ -264,6 +264,15 @@ static SPECS: &[Spec] = &[
             ("scale", s::vec3("Scale")),
         ])
     }),
+    spec("object.previewTransform", "Preview Transform", &[], None, false, Needs::Always, || {
+        s::of(vec![
+            ("objects", s::objects("The objects; the selection when left out")),
+            ("location", s::vec3("Location in metres")),
+            ("rotation", s::vec3("Rotation in degrees, XYZ Euler")),
+            ("scale", s::vec3("Scale")),
+            ("end", s::boolean("End the preview, putting the objects back as they were")),
+        ])
+    }),
     spec("object.translate", "Move", &["Object", "Transform"], None, true, Needs::Selection, || {
         s::of(vec![("objects", s::objects("The objects; the selection when left out")), ("offset", s::required(s::vec3("How far, in metres")))])
     }),
@@ -815,6 +824,9 @@ pub(crate) fn schema_of(doc: &SceneDocument, command: &str) -> Option<&'static V
 }
 
 /// Runs a command.
+/// A number field's drag shown in the viewport without an undo step (`object.previewTransform`).
+const PREVIEW_TRANSFORM: &str = "object.previewTransform";
+
 pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     // A world point names the object there now (`pick`, a place): it becomes the command's
     // `objects` or `object` before anything else reads the parameters.
@@ -824,6 +836,15 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
     // An edit-mode command given its mesh and elements runs in that edit mode and puts it back.
     if let Some(elements) = params.get("elements").filter(|value| !value.is_null()) {
         return crate::context::with_elements(doc, command, params, elements);
+    }
+    // A number field's preview ends before any other change, which then starts from the scene
+    // as it was (a field's final value is an `object.transform` of its own, one undo step).
+    if command != PREVIEW_TRANSFORM
+        && (spec_of(command).is_none_or(|spec| spec.mutates) || matches!(command, "edit.undo" | "edit.redo"))
+        && let Some(before) = doc.field_preview.take()
+    {
+        doc.scene = before.scene;
+        doc.touched();
     }
     // The agent's preview reads the scene and changes nothing.
     if command == crate::render::RENDER {
@@ -1038,6 +1059,7 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
             }
         }
         "edit.deselectAll" => return run_view(doc, "edit.selectAll", &json!({ "action": "deselect" })),
+        "object.previewTransform" => return preview_transform(doc, params),
         "select.objects" => {
             let ids = params::objects(&doc.scene, params, "objects")?.ok_or_else(|| bad("`objects` is required"))?;
             let extend = params::boolean(params, "extend")?.unwrap_or(false);
@@ -1652,6 +1674,42 @@ pub(crate) fn look_rotation(from: Vec3, target: Vec3) -> Option<Vec3> {
     let right = up_hint.cross(back).normalize_or_zero();
     let up = back.cross(right);
     Some(matrix_euler(Mat3::from_cols(right, up, back)))
+}
+
+/// Shows `object.transform`'s change while a number field is dragged, without an undo step or an
+/// unsaved change: each call starts again from the scene as it was before the drag, and `end`
+/// (or any change, an undo, a redo) puts that scene back. The field's final value is then an
+/// `object.transform`, one undo step.
+fn preview_transform(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
+    let end = params::boolean(params, "end")?.unwrap_or(false);
+    if !end {
+        chosen(doc, params)?;
+    }
+    let before = match doc.field_preview.take() {
+        Some(before) => {
+            doc.scene = before.scene.clone();
+            before
+        }
+        None => doc.step("Preview Transform"),
+    };
+    if end {
+        doc.touched();
+        return Ok(json!({ "previewing": false }));
+    }
+    let shown = run_change(doc, "object.transform", params)
+        .and_then(|_| doc.scene.validate().map_err(|error| format!("failed: the change would break the scene ({error})")));
+    match shown {
+        Ok(()) => {
+            doc.field_preview = Some(before);
+            doc.touched();
+            Ok(json!({ "previewing": true }))
+        }
+        Err(error) => {
+            doc.scene = before.scene;
+            doc.touched();
+            Err(error)
+        }
+    }
 }
 
 fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {

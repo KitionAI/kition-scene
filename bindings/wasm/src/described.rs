@@ -107,6 +107,9 @@ fn describe(id: &str) -> &'static str {
             "Adds a empty (an axis marker for parenting and targets) at `location` (with rotation, scale and `name`) and answers its name and object id; name it to address it in the same run."
         }
         "object.transform" => "Sets location, rotation (degrees) and/or scale of `objects` (names or ids; the selection without it) absolutely.",
+        "object.previewTransform" => {
+            "Shows a location, rotation (degrees) and/or scale of `objects` (the selection without it) while a number field is dragged, with no undo step and no unsaved change; `end` (or any change) puts them back."
+        }
         "object.translate" => "Moves `objects` (names or ids; the selection without it) by `offset` [x, y, z].",
         "object.rotate" => "Rotates `objects` (names or ids; the selection without it) by `angle` degrees about `axis` (x, y or z).",
         "object.scale" => "Scales `objects` (names or ids; the selection without it) by `factor` (a number or [x, y, z]).",
@@ -550,6 +553,7 @@ fn output(id: &str) -> Option<Value> {
         "edit.selectAll" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "edit.deselectAll" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "select.objects" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "object.previewTransform" => r#"{"type":"object","additionalProperties":true,"properties":{"previewing":{"type":"boolean"}}}"#,
         "mode.toggle" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "mode.set" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "mesh.selectMode" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,

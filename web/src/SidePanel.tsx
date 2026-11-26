@@ -1,5 +1,5 @@
 import { PresenceBadges } from './Presence'
-import { useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowDownIcon, ArrowUpIcon, BoxIcon, CameraIcon, WaypointsIcon, CheckIcon, EyeIcon, EyeOffIcon, Grid2x2Icon, LightbulbIcon, Move3dIcon, PlusIcon, SplineIcon, TrashIcon, TypeIcon, type IconComponent } from '@kition/tessera/icons/react'
 import {
   Checkbox,
@@ -17,6 +17,7 @@ import {
   useKitEditor,
   useReadOnly,
 } from '@kition/sdk/editor'
+import { NumberBox, focusEditor } from './NumberBox'
 import { TextureSlot } from './TextureSlot'
 import { WorldImageSlot } from './WorldImage'
 import { RigSections } from './PosePanel'
@@ -45,61 +46,141 @@ export function useRun() {
 
 // ---------------------------------------------------------------- fields
 
+/** The label of the row a field sits in: a field labelled the same shows a grip instead. */
+const RowLabel = createContext<string | null>(null)
+
 /** A labelled row of the properties grid. */
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="scene-row">
       <span className="scene-row-label">{label}</span>
-      <div className="scene-row-value">{children}</div>
+      <div className="scene-row-value">
+        <RowLabel.Provider value={label}>{children}</RowLabel.Provider>
+      </div>
     </div>
   )
 }
 
-/** One number that commits once (on release, Enter, or blur), showing its draft meanwhile. */
-export function NumberInput({ label, value, onCommit, min = -1e6, max = 1e6, step = 0.01, unit, testId, track }: { label: string; value: number; onCommit: (value: number) => void; min?: number; max?: number; step?: number; unit?: string; testId?: string; track?: boolean }) {
+/**
+ * One number that commits once (on release, Enter, or blur), showing its draft meanwhile; `onPreview`
+ * hears the draft while the label is dragged (null when the drag ends without a value). `precision`
+ * keeps typed values to that many digits, whatever the step (which drags and the arrow keys use).
+ */
+export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max = 1e6, step = 0.01, precision, unit, testId, track }: { label: string; value: number; onCommit: (value: number) => void; onPreview?: (value: number | null) => void; min?: number; max?: number; step?: number; precision?: number; unit?: string; testId?: string; track?: boolean }) {
   const readOnly = useReadOnly()
+  const rowLabel = useContext(RowLabel)
   const [draft, setDraft] = useState<number | null>(null)
-  useEffect(() => setDraft(null), [value])
+  // The value a drag started from: a preview shows the draft in the scene, so `value` follows it.
+  const base = useRef<number | null>(null)
+  useEffect(() => {
+    if (base.current == null) setDraft(null)
+  }, [value])
+  const change = (next: number, final: boolean) => {
+    if (!final) {
+      base.current ??= value
+      setDraft(next)
+      onPreview?.(next)
+      return
+    }
+    const from = base.current ?? value
+    base.current = null
+    setDraft(null)
+    if (Math.abs(next - from) > 1e-9) onCommit(next)
+    else onPreview?.(null)
+  }
+  const cancel = () => {
+    base.current = null
+    setDraft(null)
+    onPreview?.(null)
+  }
+  // A slider row keeps kit-editor's field (its track is the control).
+  if (track) {
+    return <NumberField label={label} value={draft ?? round(value)} min={min} max={max} step={step} unit={unit} track disabled={readOnly} testId={testId} onChange={change} />
+  }
   return (
-    <NumberField
+    <NumberBox
       label={label}
       value={draft ?? round(value)}
       min={min}
       max={max}
       step={step}
+      precision={precision}
       unit={unit}
-      track={track}
       disabled={readOnly}
       testId={testId}
-      onChange={(next, final) => {
-        if (!final) return setDraft(next)
-        setDraft(null)
-        if (Math.abs(next - value) > 1e-9) onCommit(next)
-      }}
+      grip={rowLabel === label}
+      onChange={change}
+      onCancel={cancel}
     />
   )
 }
 
-/** X, Y, and Z of one vector; a change sends the whole vector. */
-export function VectorRow({ label, value, unit, step, onCommit, testId, animated }: { label: string; value: Vec3; unit?: string; step?: number; onCommit: (value: Vec3) => void; testId: string; animated?: 'keyed' | 'animated' }) {
+/**
+ * Sends a number field's draft as `command` while its label is dragged: one request in flight,
+ * the newest draft next, and `{ end: true }` once the drag ends without a value. `settle` is called
+ * before the final value commits, so no draft sent later undoes it.
+ */
+function usePreview(command: string) {
+  const { session } = useKitEditor()
+  const state = useRef<{ busy: boolean; next: Record<string, unknown> | null; previewing: boolean }>({ busy: false, next: null, previewing: false })
+  const latest = useRef(session)
+  latest.current = session
+  const pump = () => {
+    const current = state.current
+    if (current.busy || !current.next) return
+    const params = current.next
+    current.next = null
+    current.busy = true
+    void latest.current
+      .run(command, params)
+      .catch(() => undefined)
+      .finally(() => {
+        current.busy = false
+        pump()
+      })
+  }
+  return {
+    show: (params: Record<string, unknown> | null) => {
+      const current = state.current
+      if (params) current.previewing = true
+      else if (!current.previewing) return
+      else current.previewing = false
+      current.next = params ?? { end: true }
+      pump()
+    },
+    /** The final value is on its way: drafts not yet sent are dropped (the final change ends the preview). */
+    settle: () => {
+      state.current.next = null
+      state.current.previewing = false
+    },
+  }
+}
+
+/** X, Y, and Z of one vector; a change sends the whole vector, a drag of a label previews it. */
+export function VectorRow({ label, value, unit, step, precision, onCommit, onPreview, testId, animated }: { label: string; value: Vec3; unit?: string; step?: number; precision?: number; onCommit: (value: Vec3) => void; onPreview?: (value: Vec3 | null) => void; testId: string; animated?: 'keyed' | 'animated' }) {
   return (
     <Row label={label}>
       <div className="scene-vector" data-animated={animated} data-testid={animated ? `${testId}-${animated}` : undefined}>
-        {(['X', 'Y', 'Z'] as const).map((axis, index) => (
-          <NumberInput
-            key={axis}
-            label={axis}
-            value={value[index]}
-            unit={unit}
-            step={step}
-            testId={`${testId}-${axis.toLowerCase()}`}
-            onCommit={(next) => {
-              const vector: Vec3 = [...value]
-              vector[index] = next
-              onCommit(vector)
-            }}
-          />
-        ))}
+        {(['X', 'Y', 'Z'] as const).map((axis, index) => {
+          const vector = (next: number): Vec3 => {
+            const changed: Vec3 = [...value]
+            changed[index] = next
+            return changed
+          }
+          return (
+            <NumberInput
+              key={axis}
+              label={axis}
+              value={value[index]}
+              unit={unit}
+              step={step}
+              precision={precision}
+              testId={`${testId}-${axis.toLowerCase()}`}
+              onPreview={onPreview ? (next) => onPreview(next == null ? null : vector(next)) : undefined}
+              onCommit={(next) => onCommit(vector(next))}
+            />
+          )
+        })}
       </div>
     </Row>
   )
@@ -140,22 +221,39 @@ function ColorRow({ label, value, onCommit, testId }: { label: string; value: re
 
 // ---------------------------------------------------------------- outliner
 
+/** The event F2 sends to the outliner: the row of object `detail` starts renaming. */
+export const RENAME_EVENT = 'scene-rename'
+
 function OutlinerRow({ object, info, depth }: { object: SceneObject; info: SceneInfo; depth: number }) {
-  const { phrase: p, t } = useKitEditor()
+  const { phrase: p, t, run: runNow } = useKitEditor()
   const readOnly = useReadOnly()
   const run = useRun()
   const [renaming, setRenaming] = useState(false)
+  // F2 renames the active object here, in its row.
+  useEffect(() => {
+    const rename = (event: Event) => {
+      if ((event as CustomEvent<number>).detail === object.id && !readOnly) setRenaming(true)
+    }
+    window.addEventListener(RENAME_EVENT, rename)
+    return () => window.removeEventListener(RENAME_EVENT, rename)
+  }, [object.id, readOnly])
+  const select = async (extend: boolean) => {
+    // Another object picked while a mesh is edited: edit mode ends first, so the properties and
+    // what the commands act on stay the same object (one mesh is edited at a time).
+    if (info.mode === 'edit' && info.editing !== object.id) await runNow('mode.set', { mode: 'object' })
+    await runNow('select.objects', { objects: [object.id], extend })
+  }
   const Icon = TYPE_ICONS[object.type] ?? Move3dIcon
   const selected = info.selected.includes(object.id)
   const active = info.active === object.id
   const children = childrenOf(info.objects, object.id)
   return (
     <>
-      <div className="scene-outliner-row" data-selected={selected || undefined} data-active={active || undefined} data-hidden={object.hidden || undefined} style={{ paddingLeft: 8 + depth * 14 }} data-testid="scene-outliner-item" data-name={object.name}>
+      <div className="scene-outliner-row" data-selected={selected || undefined} data-active={active || undefined} data-hidden={object.hidden || undefined} style={{ paddingLeft: 8 + depth * 14 }} data-testid="scene-outliner-item" data-name={object.name} data-id={object.id}>
         <button
           type="button"
           className="scene-outliner-name"
-          onClick={(event) => run('select.objects', { objects: [object.id], extend: event.shiftKey || event.metaKey || event.ctrlKey })}
+          onClick={(event) => void select(event.shiftKey || event.metaKey || event.ctrlKey)}
           onDoubleClick={() => !readOnly && setRenaming(true)}
           aria-pressed={selected}
         >
@@ -166,15 +264,21 @@ function OutlinerRow({ object, info, depth }: { object: SceneObject; info: Scene
               defaultValue={object.name}
               autoFocus
               onClick={(event) => event.stopPropagation()}
+              onFocus={(event) => event.currentTarget.select()}
               onKeyDown={(event) => {
                 event.stopPropagation()
                 if (event.key === 'Enter') event.currentTarget.blur()
-                if (event.key === 'Escape') setRenaming(false)
+                if (event.key === 'Escape') {
+                  setRenaming(false)
+                  focusEditor()
+                }
               }}
               onBlur={(event) => {
                 const name = event.currentTarget.value.trim()
                 setRenaming(false)
                 if (name && name !== object.name) run('object.rename', { object: object.id, name })
+                // Enter (or the rename left with nowhere else focused) gives the keyboard back.
+                if (event.relatedTarget == null) focusEditor()
               }}
               data-testid="scene-rename"
             />
@@ -219,6 +323,12 @@ function ObjectSection({ object, info }: { object: SceneObject; info: SceneInfo 
   const readOnly = useReadOnly()
   const run = useRun()
   const objects = [object.id]
+  const preview = usePreview('object.previewTransform')
+  const transform = (values: Record<string, unknown>) => {
+    preview.settle()
+    run('object.transform', { objects, ...values })
+  }
+  const previewing = (key: 'location' | 'rotation' | 'scale') => (vector: Vec3 | null) => preview.show(vector ? { objects, [key]: vector } : null)
   return (
     <PanelSection title={p('Object')} testId="scene-object">
       <Row label={t('name')}>
@@ -237,9 +347,9 @@ function ObjectSection({ object, info }: { object: SceneObject; info: SceneInfo 
           data-testid="scene-name"
         />
       </Row>
-      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} onCommit={(location) => run('object.transform', { objects, location })} testId="scene-location" animated={keyState(object, 'location')} />
-      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} onCommit={(rotation) => run('object.transform', { objects, rotation })} testId="scene-rotation" animated={keyState(object, 'rotation')} />
-      <VectorRow label={t('scale')} value={object.scale} step={0.1} onCommit={(scale) => run('object.transform', { objects, scale })} testId="scene-scale" animated={keyState(object, 'scale')} />
+      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => transform({ location })} onPreview={previewing('location')} testId="scene-location" animated={keyState(object, 'location')} />
+      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => transform({ rotation })} onPreview={previewing('rotation')} testId="scene-rotation" animated={keyState(object, 'rotation')} />
+      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => transform({ scale })} onPreview={previewing('scale')} testId="scene-scale" animated={keyState(object, 'scale')} />
       {object.dimensions ? (
         <Row label={t('dimensions')}>
           <span className="scene-readout tabular-nums">{object.dimensions.map((value) => `${round(value, 3)} m`).join(' × ')}</span>

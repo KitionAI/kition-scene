@@ -243,8 +243,8 @@ fn a_model_batch_is_one_named_step_of_the_labels() {
 }
 
 /// A draft's preview runs the scene's repair, as accepting the draft does: the agent parents the
-/// cube to the light while the person deletes the light (the draft writes only the cube, so the
-/// merge applies, rule D8), and the repair clears the cube's dangling parent. The preview's merged
+/// cube to the light and moves it while the person deletes the light (the draft writes only the
+/// cube, so the merge applies, rule D8), and the repair clears the cube's dangling parent. The preview's merged
 /// state is the state after the merge, its comparison what the merge changed, the engine's
 /// `compareChanges` answers that comparison, and the preview changes nothing. Before (kition-sdk
 /// 68dd08b) the preview was the unrepaired merge, with the cube's parent naming a deleted object.
@@ -257,6 +257,7 @@ fn a_drafts_preview_is_the_repaired_merge() {
     let base = KitSessionDocument::session(&doc).version();
     let mut draft = SceneDocument::open_with_replica("Preview.kscene", &[], &__snapshot(&doc).unwrap(), &doc.blobs_bundle()).unwrap();
     draft.execute_as("object.parent", json!({ "objects": ["Cube"], "parent": "Light" }), &agent).unwrap();
+    draft.execute_as("object.translate", json!({ "objects": "Cube", "offset": [1, 0, 0] }), &agent).unwrap();
     assert!(draft.scene().object_named("Cube").unwrap().parent.is_some(), "the control: the draft parents the cube");
     let changes = __export_changes(&draft, &base.encode()).unwrap();
     doc.execute("edit.delete", json!({ "objects": "Light" })).unwrap();
@@ -275,6 +276,7 @@ fn a_drafts_preview_is_the_repaired_merge() {
     KitSessionDocument::merge_changes(&mut doc, &changes, &agent).unwrap();
     assert!(doc.scene().object_named("Light").is_none());
     assert_eq!(doc.scene().object_named("Cube").unwrap().parent, None, "the repair cleared the dangling parent");
+    assert_ne!(exact(&doc), before, "the draft's move is merged");
     let session = KitSessionDocument::session(&doc);
     assert_eq!(session.replica().state_json().unwrap(), preview, "the preview is the merge");
     assert_eq!(session.replica().diff_since(&version).unwrap().to_json(), compared, "the comparison is what the merge changed");

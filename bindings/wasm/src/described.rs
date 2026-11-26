@@ -459,7 +459,9 @@ fn describe(id: &str) -> &'static str {
         }
         "modal.wheel" => "Gives the transform under way the wheel: with proportional editing it resizes the radius; answers whether it took it.",
         "modal.confirm" => "Ends the transform under way as it is now, as one undo step named after it (none when it changed nothing).",
-        "modal.cancel" => "Ends the transform under way and puts everything back as it was, leaving no undo step (Shift+D's copies stay).",
+        "modal.cancel" => {
+            "Ends the modal under way and puts everything back as it was, leaving no undo step; Shift+D's copies and an extrusion's geometry stay (one step), a loop cut already cut stays in the middle."
+        }
         "modal.state" => "Answers the transform under way: what it does, its header text, its axis, typed numbers and the pivot.",
         "operation.get" => {
             "Answers the person's last operation (an added object, an edit-mode operation, a confirmed transform) with the values it ran with and its adjustable fields, or null once anything else happened."
@@ -640,7 +642,7 @@ fn output(id: &str) -> Option<Value> {
             r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"confirmed":{"type":"boolean"},"kind":{"type":"string"}}}"#
         }
         "operation.get" | "operation.set" => {
-            r#"{"type":"object","additionalProperties":true,"properties":{"operation":{"type":["object","null"],"additionalProperties":true,"properties":{"title":{"type":"string"},"command":{"type":["string","null"]},"params":{"type":"object","additionalProperties":true,"properties":{}},"fields":{"type":"array","items":{"type":"object","additionalProperties":true,"properties":{"key":{"type":"string"},"type":{"type":"string"}}}}}}}}"#
+            r#"{"type":"object","additionalProperties":true,"properties":{"operation":{"type":"object","description":"null when there is none","additionalProperties":true,"properties":{"title":{"type":"string"},"command":{"type":"string","description":"null for a transform"},"params":{"type":"object","additionalProperties":true,"properties":{}},"fields":{"type":"array","items":{"type":"object","additionalProperties":true,"properties":{"key":{"type":"string"},"type":{"type":"string"}}}}}}}}"#
         }
         "modal.cancel" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"cancelled":{"type":"boolean"}}}"#

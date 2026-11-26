@@ -262,6 +262,7 @@ try {
   assert.ok(await kit.getByTestId('scene-popup-mesh.dissolveFaces').isVisible(), 'Dissolve Faces is in it')
   await kit.getByTestId('scene-popup-mesh.deleteFaces').click()
   await until(async () => (await undo()) === 'Delete Faces', 'Faces deletes the face')
+  await until(async () => String(await frame.evaluate(() => document.activeElement?.className ?? '')).includes('kui-app'), 'the editor has the keyboard back')
   await back('Delete Faces')
   await page.mouse.move(top[0], top[1])
   await page.keyboard.press('KeyM')

@@ -447,7 +447,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }
   // Every row is offered: the editor's list of what can run may lag a selection made a moment
   // ago, and a command that cannot run says why.
-  const commandRow = (id: string, label: string): PointerMenuRow => ({ id, label, onSelect: () => void editor.run(id, {}) })
+  const commandRow = (id: string, label: string): PointerMenuRow => ({ id, label, onSelect: () => void editor.run(id, {}).finally(() => focusEditor()) })
   /**
    * Edit mode's keys: E extrudes and moves, I insets, Ctrl/Cmd+B bevels, Ctrl/Cmd+R loop cuts (all
    * sized by the pointer, as modals); X and Delete open the Delete menu, M the Merge menu, P the

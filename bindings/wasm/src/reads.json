@@ -111,7 +111,6 @@
   "modal.state": ["mode", "selection"],
   "modal.wheel": ["mode", "selection"],
   "mode.set": ["mode", "selection"],
-  "operation.get": ["mode", "selection"],
   "operation.set": ["mode", "selection"],
   "mode.shape": ["mode", "selection"],
   "mode.toggle": ["mode", "selection"],

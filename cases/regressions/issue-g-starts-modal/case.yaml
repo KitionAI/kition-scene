@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-g-starts-modal
+feature: scene.editor.modal-transform
+intent: >-
+  G, R and S start a move, rotation or scale that follows the pointer without a button held, as in
+  Blender: typed numbers give the value (G Z 2 moves the cube 2 m up, R Z 90 turns it a quarter
+  about Z, S Z 0.05 flattens it), the left button or Enter confirms one undo step named Move,
+  Rotate or Scale, and one undo puts it back. Before, G, R and S only picked a tool, which then
+  needed the left button held.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B1 and N2 (plan scene-usable-by-hand, phase 2)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: modal
+      filter: typed_values_move_rotate_and_scale_exactly_in_one_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

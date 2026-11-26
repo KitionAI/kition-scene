@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-x-during-drag-constrains
+feature: scene.editor.modal-transform
+intent: >-
+  X pressed during a Move tool's drag keeps the move to the X axis (Blender's axis key) and
+  deletes nothing; the drag ends as one Move step. Phase 1 stopped X from deleting the object
+  being moved; before that X deleted it, and the undo stack read Delete then Move.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B2 and N1 (plan scene-usable-by-hand, phase 2)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: modal
+      filter: a_tool_press_runs_the_transform_until_the_release
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

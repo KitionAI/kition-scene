@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-duplicate-moves
+feature: scene.editor.modal-transform
+intent: >-
+  Shift+D copies the selection and moves the copies with the pointer at once; a click places
+  them, as one Duplicate step, and the right button leaves them where they were made (still one
+  Duplicate step). Before, the copy lay exactly on the original and did not move, so nothing
+  showed that it was there.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B7 (plan scene-usable-by-hand, phase 2)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: modal
+      filter: shift_d_moves_the_copies_in_one_duplicate_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

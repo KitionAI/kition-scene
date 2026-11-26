@@ -600,3 +600,14 @@ features:
     gap: "Phase 1 of plan scene-usable-by-hand: no modal transforms, axis keys or typed values yet (phase 2), no Alt+click loops, circle or lasso select (phase 6); the field preview covers object location, rotation and scale only; F2's box is for a hidden outliner only."
     cases: [regressions/issue-keys-during-drag, regressions/issue-overlays-over-gpu, regressions/issue-field-precision, regressions/issue-field-label-drag, regressions/issue-click-with-transform-tool, regressions/issue-box-select-modifiers, regressions/issue-command-click-origin, regressions/issue-pick-light-lines, regressions/issue-right-click-selects, regressions/issue-numpad-select-mode, regressions/issue-outliner-edit-mode, regressions/issue-f2-rename, regressions/issue-saved-placeholder, regressions/issue-keyboard-on-open, regressions/issue-nothing-to-do-note, regressions/issue-no-op-unsaved]
     since: "2026-11-26"
+  - id: scene.editor.modal-transform
+    title: "Modal transforms as in Blender: G, R and S follow the pointer without a button held; X / Y / Z and Shift+axis keep to an axis or a plane (again: local, a third time: free); typed values (with minus, Tab, Backspace); Ctrl steps and Shift slows; the left button or Enter confirms one undo step, the right button or Escape cancels; Shift+D moves the copies; Alt+G / Alt+R / Alt+S clear; the header, the axis lines and the keys in the status bar"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [modal.begin, modal.pointer, modal.key, modal.wheel, modal.confirm, modal.cancel, modal.state]
+    paths: [bindings/wasm/src/modal.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/commands_rig.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/src/commands_lattice.rs, bindings/wasm/src/inspect.rs, web/src/modal.ts, web/src/App.tsx, web/src/Viewport.tsx, web/src/GlViewport.tsx, web/src/ToolOverlay.ts, web/src/gesture.ts, web/tests/modal.mjs, bindings/wasm/tests/modal.rs]
+    target: "Blender 5.3.0"
+    gap: "Phase 2 of plan scene-usable-by-hand: no snapping to elements, pivot or orientation choices beyond Median Point and Global/Local, gizmos (phase 5); no expressions or units in typed values; no trackball (R R), no automatic constraint (middle button), no vertex/edge slide by G G; Ctrl's move step is 1 m in every view (Blender's follows the grid in orthographic views); the pointer does not wrap at the screen's edge."
+    cases: [regressions/issue-g-starts-modal, regressions/issue-x-during-drag-constrains, regressions/issue-duplicate-moves, regressions/issue-transform-lag, regressions/issue-right-click-cancels]
+    since: "2026-11-26"

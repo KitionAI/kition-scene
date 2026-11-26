@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-transform-lag
+feature: scene.editor.modal-transform
+intent: >-
+  A transform's pointer and keys reach the engine without moving the document's revision: no
+  inspect, no software picture and no copy of the scene per move, and the GPU viewport's frame
+  comes with the answer. Before, every pointer move during a Move drag cloned the whole scene,
+  answered a whole inspect (which evaluated every modifier again) and drew a software picture
+  nobody saw: 57 ms a move on the default scene, 333 ms with 143,000 vertices.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B16 and measurements.md (plan scene-usable-by-hand, phase 2)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: modal
+      filter: the_quick_step_leaves_the_revision_alone
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

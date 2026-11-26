@@ -141,7 +141,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const viewState = useRef<SceneViewState | null>(null)
   const sessionOptions = useMemo(() => ({ viewState: () => (viewState.current ? { state: viewState.current } : undefined) }), [])
   const session = useKitSession(host, manifest, describe, sessionOptions)
-  const viewPlaced = useSceneViewState(host, session, viewState)
+  useSceneViewState(host, session, viewState)
   // A command refused because there is nothing for it to act on (Show Hidden with nothing hidden,
   // Delete with nothing selected) says so in the status bar, not as an error card.
   const [note, setNote] = useState<{ text: string; serial: number } | null>(null)
@@ -689,7 +689,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <div className="scene-stage">
             <div className="scene-split">
-              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} placed={viewPlaced} />
+              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} />
               {state && uvOpen && mode === 'edit' ? (
                 <FrameChrome>
                   <UvEditor info={state} onClose={() => setUvOpen(false)} />

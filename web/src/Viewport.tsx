@@ -55,7 +55,6 @@ export function SceneViewport({
   onRender,
   presence,
   t,
-  placed = true,
 }: {
   canvas: RefObject<KitCanvasHandle | null>
   info: SceneInfo | null
@@ -63,8 +62,6 @@ export function SceneViewport({
   presence?: { available: boolean; peers: readonly PlacedPeer[]; movePointer: (at: [number, number] | null) => void }
   /** The editor's strings (Adjust Last Operation's, the navigation's). */
   t?: (key: string) => string
-  /** The document's view is in place (the one kept for it, or the opening one). */
-  placed?: boolean
 }) {
   const editor = useKitEditor()
   const { doc } = editor.session
@@ -105,7 +102,7 @@ export function SceneViewport({
   // The document the engine paints in the host's color scheme, both pictures drawn since: until
   // then, the viewport is not ready either (an engine opens in the light scheme).
   const [schemedDoc, setSchemedDoc] = useState<typeof doc>(null)
-  const ready = doc != null && readyDoc === doc && schemedDoc === doc && placed
+  const ready = doc != null && readyDoc === doc && schemedDoc === doc
   const readyRef = useRef(ready)
   readyRef.current = ready
   /** The canvas's size in device pixels, as last measured. */

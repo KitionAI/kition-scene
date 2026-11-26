@@ -28,9 +28,6 @@ const FARTHEST = 40
 const TAU = Math.PI * 2
 const DEGREE = Math.PI / 180
 
-/** The view a new document opens with: Blender's default viewport (`blender-defaults.json`). */
-export const OPENING_VIEW = { target: [-0.0207, -0.046, 0.0007] as Vec3, distance: 18.388, tilt: 63.527, turn: 66.17, perspective: true }
-
 export type AxisView = 'front' | 'back' | 'right' | 'left' | 'top' | 'bottom'
 
 /** Each axis view's tilt and turn in degrees (the engine's `Axis`), and its opposite. */

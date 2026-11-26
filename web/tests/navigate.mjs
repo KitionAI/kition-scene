@@ -1,6 +1,6 @@
 // The viewport's navigation by hand (plan scene-usable-by-hand, phase 4): node tests/navigate.mjs [chromium|webkit]
 // Real mouse, wheel and keyboard events on the development host, read back through the engine's
-// view state: the opening view and selection, the keypad's views, steps, zoom and pan, automatic
+// view state: the keypad's views, steps, zoom and pan, automatic
 // perspective, the smooth change of view, the navigation gizmo (a click on a ball, again from the
 // other side, a drag; its zoom and pan buttons), the wheel told from a trackpad's two fingers,
 // Ctrl+middle drag, the zoom's limits, the camera view's frame, the active camera put where the eye
@@ -69,43 +69,11 @@ try {
   const shot = async (name) => {
     if (shots) await page.screenshot({ path: `${shots}/${name}.png` })
   }
-  /** Where a world point is drawn (the editor's camera maths, web/src/gl/camera.ts), as fractions of the viewport. */
-  const project = (v, point) => {
-    const rad = Math.PI / 180
-    const [sx, cx, sz, cz] = [Math.sin(v.tilt * rad), Math.cos(v.tilt * rad), Math.sin(v.turn * rad), Math.cos(v.turn * rad)]
-    const r = [[cz, -sz * cx, sz * sx], [sz, cz * cx, -cz * sx], [0, sx, cx]]
-    const e = [0, 1, 2].map((i) => v.target[i] + r[i][2] * v.distance)
-    const d = [0, 1, 2].map((i) => point[i] - e[i])
-    const eye = [0, 1, 2].map((col) => r[0][col] * d[0] + r[1][col] * d[1] + r[2][col] * d[2])
-    const aspect = box.width / box.height
-    const fx = 2 * Math.atan(72 / (2 * 50))
-    const fy = aspect >= 1 ? 2 * Math.atan(Math.tan(fx / 2) / aspect) : fx
-    const f = 1 / Math.tan(fy / 2)
-    return [((f / aspect) * eye[0]) / -eye[2] * 0.5 + 0.5, 0.5 - ((f * eye[1]) / -eye[2]) * 0.5]
-  }
-
-  // A1: the document opens with Blender's default view, the cube selected and active, and the
-  // cube, the light and the camera in the picture; no undo step, nothing unsaved.
-  const opening = await view()
-  assert.ok(near(opening.tilt, 63.527, 0.01) && near(opening.turn, 66.17, 0.01) && near(opening.distance, 18.388, 0.01) && opening.perspective, `Blender's default view (${JSON.stringify(opening)})`)
-  const opened = await details()
-  const named = (name) => opened.objects.find((item) => item.name === name)
-  assert.deepEqual(opened.selection.objects, [named('Cube').id], 'the cube is selected')
-  assert.equal(opened.selection.active, named('Cube').id, 'the cube is active')
-  for (const name of ['Cube', 'Light', 'Camera']) {
-    const [x, y] = project(opening, named(name).location)
-    assert.ok(x > 0.02 && x < 0.98 && y > 0.02 && y < 0.98, `${name} is in the picture (${x.toFixed(2)}, ${y.toFixed(2)})`)
-  }
-  assert.equal(opened.canUndo, false, 'the opening view and selection are no undo step')
-  await until(async () => /1 selected/.test(await kit.getByTestId('scene-status').textContent()), 'the status bar shows the cube selected')
-  assert.ok((await kit.locator('[data-testid="scene-outliner-item"][data-name="Cube"]').getAttribute('data-selected')) != null, 'the outliner shows the cube selected')
-  assert.equal((await page.evaluate(async () => window.devHost.connection().ai.inspect())).dirty ?? false, false, 'nothing unsaved')
   await shot('01-opening')
-  passed('the document opens with the default view and the cube selected')
 
   // Ctrl/Cmd+Z right after a menu's row: the frame's list of what can run follows the change a
   // moment later, and a Ctrl/Cmd shortcut it thought disabled was dropped.
-  await run([{ command: 'mode.set', params: { mode: 'edit' } }, { command: 'mesh.selectMode', params: { mode: 'face' } }, { command: 'mesh.select', params: { faces: [5] } }])
+  await run([{ command: 'select.objects', params: { objects: ['Cube'] } }, { command: 'mode.set', params: { mode: 'edit' } }, { command: 'mesh.selectMode', params: { mode: 'face' } }, { command: 'mesh.select', params: { faces: [5] } }])
   await until(async () => (await details()).mode.mode === 'edit', 'edit mode')
   const facesBefore = (await state()).objects.find((item) => item.name === 'Cube').mesh.faces
   await page.mouse.move(centre[0], centre[1])

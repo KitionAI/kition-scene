@@ -34,6 +34,8 @@ export type ModalAnswer = {
   dashed?: boolean
   /** Proportional editing's radius in world units, when vertices follow. */
   proportional?: number | null
+  /** The same radius on the screen at the pivot, in document pixels, as the engine's view shows it. */
+  proportionalPixels?: number | null
   duplicate?: boolean
   taken?: boolean
   frame?: GlFrame
@@ -192,10 +194,14 @@ export class ModalTransform {
     })
   }
 
-  /** The wheel, when the transform takes it (proportional editing's radius); answers whether. */
-  wheel(delta: number) {
+  /**
+   * The wheel, when the transform takes it (proportional editing's radius); answers whether.
+   * `proportional`: proportional editing is on, so a transform a tool's press started (whose
+   * first answer may still be on its way) takes it too.
+   */
+  wheel(delta: number, proportional = false) {
     const hooks = this.hooks
-    if (!hooks || this.answer.proportional == null) return false
+    if (!hooks || (this.answer.proportional == null && !proportional)) return false
     void this.enqueue(async () => {
       this.take(parse(await hooks.run('modal.wheel', { delta }, 'all').catch(() => null)))
     })

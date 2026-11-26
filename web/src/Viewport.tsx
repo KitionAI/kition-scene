@@ -207,7 +207,7 @@ export function SceneViewport({
       if (!readyRef.current) return
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1)
       // The transform takes the wheel when it has a use for it (proportional editing's radius).
-      if (modal.active && modal.wheel(delta)) return
+      if (transforming() && modal.wheel(delta, latest.current.info?.proportional != null)) return
       const factor = Math.exp(Math.max(-400, Math.min(400, delta)) * WHEEL_SPEED * (event.ctrlKey ? 4 : 1))
       if (gpuRef.current.active) {
         gpuRef.current.move((view) => zoom(view, factor))

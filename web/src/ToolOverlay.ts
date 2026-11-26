@@ -174,7 +174,7 @@ function drawModal(
   }
   // Proportional editing's reach, round the pivot.
   if (answer.proportional != null && pivot) {
-    let radius: number | null = null
+    let radius: number | null = answer.proportionalPixels ?? null
     if (gpu.active) {
       const edge = gpu.project([pivot[0] + answer.proportional, pivot[1], pivot[2]])
       const edgeY = gpu.project([pivot[0], pivot[1] + answer.proportional, pivot[2]])

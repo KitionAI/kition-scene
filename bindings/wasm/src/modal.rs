@@ -759,6 +759,7 @@ impl SceneDocument {
             "lines": lines,
             "dashed": modal.kind != Kind::Move,
             "proportional": self.modal_radius(modal),
+            "proportionalPixels": self.modal_radius(modal).map(|radius| f64::from(radius / projector.pixel_size_at(modal.pivot).max(1e-9))).filter(|pixels| pixels.is_finite()),
             "duplicate": modal.duplicate.is_some(),
         })
     }
@@ -1517,7 +1518,8 @@ mod tests {
         assert!(numeric.tab(false, 3));
         assert_eq!(numeric.index, 1);
         assert_eq!(numeric.value(1, false, 0.0), 0.0, "an untyped field is nothing");
-        assert_eq!(numeric.value(1, true, 1.0), -2.5, "a scale's untyped field takes the first");
+        assert_eq!(numeric.value(1, true, 1.0), 1.0, "the untyped field being typed is its own (one)");
+        assert_eq!(numeric.value(2, true, 1.0), -2.5, "a scale's other untyped field takes the first");
         assert!(numeric.tab(true, 3));
         assert_eq!(numeric.index, 0);
         assert!(numeric.backspace());

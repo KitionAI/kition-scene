@@ -209,19 +209,20 @@ fn lights_and_cameras_are_picked_on_their_drawn_lines() {
     assert_eq!(selected(&doc), ["Light"], "a click on the light's ring picks it");
     click(&mut doc, EMPTY, NONE);
     assert!(selected(&doc).is_empty());
-    // The camera, on its frame's corner.
-    run(&mut doc, "select.objects", json!({ "objects": "Camera" }));
-    run(&mut doc, "view.frameSelected", json!({}));
+    // The camera, on its pyramid, seen whole.
+    run(&mut doc, "view.frameAll", json!({}));
     run(&mut doc, "edit.deselectAll", json!({}));
     let camera = doc.scene().object_named("Camera").unwrap();
     let kition_scene_model::ObjectData::Camera(data) = &camera.data else { panic!("not a camera") };
     let aspect = doc.scene().render.width as f32 / doc.scene().render.height as f32;
     let (w, h) = data.frame_half_size(aspect);
-    // Halfway along the pyramid's edge from the origin to the frame's corner.
-    let at = screen(&doc, "Camera", Vec3::new(w, h, -1.0) * 0.5);
+    // A point of the pyramid's edge from the origin to the frame's corner, away from the origin
+    // and in the view.
     let origin = screen(&doc, "Camera", Vec3::ZERO);
-    assert!((at.0 - origin.0).hypot(at.1 - origin.1) > 20.0, "the edge is drawn away from the origin ({origin:?}, {at:?})");
-    assert!(at.0 > 0.0 && at.1 > 0.0 && at.0 < 800.0 && at.1 < 600.0, "the edge is in the view ({at:?})");
+    let at = (2..=10)
+        .map(|tenth| screen(&doc, "Camera", Vec3::new(w, h, -1.0) * (tenth as f32 / 10.0)))
+        .find(|at| (at.0 - origin.0).hypot(at.1 - origin.1) > 20.0 && at.0 > 0.0 && at.1 > 0.0 && at.0 < 800.0 && at.1 < 600.0)
+        .unwrap_or_else(|| panic!("no edge point away from the origin {origin:?} in the view"));
     click(&mut doc, at, NONE);
     assert_eq!(selected(&doc), ["Camera"], "a click on the camera's pyramid picks it");
 }

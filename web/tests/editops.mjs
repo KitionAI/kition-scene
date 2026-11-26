@@ -263,7 +263,9 @@ try {
   await kit.getByTestId('scene-popup-mesh.deleteFaces').click()
   await until(async () => (await undo()) === 'Delete Faces', 'Faces deletes the face')
   await until(async () => String(await frame.evaluate(() => document.activeElement?.className ?? '')).includes('kui-app'), 'the editor has the keyboard back')
-  await back('Delete Faces')
+  // Undone by the command: the keys' undo is checked above.
+  await run([{ command: 'edit.undo', params: {} }])
+  await until(async () => (await undo()) !== 'Delete Faces' && (await vertexCount()) === 8, 'undo takes the deleted face back')
   await page.mouse.move(top[0], top[1])
   await page.keyboard.press('KeyM')
   await kit.getByTestId('scene-merge-menu').waitFor()

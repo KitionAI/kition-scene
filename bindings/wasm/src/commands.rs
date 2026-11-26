@@ -630,6 +630,9 @@ static SPECS: &[Spec] = &[
     spec("view.front", "Front", &["View", "Viewpoint"], Some("Alt+1"), false, Needs::Always, none),
     spec("view.right", "Right", &["View", "Viewpoint"], Some("Alt+3"), false, Needs::Always, none),
     spec("view.top", "Top", &["View", "Viewpoint"], Some("Alt+7"), false, Needs::Always, none),
+    spec("view.back", "Back", &["View", "Viewpoint"], None, false, Needs::Always, none),
+    spec("view.left", "Left", &["View", "Viewpoint"], None, false, Needs::Always, none),
+    spec("view.bottom", "Bottom", &["View", "Viewpoint"], None, false, Needs::Always, none),
     spec("view.camera", "Camera", &["View", "Viewpoint"], Some("Alt+0"), false, Needs::Camera, none),
     spec("view.perspective", "Perspective/Orthographic", &["View"], Some("Alt+5"), false, Needs::Always, none),
     spec("view.frameAll", "Frame All", &["View"], Some("Home"), false, Needs::Always, none),
@@ -656,6 +659,8 @@ static SPECS: &[Spec] = &[
             ("tilt", s::number("Degrees: 0 looks down, 90 level")),
             ("turn", s::number("Degrees about the up axis")),
             ("perspective", s::boolean("Perspective or orthographic")),
+            ("cameraZoom", s::number("Looking through a camera: how large its frame shows, 0.1 to 16 (1 fits the viewport)")),
+            ("cameraOffset", s::number_pair("Looking through a camera: its frame's centre, in half viewports right and up of the centre")),
         ])
     }),
     spec("view.scheme", "Viewport Color Scheme", &[], None, false, Needs::Always, || {
@@ -1194,6 +1199,9 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
         "view.front" => view.align(Axis::Front),
         "view.right" => view.align(Axis::Right),
         "view.top" => view.align(Axis::Top),
+        "view.back" => view.align(Axis::Back),
+        "view.left" => view.align(Axis::Left),
+        "view.bottom" => view.align(Axis::Bottom),
         "view.camera" => {
             view.camera = if view.camera.is_some() { None } else { doc.scene.camera };
         }
@@ -1214,22 +1222,41 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
         "view.pan" => view.pan(params::number(params, "right")?.unwrap_or(0.0), params::number(params, "up")?.unwrap_or(0.0)),
         "view.zoom" => view.zoom(params::need_number(params, "factor")?),
         "view.set" => {
+            let mut orbits = false;
             if let Some(target) = params::vec3(params, "target")? {
                 view.target = target;
+                orbits = true;
             }
             if let Some(distance) = params::number(params, "distance")? {
                 view.distance = distance.clamp(0.01, 100_000.0);
+                orbits = true;
             }
             if let Some(tilt) = params::number(params, "tilt")? {
                 view.tilt = tilt.to_radians().clamp(0.0, std::f32::consts::PI);
+                orbits = true;
             }
             if let Some(turn) = params::number(params, "turn")? {
                 view.turn = turn.to_radians().rem_euclid(std::f32::consts::TAU);
+                orbits = true;
             }
             if let Some(perspective) = params::boolean(params, "perspective")? {
                 view.perspective = perspective;
+                orbits = true;
             }
-            view.camera = None;
+            let zoom = params::number(params, "cameraZoom")?;
+            let offset = params::number_pair(params, "cameraOffset")?;
+            if let Some(zoom) = zoom {
+                let (low, high) = kition_scene_raster::view::CAMERA_ZOOM;
+                view.camera_zoom = zoom.clamp(low, high);
+            }
+            if let Some([x, y]) = offset {
+                let reach = kition_scene_raster::view::CAMERA_OFFSET;
+                view.camera_offset = [x.clamp(-reach, reach), y.clamp(-reach, reach)];
+            }
+            // The camera's frame zoomed or moved keeps the camera view; anything else leaves it.
+            if orbits || (zoom.is_none() && offset.is_none()) {
+                view.camera = None;
+            }
         }
         "view.scheme" => {
             let name = params::string(params, "scheme")?.ok_or_else(|| bad("`scheme` is required"))?;

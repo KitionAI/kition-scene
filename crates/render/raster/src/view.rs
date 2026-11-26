@@ -28,11 +28,46 @@ pub struct ViewState {
     /// Looking through this scene camera instead of the orbit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub camera: Option<Id>,
+    /// Looking through a camera: how large its frame shows (1 fits the viewport). Moving in the
+    /// camera view zooms and moves the frame, not the camera.
+    #[serde(default = "unit", skip_serializing_if = "is_unit")]
+    pub camera_zoom: f32,
+    /// Looking through a camera: where its frame's centre is, as a fraction of half the viewport's
+    /// width (x, right) and height (y, up) from the viewport's centre.
+    #[serde(default, skip_serializing_if = "is_centred")]
+    pub camera_offset: [f32; 2],
 }
+
+fn unit() -> f32 {
+    1.0
+}
+
+fn is_unit(value: &f32) -> bool {
+    *value == 1.0
+}
+
+fn is_centred(value: &[f32; 2]) -> bool {
+    *value == [0.0, 0.0]
+}
+
+/// How far the camera frame zooms in and out of the viewport.
+pub const CAMERA_ZOOM: (f32, f32) = (0.1, 16.0);
+/// How far the camera frame's centre moves from the viewport's centre (in half viewports).
+pub const CAMERA_OFFSET: f32 = 4.0;
 
 impl Default for ViewState {
     fn default() -> Self {
-        Self { target: Vec3::ZERO, distance: 11.0, tilt: 60f32.to_radians(), turn: 22f32.to_radians(), perspective: true, lens: 50.0, camera: None }
+        Self {
+            target: Vec3::ZERO,
+            distance: 11.0,
+            tilt: 60f32.to_radians(),
+            turn: 22f32.to_radians(),
+            perspective: true,
+            lens: 50.0,
+            camera: None,
+            camera_zoom: 1.0,
+            camera_offset: [0.0, 0.0],
+        }
     }
 }
 
@@ -153,7 +188,8 @@ impl ViewState {
     /// The projection the viewport uses for a `width` × `height` picture.
     pub fn projector(&self, scene: &Scene, width: u32, height: u32) -> Projector {
         if let Some(camera) = self.camera.and_then(|id| camera_view(scene, id)) {
-            return camera.fit(width, height, scene.render.width, scene.render.height);
+            let projector = camera.fit(width, height, scene.render.width, scene.render.height);
+            return projector.framed(self.camera_zoom, self.camera_offset);
         }
         let aspect = width.max(1) as f32 / height.max(1) as f32;
         let view = Mat4::from_rotation_translation(glam::Quat::from_mat3(&self.rotation()), self.eye()).inverse();
@@ -245,6 +281,32 @@ pub struct Projector {
 }
 
 impl Projector {
+    /// The same picture with its camera frame zoomed by `zoom` about the viewport's centre and
+    /// moved by `offset` (half viewports, y up): the frame as a person zooms and moves it in the
+    /// camera view. Unchanged at zoom 1 and offset 0, or for values out of range.
+    pub fn framed(mut self, zoom: f32, offset: [f32; 2]) -> Projector {
+        let [x, y] = offset;
+        let usable = zoom.is_finite() && x.is_finite() && y.is_finite() && zoom > 0.0;
+        if !usable || (zoom == 1.0 && x == 0.0 && y == 0.0) {
+            return self;
+        }
+        // In clip space: x' = zoom·x + offset·w, so the picture scales about its centre and moves.
+        let shift = Mat4::from_cols(
+            glam::Vec4::new(zoom, 0.0, 0.0, 0.0),
+            glam::Vec4::new(0.0, zoom, 0.0, 0.0),
+            glam::Vec4::Z,
+            glam::Vec4::new(x, y, 0.0, 1.0),
+        );
+        self.projection = shift * self.projection;
+        let (half_width, half_height) = (self.width as f32 / 2.0, self.height as f32 / 2.0);
+        self.frame = self.frame.map(|[x0, y0, x1, y1]| {
+            let across = |px: f32| half_width + (px - half_width) * zoom + x * half_width;
+            let down = |py: f32| half_height + (py - half_height) * zoom - y * half_height;
+            [across(x0), down(y0), across(x1), down(y1)]
+        });
+        self
+    }
+
     /// World to clip.
     pub fn view_projection(&self) -> Mat4 {
         self.projection * self.view
@@ -318,6 +380,25 @@ mod tests {
         let right = projector.to_screen(projector.view_projection() * Vec3::X.extend(1.0));
         assert!(up.y < 300.0 && (up.x - 400.0).abs() < 1e-2, "+Z is up: {up}");
         assert!(right.x > 400.0 && (right.y - 300.0).abs() < 1e-2, "+X is right: {right}");
+    }
+
+    #[test]
+    fn a_zoomed_camera_frame_scales_about_the_centre_and_moves() {
+        let scene = Scene::starter();
+        let camera = scene.camera.unwrap();
+        let fitted = camera_view(&scene, camera).unwrap().fit(800, 600, 1920, 1080);
+        let framed = fitted.clone().framed(2.0, [0.5, 0.0]);
+        let [x0, y0, x1, y1] = fitted.frame.unwrap();
+        let [a0, b0, a1, b1] = framed.frame.unwrap();
+        assert!(((a1 - a0) - 2.0 * (x1 - x0)).abs() < 1e-3 && ((b1 - b0) - 2.0 * (y1 - y0)).abs() < 1e-3);
+        assert!(((a0 + a1) / 2.0 - 600.0).abs() < 1e-3 && ((b0 + b1) / 2.0 - 300.0).abs() < 1e-3);
+        // The cube's centre moves with the frame.
+        let before = fitted.to_screen(fitted.view_projection() * Vec3::ZERO.extend(1.0));
+        let after = framed.to_screen(framed.view_projection() * Vec3::ZERO.extend(1.0));
+        assert!((after.x - (400.0 + (before.x - 400.0) * 2.0 + 200.0)).abs() < 1e-2, "{before} {after}");
+        assert!((after.y - (300.0 + (before.y - 300.0) * 2.0)).abs() < 1e-2, "{before} {after}");
+        let same = fitted.clone().framed(1.0, [0.0, 0.0]);
+        assert_eq!(same.projection, fitted.projection);
     }
 
     #[test]

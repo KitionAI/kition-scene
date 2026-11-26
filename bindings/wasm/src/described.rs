@@ -213,6 +213,9 @@ fn describe(id: &str) -> &'static str {
         "view.front" => "Looks at the scene from the front.",
         "view.right" => "Looks at the scene from the right.",
         "view.top" => "Looks at the scene from the top.",
+        "view.back" => "Looks at the scene from the back.",
+        "view.left" => "Looks at the scene from the left.",
+        "view.bottom" => "Looks at the scene from the bottom.",
         "view.camera" => "Looks through the active camera.",
         "view.perspective" => "Toggles the viewport between perspective and orthographic.",
         "view.frameAll" => "Frames every object in the viewport.",
@@ -224,7 +227,9 @@ fn describe(id: &str) -> &'static str {
         "view.orbit" => "Orbits the viewport by `turn` and `tilt` degrees.",
         "view.pan" => "Pans the viewport by `right` and `up`.",
         "view.zoom" => "Zooms the viewport by `factor` (above 1 zooms in).",
-        "view.set" => "Sets the viewport's target, distance, turn, tilt and projection at once.",
+        "view.set" => {
+            "Sets the viewport's target, distance, turn, tilt and projection at once; looking through a camera, `cameraZoom` and `cameraOffset` alone zoom and move its frame and keep the camera view."
+        }
         "view.scheme" => {
             "The editor's command for the host's color scheme: the viewport's background, grid and frame shade follow it; the scene, the file and renders do not change."
         }
@@ -597,6 +602,9 @@ fn output(id: &str) -> Option<Value> {
         "view.front" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.right" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.top" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "view.back" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "view.left" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
+        "view.bottom" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.camera" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.perspective" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,
         "view.frameAll" => r#"{"type":"object","additionalProperties":true,"properties":{"changed":{"type":"boolean"}}}"#,

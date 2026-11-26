@@ -11,6 +11,7 @@ import {
   IconButton,
   KitEditorProvider,
   Segmented,
+  commandForShortcut,
   commandMenuTabs,
   createKitStrings,
   toast,
@@ -47,6 +48,7 @@ import { toggleAdjustLast } from './AdjustLast'
 import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
 import { focusEditor } from './NumberBox'
+import { viewMenuRows, viewNavigator } from './navigator'
 
 const EXPORT_FORMATS = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'usda', 'usdc', 'usdz', 'png'] as const
 type ExportFormat = (typeof EXPORT_FORMATS)[number]
@@ -115,6 +117,14 @@ function plainShortcut(shortcut: string | null | undefined) {
   return !!shortcut && !shortcut.includes('+') && !/^(Delete|Backspace|PageUp|PageDown|F[0-9]{1,2})$/.test(shortcut)
 }
 
+/** What the view's keys read of a key event. */
+type NavKey = { code: string; key: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean; target: EventTarget | null; preventDefault: () => void; stopPropagation: () => void }
+
+/** A key event's keys, for handing on with a modifier left out. */
+function pick(event: Pick<NavKey, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'target'>) {
+  return { code: event.code, key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey, target: event.target }
+}
+
 function keyMatches(shortcut: string, event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>) {
   if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return false
   if (/^[A-Za-z]$/.test(shortcut)) return event.code === `Key${shortcut.toUpperCase()}`
@@ -131,7 +141,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   const viewState = useRef<SceneViewState | null>(null)
   const sessionOptions = useMemo(() => ({ viewState: () => (viewState.current ? { state: viewState.current } : undefined) }), [])
   const session = useKitSession(host, manifest, describe, sessionOptions)
-  useSceneViewState(host, session, viewState)
+  const viewPlaced = useSceneViewState(host, session, viewState)
   // A command refused because there is nothing for it to act on (Show Hidden with nothing hidden,
   // Delete with nothing selected) says so in the status bar, not as an error card.
   const [note, setNote] = useState<{ text: string; serial: number } | null>(null)
@@ -305,8 +315,25 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
     return (plainKey && (event.key === 'Delete' || event.key === 'Backspace')) || plain.some((item) => keyMatches(item.shortcut!, event))
   }
+  /**
+   * A Ctrl/Cmd shortcut whose command the editor's list says cannot run: that list follows a
+   * change a moment later (one more call to the engine), and the frame drops such a key, so a
+   * Ctrl+Z right after the first change (a menu's row) undid nothing. The engine itself says
+   * whether it can run. Answers whether the key was taken.
+   */
+  const laggingShortcut = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!(event.metaKey || event.ctrlKey)) return false
+    const command = commandForShortcut(commands, event)
+    const doc = editor.session.doc
+    if (!command || !doc || editor.enabled(command.id)) return false
+    void doc.disabledCommands().then((disabled) => {
+      if (!disabled.includes(command.id)) void latest.current.editor.run(command.id, {})
+    })
+    return true
+  }
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return false
+    if (laggingShortcut(event)) return true
     // Delete and Backspace delete the selection from a panel too (an outliner row keeps the focus
     // after a click), as in Blender; on the viewport the active tool takes them first.
     const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
@@ -323,6 +350,10 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     const keyDown = (event: globalThis.KeyboardEvent) => {
       if (event.target !== document.body && event.target !== document.documentElement) return
       if (toolGesture.held || modalTransform.active) return
+      if (latestNavigation.current(event)) {
+        document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
+        return
+      }
       if (MODAL_START[event.code] || event.code === 'KeyD') {
         latestStart.current(event)
         document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
@@ -353,6 +384,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       return
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    if (!typing && navigationKey(event)) return
     if (!typing && startKey(event)) return
     if (!typing && editKey(event)) return
     if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
@@ -392,8 +424,10 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       modalTransform.modifiers(event.shiftKey, step)
       return
     }
-    // Alt lets the view's own keys and buttons through (Blender's Navigate).
+    // Alt lets the view's own keys and buttons through (Blender's Navigate): Alt with the keypad,
+    // Home or `.` navigates.
     if (event.key === 'Alt') return
+    if (event.altKey && !step && !event.shiftKey && navigationKey({ ...pick(event), altKey: /^Digit/.test(event.code), preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() })) return
     // Cmd/Ctrl shortcuts (Undo, Save) still run: Undo ends the transform first, then undoes.
     if (step && event.code !== 'Tab') return
     event.preventDefault()
@@ -438,6 +472,27 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }
   const latestStart = useRef(startKey)
   latestStart.current = startKey
+
+  /**
+   * The view's keys (the keypad, Alt+1 / 3 / 7, Home, `.`, Ctrl/Cmd+= and −) in every mode, and
+   * `` ` ``, which opens the View menu at the pointer. Not in the node editor, which has its own.
+   */
+  const navigationKey = (event: NavKey) => {
+    if (event.target instanceof Element && event.target.closest('.scene-nodes')) return false
+    const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+    if (plainKey && event.code === 'Backquote') {
+      event.preventDefault()
+      event.stopPropagation()
+      openMenu(t('menuView'), 'scene-view-menu', viewMenuRows(t))
+      return true
+    }
+    if (!viewNavigator.key(event)) return false
+    event.preventDefault()
+    event.stopPropagation()
+    return true
+  }
+  const latestNavigation = useRef(navigationKey)
+  latestNavigation.current = navigationKey
 
   // A menu at the pointer (X, Delete, M, P in a mesh's edit mode).
   const [popup, setPopup] = useState<PointerMenuState | null>(null)
@@ -634,7 +689,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <div className="scene-stage">
             <div className="scene-split">
-              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} />
+              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} placed={viewPlaced} />
               {state && uvOpen && mode === 'edit' ? (
                 <FrameChrome>
                   <UvEditor info={state} onClose={() => setUvOpen(false)} />

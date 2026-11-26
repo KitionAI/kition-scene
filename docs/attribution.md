@@ -25,3 +25,9 @@ code is in this kit.
 | Library | Licence | Through |
 |---|---|---|
 | ttf-parser | MIT OR Apache-2.0 | direct (glyph outlines for text objects) |
+
+## Drawn in the editor
+
+| What | Made by | Notes |
+|---|---|---|
+| The navigation gizmo (`web/src/NavGizmo.tsx`: axis balls, rings, arms and the hover disc) | Kition, drawn as SVG in the editor | Its layout and axis colours (#ff3352, #8bdc00, #2890ff) follow what Blender's default theme shows, recorded by running the application; its buttons use Tessera's icons |

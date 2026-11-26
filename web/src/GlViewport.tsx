@@ -42,6 +42,11 @@ export type GpuViewport = {
   /** Hands the engine the view the gesture ended with. */
   commit: () => void
   /**
+   * Drops the gesture's view without handing it over (only while it is still `view`, when given):
+   * the engine's own view shows again.
+   */
+  release: (view?: OrbitView) => void
+  /**
    * Resolves once the GPU viewport has asked the engine for its frame after this call and drawn
    * it (at once when it draws nothing): what it shows then is the engine's state now.
    */
@@ -52,6 +57,13 @@ export type GpuViewport = {
   project: (point: Vec3) => [number, number] | null
   /** Calls `listener` after each frame drawn (the view may have moved); answers how to stop. */
   onDraw: (listener: () => void) => () => void
+  /** The orbit view drawn now (a gesture's own while it lasts), or null before the first frame. */
+  view: () => OrbitView | null
+  /**
+   * Looking through a camera (and no gesture moving the view): the camera's right, up and back
+   * directions in the world, from the engine's view matrix. Null otherwise.
+   */
+  cameraBasis: () => [Vec3, Vec3, Vec3] | null
 }
 
 /** For tests and measurement: frames drawn, and whether the GPU viewport is on. */
@@ -89,6 +101,11 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     local: OrbitView | null
     /** A gesture moved the view and the engine has not taken it yet. */
     holding: boolean
+    /**
+     * How many of the gestures' views the engine has taken: a frame asked for before the last of
+     * them was taken shows an older view, and does not replace the gesture's own.
+     */
+    taken: number
     fetching: boolean
     again: boolean
     raf: number
@@ -98,7 +115,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     drawing: Array<() => void>
     /** Who wants to know when a frame was drawn. */
     drawn: Set<() => void>
-  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, fetching: false, again: false, raf: 0, failed: !wanted(), asking: [], drawing: [], drawn: new Set() })
+  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, taken: 0, fetching: false, again: false, raf: 0, failed: !wanted(), asking: [], drawing: [], drawn: new Set() })
   const probe = useRef<Probe>({ active: false, frames: 0, reason: null, lastFrameMs: 0 })
   const latest = useRef({ doc, editor, enabled })
   latest.current = { doc, editor, enabled }
@@ -205,8 +222,9 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         s.again = false
         // Who asked before this frame was asked for: let go once it is drawn.
         asked.push(...s.asking.splice(0))
+        const taken = s.taken
         const frame = JSON.parse(await open.invoke<string>('glScene')) as GlFrame
-        if (!(await show(open, frame))) {
+        if (!(await show(open, frame, taken))) {
           release(asked)
           return
         }
@@ -224,7 +242,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
    * Takes `frame` for drawing: fetches the geometry whose key changed and the world image, then
    * schedules the drawing. Answers false when the GPU viewport stopped meanwhile.
    */
-  const show = async (open: NonNullable<typeof doc>, frame: GlFrame) => {
+  const show = async (open: NonNullable<typeof doc>, frame: GlFrame, taken = state.current.taken) => {
     const s = state.current
     const renderer = s.renderer
     if (!renderer || !latest.current.enabled) {
@@ -243,7 +261,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
       const bytes = await open.invoke<Uint8Array>('glWorld').catch(() => null)
       renderer.setEnvironment(environment.key, bytes ? decodeWorld(bytes) : null)
     }
-    return settle(frame)
+    return settle(frame, taken)
   }
 
   /** Whether drawing `frame` needs nothing more from the engine (no geometry, no world image). */
@@ -255,8 +273,11 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     return frame.objects.every((object) => held.get(object.id) === object.key) && (!environment || renderer.environmentKey() === environment.key)
   }
 
-  /** Makes `frame` the one drawn (its geometry is in the renderer). */
-  const settle = (frame: GlFrame) => {
+  /**
+   * Makes `frame` the one drawn (its geometry is in the renderer); asked for when the engine had
+   * taken `taken` of the gestures' views.
+   */
+  const settle = (frame: GlFrame, taken = state.current.taken) => {
     const s = state.current
     const renderer = s.renderer
     // Geometry and environment requests can finish after rendered shading takes over.
@@ -269,7 +290,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     // Shadows need float render targets; without them the software picture shows them.
     const missing = renderer.shadowsMissing(frame)
     probe.current.reason = missing ? 'shadows need float render targets' : frame.reason
-    if (!s.holding) s.local = null
+    if (!s.holding && taken === s.taken) s.local = null
     setOn(frame.supported && !missing)
     return true
   }
@@ -416,16 +437,38 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
       if (!(clip[3] > 1e-9)) return null
       return [((clip[0] / clip[3]) * 0.5 + 0.5) * width, (0.5 - (clip[1] / clip[3]) * 0.5) * height]
     },
+    view: () => {
+      const s = state.current
+      const view = s.local ?? s.frame?.view
+      return view ? { ...view, target: [...view.target] as Vec3 } : null
+    },
+    cameraBasis: () => {
+      const s = state.current
+      const camera = s.local == null ? s.frame?.camera : null
+      if (!camera) return null
+      const m = camera.viewMatrix
+      const row = (index: number): Vec3 => [m[index] ?? 0, m[4 + index] ?? 0, m[8 + index] ?? 0]
+      return [row(0), row(1), row(2)]
+    },
     onDraw: (listener) => {
       state.current.drawn.add(listener)
       return () => {
         state.current.drawn.delete(listener)
       }
     },
+    release: (view) => {
+      const s = state.current
+      if (view && s.local !== view) return
+      s.holding = false
+      s.local = null
+      schedule()
+    },
     commit: () => {
       const s = state.current
       const view = s.local
-      if (!view) {
+      // Nothing moved since the engine took the last view (a view still shown until the frame
+      // after it arrives is not sent again: the engine may have moved on, into a camera view).
+      if (!view || !s.holding) {
         s.holding = false
         return
       }
@@ -436,6 +479,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         .catch((error) => current.report('View', error))
         .finally(() => {
           // A newer gesture may have begun meanwhile: it keeps its own view.
+          state.current.taken += 1
           if (state.current.local === view) state.current.holding = false
           void refreshRef.current()
         })

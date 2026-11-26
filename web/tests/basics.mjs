@@ -94,7 +94,7 @@ try {
   await settle()
   passed('the keyboard works before any click')
 
-  const cube = await project([0, 0, 0])
+  let cube = await project([0, 0, 0])
   await page.mouse.click(cube[0], cube[1])
   await until(async () => (await selectedNames()).join() === 'Cube', 'a click selects the cube')
 
@@ -303,6 +303,9 @@ try {
   assert.equal((await details()).mode.select, 'face', 'keypad 1 leaves the select mode')
   await page.keyboard.press('Digit1')
   await until(async () => (await details()).mode.select === 'vertex', '1 is vertex select')
+  // Keypad 1 is the front view (phase 4): the cube is drawn somewhere else now.
+  await until(async () => Math.abs((await details()).view.tilt - 90) < 0.01 && !(await details()).view.perspective, 'keypad 1 looks from the front')
+  cube = await project([0, 0, 0])
   passed('the keypad is not the select modes')
 
   // B11: the outliner in edit mode: another object ends edit mode first.

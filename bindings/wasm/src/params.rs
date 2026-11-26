@@ -71,6 +71,19 @@ pub fn vec3(params: &Value, key: &str) -> Result<Option<Vec3>, String> {
     }
 }
 
+/// A two-number parameter (`[x, y]`), if present.
+pub fn number_pair(params: &Value, key: &str) -> Result<Option<[f32; 2]>, String> {
+    let Some(value) = params.get(key).filter(|value| !value.is_null()) else { return Ok(None) };
+    let parts: Vec<Option<f64>> = match value {
+        Value::Array(items) if items.len() == 2 => items.iter().map(Value::as_f64).collect(),
+        _ => return Err(bad(format!("`{key}` must be [x, y]"))),
+    };
+    match parts.as_slice() {
+        [Some(x), Some(y)] if [x, y].iter().all(|value| value.is_finite() && value.abs() <= 1e9) => Ok(Some([*x as f32, *y as f32])),
+        _ => Err(bad(format!("`{key}` must be two finite numbers"))),
+    }
+}
+
 /// A colour parameter: `[r, g, b]` or `[r, g, b, a]` in 0..1 (linear), or `#rrggbb` (sRGB).
 pub fn color(params: &Value, key: &str) -> Result<Option<[f32; 4]>, String> {
     let Some(value) = params.get(key).filter(|value| !value.is_null()) else { return Ok(None) };
@@ -390,6 +403,10 @@ pub mod schema {
 
     pub fn vec3(description: &str) -> Value {
         json!({ "type": "array", "items": { "type": "number" }, "description": format!("{description} [x, y, z]") })
+    }
+
+    pub fn number_pair(description: &str) -> Value {
+        json!({ "type": "array", "items": { "type": "number" }, "description": format!("{description} [x, y]") })
     }
 
     pub fn color(description: &str) -> Value {

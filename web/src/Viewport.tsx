@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { CameraIcon, FocusIcon, Grid2x2Icon } from '@kition/tessera/icons/react'
-import { ContextMenu, IconButton, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
+import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
 import type { SceneInfo } from './scene'
 import { WeightPaintControls } from './WeightPaint'
 import { SculptControls } from './Sculpt'
@@ -8,7 +7,10 @@ import { ParticleEditControls } from './Particles'
 import { PresenceLayer, type PlacedPeer } from './Presence'
 import { useGpuViewport } from './GlViewport'
 import { RenderedViewport } from './RenderedViewport'
-import { orbit, pan, zoom } from './gl/camera'
+import { orbit, pan, type OrbitView, type Vec3 } from './gl/camera'
+import { DRAG_ZOOM_SPEED, ORBIT_SPEED, SMOOTH_MS, WHEEL_SPEED, WheelSource, basisOf, between, cameraPlacement, leavingAxis, sameView, sceneExtent, zoomWithin } from './navigation'
+import { viewNavigator } from './navigator'
+import { NavGizmo, type NavDrag } from './NavGizmo'
 import { useColorScheme } from './colorScheme'
 import { TRANSFORM_MODES, TRANSFORM_TOOLS, toolGesture } from './gesture'
 import { useToolOverlay } from './ToolOverlay'
@@ -16,12 +18,26 @@ import { modalTransform } from './modal'
 import { ModalHeader, useModalActive } from './ModalUi'
 import { AdjustLast } from './AdjustLast'
 
-/** Degrees the view turns per CSS pixel of an orbit drag. */
-const ORBIT_SPEED = 0.4
-/** The wheel's zoom rate per pixel of scroll. */
-const WHEEL_SPEED = 0.0015
+type Pending = {
+  orbit: [number, number]
+  pan: [number, number]
+  /** The distance to zoom to (the software viewport's zoom keeps within limits it can check). */
+  distance: number | null
+  /** An orbit away from an orthographic axis view turns perspective first (automatic perspective). */
+  perspective: boolean
+  /** The camera's frame as it is to be (looking through a camera). */
+  cameraFrame: { zoom: number; offset: [number, number] } | null
+}
 
-type Pending = { orbit: [number, number]; pan: [number, number]; zoom: number }
+const RESTING: () => Pending = () => ({ orbit: [0, 0], pan: [0, 0], distance: null, perspective: false, cameraFrame: null })
+
+const toDegrees = (radians: number) => (radians * 180) / Math.PI
+
+/** `view.set`'s parameters for an orbit view. */
+const viewParams = (view: OrbitView) => ({ target: view.target, distance: view.distance, tilt: toDegrees(view.tilt), turn: toDegrees(view.turn), perspective: view.perspective })
+
+/** Whether the person asked for less motion: a change of view then jumps. */
+const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /**
  * The 3D viewport: the engine's picture shown one document pixel to one device pixel (the
@@ -39,13 +55,16 @@ export function SceneViewport({
   onRender,
   presence,
   t,
+  placed = true,
 }: {
   canvas: RefObject<KitCanvasHandle | null>
   info: SceneInfo | null
   onRender: () => void
   presence?: { available: boolean; peers: readonly PlacedPeer[]; movePointer: (at: [number, number] | null) => void }
-  /** The editor's strings (Adjust Last Operation's). */
+  /** The editor's strings (Adjust Last Operation's, the navigation's). */
   t?: (key: string) => string
+  /** The document's view is in place (the one kept for it, or the opening one). */
+  placed?: boolean
 }) {
   const editor = useKitEditor()
   const { doc } = editor.session
@@ -86,7 +105,7 @@ export function SceneViewport({
   // The document the engine paints in the host's color scheme, both pictures drawn since: until
   // then, the viewport is not ready either (an engine opens in the light scheme).
   const [schemedDoc, setSchemedDoc] = useState<typeof doc>(null)
-  const ready = doc != null && readyDoc === doc && schemedDoc === doc
+  const ready = doc != null && readyDoc === doc && schemedDoc === doc && placed
   const readyRef = useRef(ready)
   readyRef.current = ready
   /** The canvas's size in device pixels, as last measured. */
@@ -99,7 +118,14 @@ export function SceneViewport({
   }
 
   // View commands, coalesced: one per animation frame, never two at once.
-  const pending = useRef<Pending>({ orbit: [0, 0], pan: [0, 0], zoom: 1 })
+  const pending = useRef<Pending>(RESTING())
+  /** The distance the software viewport's zoom last sent, until the engine's answer shows it. */
+  const sentDistance = useRef<number | null>(null)
+  const sentAt = useRef(0)
+  /** The view the software viewport's last key or click sent, until the engine's answer shows it. */
+  const sentView = useRef<{ view: OrbitView; at: number } | null>(null)
+  if (sentView.current && info && (performance.now() - sentView.current.at > 1000 || sameView(info.orbit, sentView.current.view))) sentView.current = null
+  if (sentDistance.current != null && info && (Math.abs(info.orbit.distance - sentDistance.current) < 1e-3 || performance.now() - sentAt.current > 1000)) sentDistance.current = null
   const resize = useRef<{ width: number; height: number } | null>(null)
   const busy = useRef(false)
   const frame = useRef(0)
@@ -110,13 +136,19 @@ export function SceneViewport({
     const { editor: current } = latest.current
     const work = pending.current
     const size = resize.current
-    pending.current = { orbit: [0, 0], pan: [0, 0], zoom: 1 }
+    pending.current = RESTING()
     resize.current = null
     const steps: Array<[string, Record<string, unknown>]> = []
     if (size) steps.push(['view.resize', size])
+    if (work.cameraFrame) steps.push(['view.set', { cameraZoom: work.cameraFrame.zoom, cameraOffset: work.cameraFrame.offset }])
+    if (work.perspective) steps.push(['view.set', { perspective: true }])
     if (work.orbit[0] || work.orbit[1]) steps.push(['view.orbit', { turn: work.orbit[0], tilt: work.orbit[1] }])
     if (work.pan[0] || work.pan[1]) steps.push(['view.pan', { right: work.pan[0], up: work.pan[1] }])
-    if (work.zoom !== 1) steps.push(['view.zoom', { factor: work.zoom }])
+    if (work.distance != null) {
+      steps.push(['view.set', { distance: work.distance }])
+      sentDistance.current = work.distance
+      sentAt.current = performance.now()
+    }
     if (!steps.length) return
     busy.current = true
     void (async () => {
@@ -130,11 +162,213 @@ export function SceneViewport({
       checkReady.current()
       busy.current = false
       const next = pending.current
-      if (resize.current || next.orbit[0] || next.orbit[1] || next.pan[0] || next.pan[1] || next.zoom !== 1) schedule()
+      if (resize.current || next.orbit[0] || next.orbit[1] || next.pan[0] || next.pan[1] || next.distance != null || next.perspective || next.cameraFrame) schedule()
     })()
   }
   const schedule = () => {
     if (!frame.current) frame.current = requestAnimationFrame(() => flush.current())
+  }
+
+  // Navigation: the view is moved here (the GPU viewport's own view while a gesture lasts, or
+  // coalesced view commands for the software one), changes of view are smooth, and the zoom keeps
+  // within limits.
+  /** The change of view under way, which a new gesture or key finishes at once. */
+  const animation = useRef<{ finish: () => void } | null>(null)
+  /** Counts the navigation's actions: one waiting on the engine gives way to a newer one. */
+  const navSerial = useRef(0)
+  const wheelSource = useRef(new WheelSource())
+  /** Looking through a camera: its frame as last asked for, ahead of the engine's answer. */
+  const cameraFrame = useRef<{ zoom: number; offset: [number, number] } | null>(null)
+  if (!info?.throughCamera) cameraFrame.current = null
+  const run = (command: string, params: Record<string, unknown>) => latest.current.editor.session.run(command, params).catch((error) => latest.current.editor.report('View', error))
+  const nav = useRef({
+    finish: () => {
+      navSerial.current += 1
+      animation.current?.finish()
+    },
+    current: (): OrbitView | null => null,
+    drag: (_kind: NavDrag, _dx: number, _dy: number) => {},
+    zoomBy: (_factor: number) => {},
+    framedBy: (_factor: number, _offset: [number, number]) => {},
+    end: () => {},
+  })
+  nav.current.current = () => {
+    const gl = gpuRef.current
+    if (gl.active) return gl.view()
+    const sent = sentView.current && performance.now() - sentView.current.at < 1000 ? sentView.current.view : null
+    const known = sent ?? latest.current.info?.orbit
+    return known ? { ...known, target: [...known.target] as Vec3 } : null
+  }
+  const extent = (view: OrbitView) => sceneExtent(latest.current.info?.objects.map((object) => object.location) ?? [], view.target)
+  nav.current.zoomBy = (factor) => {
+    const gl = gpuRef.current
+    if (gl.active) {
+      gl.move((view) => zoomWithin(view, factor, extent(view)))
+      return
+    }
+    sentView.current = null
+    const known = latest.current.info?.orbit
+    if (!known) return
+    // From the distance last asked for: the engine's answer may not be back yet.
+    const now = { ...known, distance: pending.current.distance ?? (performance.now() - sentAt.current < 1000 ? sentDistance.current : null) ?? known.distance }
+    pending.current.distance = zoomWithin(now, factor, extent(now)).distance
+    schedule()
+  }
+  nav.current.framedBy = (factor, offset) => {
+    const shown = latest.current.info
+    if (!shown) return
+    const base = cameraFrame.current ?? { zoom: shown.cameraZoom, offset: shown.cameraOffset }
+    const reach = (value: number) => Math.min(4, Math.max(-4, value))
+    const next = { zoom: Math.min(16, Math.max(0.1, base.zoom * factor)), offset: [reach(base.offset[0] + offset[0]), reach(base.offset[1] + offset[1])] as [number, number] }
+    cameraFrame.current = next
+    pending.current.cameraFrame = next
+    schedule()
+  }
+  nav.current.drag = (kind, dx, dy) => {
+    sentView.current = null
+    const element = region.current
+    const [width, height] = [Math.max(1, element?.clientWidth ?? 1), Math.max(1, element?.clientHeight ?? 1)]
+    const camera = latest.current.info?.throughCamera === true
+    const gl = gpuRef.current
+    if (kind === 'zoom') {
+      const factor = Math.exp(-dy * DRAG_ZOOM_SPEED)
+      if (camera) nav.current.framedBy(1 / factor, [0, 0])
+      else nav.current.zoomBy(factor)
+      return
+    }
+    if (kind === 'pan') {
+      if (camera) nav.current.framedBy(1, [(2 * dx) / width, (-2 * dy) / height])
+      else if (gl.active) gl.move((view) => pan(view, dx / height, -dy / height))
+      else {
+        pending.current.pan[0] += dx / height
+        pending.current.pan[1] -= dy / height
+        schedule()
+      }
+      return
+    }
+    const degrees = Math.PI / 180
+    if (gl.active) {
+      gl.move((view) => orbit(leavingAxis(view), -dx * ORBIT_SPEED * degrees, -dy * ORBIT_SPEED * degrees))
+      return
+    }
+    const known = latest.current.info?.orbit
+    if (known && leavingAxis(known) !== known) pending.current.perspective = true
+    pending.current.orbit[0] -= dx * ORBIT_SPEED
+    pending.current.orbit[1] -= dy * ORBIT_SPEED
+    schedule()
+  }
+  nav.current.end = () => {
+    if (gpuRef.current.active) gpuRef.current.commit()
+  }
+  /** Moves from `from` to `to` over the smooth view's time on the GPU viewport, then tells the engine. */
+  const animate = (from: OrbitView, to: OrbitView) => {
+    const gl = gpuRef.current
+    const started = performance.now()
+    let raf = 0
+    const finish = () => {
+      cancelAnimationFrame(raf)
+      if (animation.current?.finish === finish) animation.current = null
+      gl.move(() => to)
+      gl.commit()
+    }
+    const tick = (now: number) => {
+      const t = (now - started) / SMOOTH_MS
+      if (t >= 1) {
+        finish()
+        return
+      }
+      gl.move(() => between(from, to, t))
+      raf = requestAnimationFrame(tick)
+    }
+    animation.current = { finish }
+    raf = requestAnimationFrame(tick)
+  }
+  const show = (to: OrbitView, smooth: boolean) => {
+    nav.current.finish()
+    const gl = gpuRef.current
+    const from = gl.active ? gl.view() : null
+    if (!from) {
+      sentView.current = { view: to, at: performance.now() }
+      void run('view.set', viewParams(to))
+      return
+    }
+    if (!smooth || reducedMotion() || latest.current.info?.throughCamera || sameView(from, to)) {
+      gl.move(() => to)
+      gl.commit()
+      return
+    }
+    animate(from, to)
+  }
+  /** Runs a view command; one that moves the view (`smooth`) changes to the view it leaves smoothly. */
+  const viewCommand = async (id: string, smooth: boolean) => {
+    nav.current.finish()
+    const serial = navSerial.current
+    const gl = gpuRef.current
+    const from = smooth && gl.active && !latest.current.info?.throughCamera && !reducedMotion() ? gl.view() : null
+    // The picture holds the view it had until the change to the new one starts.
+    if (from) gl.move(() => from)
+    await run(id, {})
+    if (!from) return
+    try {
+      const answer = await latest.current.editor.session.run('view.state', {}, null, { refresh: 'none' })
+      // A key or gesture came meanwhile: it starts from the engine's view, and this one stops.
+      if (navSerial.current !== serial) {
+        gl.release(from)
+        return
+      }
+      const state = (typeof answer === 'string' ? JSON.parse(answer) : answer) as { state?: { view?: { target: Vec3; distance: number; tilt: number; turn: number; perspective: boolean; lens: number; camera?: number } } } | null
+      const view = state?.state?.view
+      if (!view || view.camera != null) {
+        gl.release(from)
+        return
+      }
+      animate(from, { target: [...view.target] as Vec3, distance: view.distance, tilt: view.tilt, turn: view.turn, perspective: view.perspective, lens: view.lens })
+    } catch {
+      gl.release(from)
+    }
+  }
+  const alignCamera = async () => {
+    const shown = latest.current.info
+    const say = (key: string) => latest.current.editor.report('View', new Error(t ? t(key) : key))
+    if (!shown || shown.camera == null) {
+      say('noActiveCamera')
+      return
+    }
+    if (shown.objects.find((object) => object.id === shown.camera)?.parent != null) {
+      say('cameraParented')
+      return
+    }
+    // Looking through the camera already: the view is the camera's.
+    const view = shown.throughCamera ? null : nav.current.current()
+    if (!view) return
+    nav.current.finish()
+    if (gpuRef.current.active) gpuRef.current.commit()
+    const { location, rotation } = cameraPlacement(view)
+    await latest.current.editor.run('object.transform', { objects: [shown.camera], location, rotation })
+    await run('view.camera', {})
+  }
+  viewNavigator.hooks = {
+    // A key during a change of view steps from where that change ends.
+    current: () => {
+      nav.current.finish()
+      return nav.current.current()
+    },
+    throughCamera: () => latest.current.info?.throughCamera === true,
+    show,
+    command: (id, smooth) => void viewCommand(id, smooth),
+    cameraFrame: (factor, offset) => nav.current.framedBy(factor, offset),
+    resetCameraFrame: () => {
+      cameraFrame.current = { zoom: 1, offset: [0, 0] }
+      pending.current.cameraFrame = cameraFrame.current
+      schedule()
+    },
+    zoom: (factor) => {
+      nav.current.finish()
+      nav.current.zoomBy(factor)
+      nav.current.end()
+    },
+    height: () => Math.max(1, region.current?.clientHeight ?? 1),
+    alignCamera: () => void alignCamera(),
   }
 
   /** Keeps the picture 1:1 at the top-left, and the document the canvas's device size. */
@@ -224,17 +458,29 @@ export function SceneViewport({
         }
         if (modal.wheel(delta)) return
       }
-      const factor = Math.exp(Math.max(-400, Math.min(400, delta)) * WHEEL_SPEED * (event.ctrlKey ? 4 : 1))
+      nav.current.finish()
+      // A trackpad's two fingers orbit (Shift: pan); pinching (Ctrl) or Ctrl/Cmd with two fingers
+      // zooms, and so does the wheel. Looking through a camera, zooming and panning move its frame.
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1
+      const trackpad = wheelSource.current.fromTrackpad(event)
+      if (event.ctrlKey || event.metaKey || !trackpad) {
+        const factor = Math.exp(Math.max(-400, Math.min(400, delta)) * WHEEL_SPEED * (event.ctrlKey ? 4 : 1))
+        if (latest.current.info?.throughCamera) {
+          // The camera's frame goes to the engine at once; there is no orbit view to hand over.
+          nav.current.framedBy(1 / factor, [0, 0])
+          return
+        }
+        nav.current.zoomBy(factor)
+      } else {
+        // The fingers move the scene the way a drag would: against the scroll's direction.
+        nav.current.drag(event.shiftKey ? 'pan' : 'orbit', -event.deltaX * unit, -event.deltaY * unit)
+      }
       if (gpuRef.current.active) {
-        gpuRef.current.move((view) => zoom(view, factor))
         window.clearTimeout(wheelCommit.current)
         wheelCommit.current = window.setTimeout(() => gpuRef.current.commit(), 180)
-        return
       }
-      pending.current.zoom *= factor
-      schedule()
     }
-    let drag: { x: number; y: number; pan: boolean; id: number } | null = null
+    let drag: { x: number; y: number; mode: NavDrag; id: number } | null = null
     // The right button cancelled a transform: the context menu it brings stays closed.
     let cancelledMenu = false
     // The press that confirmed an operation: its release is the page's too.
@@ -270,9 +516,11 @@ export function SceneViewport({
       }
       event.preventDefault()
       event.stopPropagation()
-      drag = { x: event.clientX, y: event.clientY, pan: event.shiftKey, id: event.pointerId }
+      nav.current.finish()
+      // Shift pans, Ctrl/Cmd zooms (up: out, down: in), otherwise it orbits.
+      drag = { x: event.clientX, y: event.clientY, mode: event.shiftKey ? 'pan' : event.ctrlKey || event.metaKey ? 'zoom' : 'orbit', id: event.pointerId }
       element.setPointerCapture(event.pointerId)
-      element.dataset.navigating = drag.pan ? 'pan' : 'orbit'
+      element.dataset.navigating = drag.mode
     }
     const move = (event: PointerEvent) => {
       if (!drag && unready(event)) return
@@ -293,20 +541,8 @@ export function SceneViewport({
       const dy = event.clientY - drag.y
       drag.x = event.clientX
       drag.y = event.clientY
-      if (gpuRef.current.active) {
-        const panning = drag.pan || event.shiftKey
-        const degrees = Math.PI / 180
-        gpuRef.current.move((view) => (panning ? pan(view, dx / height(), -dy / height()) : orbit(view, -dx * ORBIT_SPEED * degrees, -dy * ORBIT_SPEED * degrees)))
-        return
-      }
-      if (drag.pan || event.shiftKey) {
-        pending.current.pan[0] += dx / height()
-        pending.current.pan[1] -= dy / height()
-      } else {
-        pending.current.orbit[0] -= dx * ORBIT_SPEED
-        pending.current.orbit[1] -= dy * ORBIT_SPEED
-      }
-      schedule()
+      // Shift pressed during an orbit pans from there on.
+      nav.current.drag(drag.mode === 'orbit' && event.shiftKey ? 'pan' : drag.mode, dx, dy)
     }
     const up = (event: PointerEvent) => {
       if (swallowed === event.pointerId) {
@@ -323,7 +559,7 @@ export function SceneViewport({
       event.stopPropagation()
       drag = null
       delete element.dataset.navigating
-      if (gpuRef.current.active) gpuRef.current.commit()
+      nav.current.end()
       if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
     }
     // The middle button's autoscroll.
@@ -421,13 +657,8 @@ export function SceneViewport({
     await tool('toolKey', ['ContextMenu', '{}', 1 / dpr], true).catch(() => null)
   }
   const modalActive = useModalActive()
-  const { phrase: p, enabled, run } = editor
-  const command = (id: string, label: string) => <MenuItem key={id} label={p(label)} disabled={!enabled(id)} onSelect={() => void run(id, {})} testId={`scene-context-${id}`} />
-  const nav = (id: string, label: string, short: string) => (
-    <button key={id} type="button" className="scene-nav-button" title={p(label)} aria-label={p(label)} onClick={() => void run(id, {})} data-testid={`scene-nav-${id}`}>
-      {short}
-    </button>
-  )
+  const { phrase: p, enabled } = editor
+  const command = (id: string, label: string) => <MenuItem key={id} label={p(label)} disabled={!enabled(id)} onSelect={() => void editor.run(id, {})} testId={`scene-context-${id}`} />
   return (
     <div
       ref={region}
@@ -444,15 +675,17 @@ export function SceneViewport({
     >
       <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} onView={synchronize} testId="scene-canvas" />
       {info ? (
-        <div className="scene-nav" role="toolbar" aria-label={p('Viewpoint')} data-testid="scene-nav">
-          {nav('view.front', 'Front', p('Front'))}
-          {nav('view.right', 'Right', p('Right'))}
-          {nav('view.top', 'Top', p('Top'))}
-          <span className="scene-nav-divider" />
-          <IconButton icon={CameraIcon} label={p('Camera')} pressed={info.throughCamera} disabled={!enabled('view.camera')} onClick={() => void run('view.camera', {})} data-testid="scene-nav-view.camera" />
-          <IconButton icon={Grid2x2Icon} label={p('Perspective/Orthographic')} pressed={!info.perspective} onClick={() => void run('view.perspective', {})} data-testid="scene-nav-view.perspective" />
-          <IconButton icon={FocusIcon} label={p('Frame All')} onClick={() => void run('view.frameAll', {})} data-testid="scene-nav-view.frameAll" />
-        </div>
+        <GizmoHost
+          gpu={gpuRef}
+          info={info}
+          label={t ?? ((key) => key)}
+          cameraEnabled={enabled('view.camera')}
+          onDrag={(kind, phase, dx, dy) => {
+            if (phase === 'begin') nav.current.finish()
+            else if (phase === 'move') nav.current.drag(kind, dx, dy)
+            else nav.current.end()
+          }}
+        />
       ) : null}
       <ModalHeader />
       {t ? <AdjustLast operation={info?.operation ?? null} hidden={modalActive} t={t} /> : null}
@@ -479,5 +712,51 @@ export function SceneViewport({
         <MenuItem label={p('Render Image')} disabled={!enabled('render.image')} onSelect={onRender} />
       </ContextMenu>
     </div>
+  )
+}
+
+/**
+ * The navigation gizmo, drawn again whenever the view moves (each GPU frame while a gesture lasts,
+ * each engine answer otherwise), without drawing the rest of the viewport again.
+ */
+function GizmoHost({
+  gpu,
+  info,
+  label,
+  cameraEnabled,
+  onDrag,
+}: {
+  gpu: RefObject<ReturnType<typeof useGpuViewport>>
+  info: SceneInfo
+  label: (key: string) => string
+  cameraEnabled: boolean
+  onDrag: (kind: NavDrag, phase: 'begin' | 'move' | 'end', dx: number, dy: number) => void
+}) {
+  const basis = () => gpu.current?.cameraBasis() ?? basisOf(gpu.current?.view() ?? info.orbit)
+  const [, redraw] = useState('')
+  useEffect(() => {
+    let shown = ''
+    return gpu.current?.onDraw(() => {
+      const key = basis().flat().map((value) => value.toFixed(3)).join()
+      if (key !== shown) {
+        shown = key
+        redraw(key)
+      }
+    })
+    // The basis reads the refs it is given.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpu])
+  return (
+    <NavGizmo
+      basis={basis()}
+      onAxis={(view) => viewNavigator.toggleAxis(view)}
+      onDrag={onDrag}
+      camera={info.throughCamera}
+      orthographic={!info.perspective}
+      cameraEnabled={cameraEnabled}
+      onCamera={() => viewNavigator.hooks?.command('view.camera', false)}
+      onPerspective={() => viewNavigator.hooks?.command('view.perspective', false)}
+      label={label}
+    />
   )
 }

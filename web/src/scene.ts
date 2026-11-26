@@ -317,6 +317,11 @@ export type SceneInfo = {
   grid: boolean
   perspective: boolean
   throughCamera: boolean
+  /** The orbit view as the engine keeps it (radians), behind the camera view when looking through one. */
+  orbit: { target: Vec3; distance: number; tilt: number; turn: number; perspective: boolean; lens: number }
+  /** Looking through a camera: how large its frame shows and where its centre is (half viewports). */
+  cameraZoom: number
+  cameraOffset: [number, number]
   viewWidth: number
   viewHeight: number
   physics: PhysicsInfo
@@ -463,6 +468,16 @@ export function describe(info: KitEngineInfo): SceneInfo {
     grid: view.grid !== false,
     perspective: view.perspective !== false,
     throughCamera: typeof view.camera === 'number',
+    orbit: {
+      target: vec(view.target),
+      distance: Number(view.distance ?? 11),
+      tilt: (Number(view.tilt ?? 60) * Math.PI) / 180,
+      turn: (Number(view.turn ?? 22) * Math.PI) / 180,
+      perspective: view.perspective !== false,
+      lens: Number(view.lens ?? 50),
+    },
+    cameraZoom: Number(view.cameraZoom ?? 1),
+    cameraOffset: Array.isArray(view.cameraOffset) ? [Number(view.cameraOffset[0] ?? 0), Number(view.cameraOffset[1] ?? 0)] : [0, 0],
     viewWidth: Number(view.width ?? info.width),
     viewHeight: Number(view.height ?? info.height),
     physics: physicsOf(raw.physics),

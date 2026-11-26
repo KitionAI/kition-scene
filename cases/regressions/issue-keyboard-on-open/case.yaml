@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-keyboard-on-open
+feature: scene.editor.basics
+intent: >-
+  The development page gives the editor the keyboard once it opens, so A selects everything and
+  Alt+A clears before any click. Before, the keyboard reached the outer page until a click in the
+  editor.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B17 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

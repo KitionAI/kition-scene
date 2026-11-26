@@ -589,3 +589,14 @@ features:
     paths: [web/src/App.tsx, web/src/scene.ts, web/tests/modes.mjs, web/tests/focus.mjs]
     cases: [regressions/issue-focus-shows-timeline, regressions/issue-published-editor-shim]
     since: "2026-11-17"
+  - id: scene.editor.basics
+    title: "The viewport's basics by hand: clicks, boxes and right clicks select as in Blender, keys wait out a drag, the tools' overlays show over the GPU picture, and number fields keep typed precision and preview a label drag"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [object.previewTransform, select.objects]
+    paths: [bindings/wasm/src/tools.rs, bindings/wasm/src/commands.rs, crates/render/raster/src/lib.rs, web/src/App.tsx, web/src/Viewport.tsx, web/src/ToolOverlay.ts, web/src/NumberBox.tsx, web/src/SidePanel.tsx, web/src/gesture.ts, web/src/devHost.ts, web/tests/basics.mjs, bindings/wasm/tests/basics.rs]
+    target: "Blender 5.3.0"
+    gap: "Phase 1 of plan scene-usable-by-hand: no modal transforms, axis keys or typed values yet (phase 2), no Alt+click loops, circle or lasso select (phase 6); the field preview covers object location, rotation and scale only; F2's box is for a hidden outliner only."
+    cases: [regressions/issue-keys-during-drag, regressions/issue-overlays-over-gpu, regressions/issue-field-precision, regressions/issue-field-label-drag, regressions/issue-click-with-transform-tool, regressions/issue-box-select-modifiers, regressions/issue-command-click-origin, regressions/issue-pick-light-lines, regressions/issue-right-click-selects, regressions/issue-numpad-select-mode, regressions/issue-outliner-edit-mode, regressions/issue-f2-rename, regressions/issue-saved-placeholder, regressions/issue-keyboard-on-open, regressions/issue-nothing-to-do-note, regressions/issue-no-op-unsaved]
+    since: "2026-11-26"

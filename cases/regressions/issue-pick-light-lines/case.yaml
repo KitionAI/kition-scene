@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-pick-light-lines
+feature: scene.editor.basics
+intent: >-
+  A click on a light's rings, a camera's pyramid or frame, or an empty's axes picks that object
+  where its lines are drawn and no surface hides them. Before, only a click within 12 pixels of
+  the origin picked one; a click on the drawn frame 25 pixels away picked nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A7 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: lights_and_cameras_are_picked_on_their_drawn_lines }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-no-op-unsaved
+feature: scene.editor.basics
+intent: >-
+  A command that writes nothing (Apply Transform on an object with nothing to apply, a location
+  set to what it is) leaves the file saved. Before, Cmd+A on the starter cube made the title
+  unsaved while Undo stayed grey.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A15 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: a_command_that_changes_nothing_leaves_the_file_saved }
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

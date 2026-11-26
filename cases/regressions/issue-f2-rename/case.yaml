@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-f2-rename
+feature: scene.editor.basics
+intent: >-
+  F2 renames the active object in its outliner row (or, with no row shown, in a small box with the
+  name alone), and Enter gives the keyboard back. Before, F2 ran the rename command without a name
+  and showed "invalid-params: `name` is required".
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B12 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

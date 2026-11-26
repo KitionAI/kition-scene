@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-command-click-origin
+feature: scene.editor.basics
+intent: >-
+  Cmd/Ctrl+click picks the object whose origin is drawn nearest the pointer (within 75 pixels),
+  not the surface under it, and with Shift adds it, as Blender's Ctrl+click does. Before,
+  Cmd+click replaced the selection with the surface under the pointer and Ctrl+click did nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A13 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: a_command_click_picks_by_the_origin }
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

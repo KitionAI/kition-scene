@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-numpad-select-mode
+feature: scene.editor.basics
+intent: >-
+  In edit mode the number row's 1, 2 and 3 pick vertex, edge and face select; the numeric keypad's
+  do not (they are Blender's views). Before, keypad 1 switched to vertex select.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B9 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

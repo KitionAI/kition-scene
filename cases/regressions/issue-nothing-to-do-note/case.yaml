@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-nothing-to-do-note
+feature: scene.editor.basics
+intent: >-
+  A command refused because there is nothing for it to act on (Show Hidden with nothing hidden,
+  Delete with nothing selected) says so in the status bar, not as a red error card. Before, Alt+H
+  with nothing hidden showed "not-allowed: nothing is hidden" as an error card.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A11 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

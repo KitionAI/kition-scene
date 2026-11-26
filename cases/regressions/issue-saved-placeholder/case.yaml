@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-saved-placeholder
+feature: scene.editor.basics
+intent: >-
+  The note after Cmd+S names no placeholder: the kit's own string for a saved export no longer
+  shares the frame's `saved` key. Before, Cmd+S showed "Saved {name}".
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B13 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

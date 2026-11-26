@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-field-label-drag
+feature: scene.editor.basics
+intent: >-
+  Dragging a number field's X, Y or Z label moves the object at once without an undo step or an
+  unsaved change (object.previewTransform), and the release commits one Set Transform step that
+  one undo takes back; ending a drag without a value, or any other change, puts the preview back,
+  and a preview is never saved. Before, the label changed the number only: the object stayed put
+  and nothing was committed.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B5 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: a_number_field_drag_previews_without_an_undo_step }
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

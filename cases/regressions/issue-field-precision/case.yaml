@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-field-precision
+feature: scene.editor.basics
+intent: >-
+  A typed location or scale keeps three decimals and a rotation two (0.05 m stays 0.05, 1.35 stays
+  1.35, 33.33° stays 33.33°), whatever the field's drag step; the field shows no trailing zeros;
+  Enter gives the keyboard back to the editor; and a field its row already names (a modifier's
+  Levels) shows a grip instead of its name again. Before, values were rounded to the step (0.05
+  became 0.1), the focus stayed in the field so G typed into it, and modifier rows read "Levels
+  Levels".
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B4, A9, A14 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

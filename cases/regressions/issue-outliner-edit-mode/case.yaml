@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-outliner-edit-mode
+feature: scene.editor.basics
+intent: >-
+  In a mesh's edit mode a click on another object's outliner row ends edit mode first and then
+  selects it, so the properties and the commands act on the same object. Before, the properties
+  showed the clicked object while edit mode and the commands stayed on the mesh being edited.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B11 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

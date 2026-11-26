@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-click-with-transform-tool
+feature: scene.editor.basics
+intent: >-
+  With the Move, Rotate or Scale tool a click selects as the Select tool's does: another object
+  becomes the selection, Shift adds, a click on nothing clears, and a press that travels a pixel
+  or two is a click, not a move, and leaves no undo step; a drag still moves the selection as one
+  step. Before, a click kept the selection and the next drag moved the old one.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B8 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: a_click_with_a_transform_tool_selects }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 300

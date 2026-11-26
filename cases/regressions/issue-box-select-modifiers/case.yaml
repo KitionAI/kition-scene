@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-box-select-modifiers
+feature: scene.editor.basics
+intent: >-
+  Shift with a box adds what it finds to the selection, Cmd/Ctrl takes it away, both keep what is
+  in both, and a plain box sets the selection (Blender's Select Box modes); Shift with a click
+  still toggles. Before, Shift with a box toggled, so what was selected and inside the box was
+  unselected.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B10 (plan scene-usable-by-hand, phase 1)
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-scene-kit, test: basics, filter: box_select_adds_with_shift_and_takes_away_with_command }
+  - exec: { cmd: [node, web/tests/basics.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/basics.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 180

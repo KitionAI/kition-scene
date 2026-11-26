@@ -344,7 +344,7 @@ features:
     paths: [bindings/wasm/src/commands_rig.rs, bindings/wasm/examples/bench.rs, bindings/wasm/src/commands_curve.rs, bindings/wasm/examples/conformance.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
-    cases: [regressions/issue-undo-holds-its-step, regressions/issue-undo-passed-over-history, regressions/issue-merge-restore-undo-labels, regressions/issue-batch-undo-labels, regressions/issue-draft-preview-repaired]
+    cases: [regressions/issue-undo-holds-its-step, regressions/issue-undo-passed-over-history, regressions/issue-merge-restore-undo-labels, regressions/issue-batch-undo-labels, regressions/issue-draft-preview-repaired, regressions/issue-merge-cancelled-by-repair]
     since: "2026-11-17"
   - id: scene.object.add
     title: "Add meshes, curves, lights, cameras and empties"

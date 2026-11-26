@@ -270,6 +270,10 @@ pub struct SceneDocument {
 struct Recorded {
     label: String,
     touched: rests::Touched,
+    /// The step's own changes cancel out (a merged draft its repair took back whole): the
+    /// replica keeps it, and its undo or redo passes it over and takes the step below. Nothing
+    /// names it: the step below it does.
+    cancelled: bool,
 }
 
 /// The undo and redo steps of one scope, newest last.
@@ -314,7 +318,7 @@ impl History {
                 top.touched.ids.extend(touched.ids);
                 top.touched.root.extend(touched.root);
             }
-            _ => labels.undo.push(Recorded { label: label.to_owned(), touched }),
+            _ => labels.undo.push(Recorded { label: label.to_owned(), touched, cancelled: false }),
         }
         labels.redo.clear();
         // Steps the replica no longer keeps (its oldest) leave their labels too.
@@ -594,6 +598,7 @@ impl SceneDocument {
                 None => step,
                 Some(mut above) => {
                     above.label = step.label;
+                    above.cancelled &= step.cancelled;
                     above.touched.ids.extend(step.touched.ids);
                     above.touched.root.extend(step.touched.root);
                     above
@@ -613,10 +618,23 @@ impl SceneDocument {
     /// version) as `label`, with what it wrote: the stored scene's change from `before`. Like a
     /// command's step, it clears the scope's redo steps; without it the labels would lag one step
     /// behind the replica's, and every later undo would be named by the step above it.
+    ///
+    /// A step whose changes cancel out (the stored scene is `before` again: a draft whose merge
+    /// the repair took back whole) is still one of the replica's steps, so it keeps a label for
+    /// the count, marked cancelled: the replica's undo passes it over and takes back the step
+    /// below, so the step below names the next undo. Before, it was named [`MERGE_DRAFT_LABEL`],
+    /// and the person's next undo took back their own earlier step under that name.
     fn recorded_outside(&mut self, scope: UndoScope, label: &str, before: &Scene) {
+        let cancelled = *before == self.replica.model().stored;
         let touched = rests::Touched::between(before, &self.replica.model().stored);
         let (depth, grouped) = (self.replica.undo_depth(scope), self.replica.in_undo_group());
         self.history.record(scope, label, touched, depth, grouped);
+        if cancelled
+            && !grouped
+            && let Some(top) = self.history.of(scope).undo.last_mut()
+        {
+            top.cancelled = true;
+        }
     }
 
     /// Whether `scope` (either, when `None`) has a step to undo or redo.
@@ -635,7 +653,9 @@ impl SceneDocument {
             UndoScope::Agent => &self.history.agent,
             _ => &self.history.person,
         };
-        if undo { labels.undo.last() } else { labels.redo.last() }.map(|step| step.label.clone())
+        // A cancelled step is passed over: the first step below it that changes something is
+        // the one taken back.
+        if undo { &labels.undo } else { &labels.redo }.iter().rev().find(|step| !step.cancelled).map(|step| step.label.clone())
     }
 
     /// Something only the picture depends on changed (view, selection, mode).

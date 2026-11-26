@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-merge-cancelled-by-repair
+feature: scene.edit.history
+intent: >-
+  A draft the merge's repair takes back whole names no undo step: the person deletes the light, an
+  agent's draft only parents the cube to the light, and the repair clears the dangling parent, so
+  the merge changes nothing. The replica keeps the merge's step and its undo passes it over, so
+  the person's next Undo is named by the deletion, answers that name and gives back the exact
+  state before the deletion; Redo gives back the exact state after it. Before, the merge pushed a
+  "Merge Draft" label, and the person's Undo took back the deletion under that name.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+      filter: a_merge_the_repair_cancels_names_no_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 600

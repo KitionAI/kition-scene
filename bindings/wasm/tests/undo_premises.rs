@@ -286,3 +286,46 @@ fn a_drafts_preview_is_the_repaired_merge() {
     doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
     assert_eq!(exact(&doc), merged, "one redo: the repaired state");
 }
+
+/// A draft the merge's repair takes back whole leaves the replica a step whose changes cancel out
+/// (it keeps it: `undo_depth` grows by one), and the replica's undo passes it over and takes back
+/// the step below. The labels keep a step for it, unnamed: the person deletes the light, the
+/// agent's draft only parents the cube to the light, and the repair clears the dangling parent,
+/// so the merge changes nothing. The next undo is still named by the deletion, the person's Undo
+/// answers that name and gives back the exact state before the deletion, and the Redo the exact
+/// state after it. Before, the merge pushed "Merge Draft": the undo was named by it and took back
+/// the deletion.
+#[test]
+fn a_merge_the_repair_cancels_names_no_step() {
+    use kition_kit::kdm::UndoScope;
+    use kition_kit::session::{__export_changes, __snapshot};
+    let mut doc = SceneDocument::create("Cancelled.kscene", 320, 180).unwrap();
+    let agent = Origin::agent("agent:test");
+    let label = |doc: &SceneDocument, key: &str| doc.inspect().unwrap()[key].clone();
+    let base = KitSessionDocument::session(&doc).version();
+    let mut draft = SceneDocument::open_with_replica("Cancelled.kscene", &[], &__snapshot(&doc).unwrap(), &doc.blobs_bundle()).unwrap();
+    draft.execute_as("object.parent", json!({ "objects": ["Cube"], "parent": "Light" }), &agent).unwrap();
+    let changes = __export_changes(&draft, &base.encode()).unwrap();
+    let start = exact(&doc);
+    doc.execute("edit.delete", json!({ "objects": "Light" })).unwrap();
+    let deleted = exact(&doc);
+    let deletion = label(&doc, "undo");
+    assert!(deletion.is_string() && deletion != json!(kition_scene_kit::MERGE_DRAFT_LABEL), "{deletion}");
+    let depth = KitSessionDocument::session(&doc).undo_depth(UndoScope::Person);
+
+    doc.add_blobs(&draft.blobs_bundle()).unwrap();
+    KitSessionDocument::merge_changes(&mut doc, &changes, &agent).unwrap();
+    assert_eq!(exact(&doc), deleted, "the repair took the draft back whole: the merge changes nothing");
+    assert_eq!(KitSessionDocument::session(&doc).undo_depth(UndoScope::Person), depth + 1, "the replica keeps the merge's step");
+    assert_eq!(label(&doc, "undo"), deletion, "the next undo is named by the deletion");
+
+    let undone = doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(undone["undone"], deletion, "the undo is named by the step it takes back");
+    assert_eq!(exact(&doc), start, "the undo gives back the exact state before the deletion");
+    assert_eq!(label(&doc, "redo"), deletion);
+    assert_eq!(label(&doc, "undo"), Value::Null, "nothing of the person's is left to undo");
+    let redone = doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(redone["redone"], deletion);
+    assert_eq!(exact(&doc), deleted, "the redo gives back the exact state after the deletion");
+    assert_eq!(label(&doc, "undo"), deletion);
+}

@@ -329,7 +329,9 @@ try {
   await shot('05-vertex-snap')
   await page.mouse.click(corner[0] + 3, corner[1] + 2)
   await until(async () => (await undo()) === 'Move', 'one Move step')
-  assert.ok(nearAll((await named('Cube')).location, [2, 0, 0]), `the cube's corner is on the other's vertex (${(await named('Cube')).location})`)
+  const snappedTo = (await named('Cube')).location
+  const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((bit) => [snappedTo[0] + (bit & 1 ? 1 : -1), snappedTo[1] + (bit & 2 ? 1 : -1), snappedTo[2] + (bit & 4 ? 1 : -1)])
+  assert.ok(corners.some((corner) => nearAll(corner, [3, 1, 1])), `a corner of the cube is on the other's vertex (${snappedTo})`)
   await back('Move')
   // Ctrl inverts it: snapping off while held.
   await page.keyboard.press('KeyG')

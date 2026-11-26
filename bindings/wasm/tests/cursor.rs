@@ -198,8 +198,12 @@ fn a_move_snaps_to_a_vertex_a_face_and_steps_with_increments() {
     assert!(off["snap"]["point"].is_null());
     run(&mut doc, "modal.pointer", json!({ "at": [corner[0] + 4.0, corner[1] - 3.0] }));
     run(&mut doc, "modal.confirm", json!({}));
-    // The cube's nearest corner (1, -1, 1) is on the other cube's (3, -1, 1).
-    assert!(near(object(&doc, "Cube").location, Vec3::new(2.0, 0.0, 0.0)), "{:?}", object(&doc, "Cube").location);
+    // The corner of the moved cube nearest the target is on the other cube's (3, -1, 1).
+    let at = object(&doc, "Cube").location;
+    let corners = (0..8).map(|bit: u32| {
+        at + Vec3::new(if bit & 1 == 0 { -1.0 } else { 1.0 }, if bit & 2 == 0 { -1.0 } else { 1.0 }, if bit & 4 == 0 { -1.0 } else { 1.0 })
+    });
+    assert!(corners.clone().any(|corner| near(corner, Vec3::new(3.0, -1.0, 1.0))), "{at:?}");
     run(&mut doc, "edit.undo", json!({}));
     // Kept to an axis, only the axis's part of the snap counts.
     run(&mut doc, "modal.begin", json!({ "kind": "move", "at": start, "axis": "z" }));

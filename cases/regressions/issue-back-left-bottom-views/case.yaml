@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-back-left-bottom-views
+feature: scene.editor.navigation
+intent: >-
+  view.back, view.left and view.bottom look along their axes orthographically, like view.front,
+  view.right and view.top; the view is the person's session state: no undo step, nothing
+  unsaved. Before, the engine had the axes but no command for them.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N6 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: navigate
+      filter: back_left_and_bottom_look_along_their_axes_orthographically
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

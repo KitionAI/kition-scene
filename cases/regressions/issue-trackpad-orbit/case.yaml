@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-trackpad-orbit
+feature: scene.editor.navigation
+intent: >-
+  A trackpad's two fingers orbit the view, with Shift they pan, with Ctrl/Cmd or a pinch they
+  zoom; a mouse wheel (a vertical scroll in whole pixels) still zooms; Ctrl+middle drag zooms. A
+  scroll with a sideways part or a fraction of a pixel is a trackpad's. Before, every scroll
+  zoomed, sideways scrolls did nothing and Ctrl+middle drag orbited.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N8 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/navigate.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/navigate.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-opening-view
+feature: scene.editor.navigation
+intent: >-
+  A document with no view state kept for it opens with Blender's default view (18.39 m away,
+  63.5° tilt, 66.2° turn), in which the cube, the light and the camera all show, and with the
+  default cube selected and active; neither is an undo step or makes the document unsaved.
+  Before, nothing was selected and the light and camera were outside the picture.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A1 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/navigate.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/navigate.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

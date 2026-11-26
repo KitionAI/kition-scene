@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-keypad-views
+feature: scene.editor.navigation
+intent: >-
+  The numeric keypad navigates as in Blender, in object and edit mode alike: 1 / 3 / 7 look from
+  the front, right and top (orthographic), Ctrl/Cmd with them from the back, left and bottom, 9
+  from the other side, 5 toggles perspective, 0 the camera view, 4 / 6 / 8 / 2 orbit 15° a step,
+  Ctrl/Cmd with them pan, + and − zoom a step, Home and the keypad's point frame everything and
+  the selection. Alt+1 / 3 / 7 and ` (a View menu at the pointer) serve keyboards without a
+  keypad. In edit mode the number row's 1 stays vertex select. Before, the keypad did nothing in
+  object mode and picked select modes in edit mode, and there were no back, left or bottom
+  views.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N6, B9 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/navigate.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/navigate.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

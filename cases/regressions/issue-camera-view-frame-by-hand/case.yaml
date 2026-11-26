@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-camera-view-frame-by-hand
+feature: scene.editor.navigation
+intent: >-
+  The same by hand: in the camera view the wheel zooms the frame and Shift+middle drag moves it,
+  the view stays the camera's, Home fits it again.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A6 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/navigate.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/navigate.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

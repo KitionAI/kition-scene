@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-camera-view-frame
+feature: scene.editor.navigation
+intent: >-
+  In the camera view the wheel, Ctrl+middle drag and the keypad's + and − zoom the camera's
+  frame and Shift+middle drag moves it, without leaving the camera view; Home fits the frame
+  again; the frame's zoom and place are the person's view state. Before, the wheel left the
+  camera view.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A6 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: navigate
+      filter: the_camera_frame_zooms_and_moves_in_the_camera_view
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

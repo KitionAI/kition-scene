@@ -15,6 +15,7 @@
     "test:basics": "node tests/basics.mjs chromium && node tests/basics.mjs webkit",
     "test:modal": "node tests/modal.mjs chromium && node tests/modal.mjs webkit",
     "test:editops": "node tests/editops.mjs chromium && node tests/editops.mjs webkit",
+    "test:navigate": "node tests/navigate.mjs chromium && node tests/navigate.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },
   "dependencies": {

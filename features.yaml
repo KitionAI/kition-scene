@@ -469,7 +469,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [view.wireframe, view.solid, view.material, view.front, view.right, view.top, view.camera, view.perspective, view.frameAll, view.frameSelected, view.grid, view.overlays, view.orbit, view.pan, view.zoom, view.set, view.resize]
+    commands: [view.wireframe, view.solid, view.material, view.front, view.right, view.top, view.back, view.left, view.bottom, view.camera, view.perspective, view.frameAll, view.frameSelected, view.grid, view.overlays, view.orbit, view.pan, view.zoom, view.set, view.resize]
     paths: [bindings/wasm/examples/bench.rs, bindings/wasm/examples/sculpt_bench.rs, bindings/wasm/src/viewport_trace.rs]
     target: "Blender 5.2.3 LTS"
     gap: "The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen."
@@ -632,4 +632,15 @@ features:
     target: "Blender 5.3.0"
     gap: "Phase 3 of plan scene-usable-by-hand: only the commands listed as adjustable in operation.rs (adding mesh objects, lights, cameras and empties; edit mode's operations; transforms; duplicate) show it; a value set to nothing (a move of zero) ends it; choices without a stated default show a blank; a field applies on Enter or when it loses the focus, not while its label is dragged; each change reruns the whole operation (about 0.2 s on the default cube, 0.3–0.5 s on a 143k-vertex sphere)."
     cases: [regressions/issue-no-adjust-last, regressions/issue-added-object-no-size]
+    since: "2026-11-26"
+  - id: scene.editor.navigation
+    title: "Navigation as in Blender: the keypad's views (Ctrl/Cmd: from the other side), opposite, orbit and pan steps, zoom steps and perspective in every mode; Alt+1 / 3 / 7 and a View menu on ` without a keypad; smooth changes of view and automatic perspective; the navigation gizmo (click an axis, again for the other side, drag to orbit; zoom, pan, camera and perspective buttons); a trackpad's two fingers orbit (Shift: pan, Ctrl/Cmd or a pinch: zoom) while the wheel zooms; Ctrl+middle drag zooms; the zoom stays within limits; the camera view's frame zooms and moves; Ctrl/Cmd+Alt+keypad 0 puts the active camera at the view; a new document opens with Blender's default view and the cube selected"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [view.back, view.left, view.bottom, view.set]
+    paths: [web/src/navigation.ts, web/src/navigator.ts, web/src/NavGizmo.tsx, web/src/Viewport.tsx, web/src/GlViewport.tsx, web/src/viewState.ts, web/src/App.tsx, crates/render/raster/src/view.rs, bindings/wasm/src/commands.rs, web/tests/navigate.mjs, bindings/wasm/tests/navigate.rs]
+    target: "Blender 5.3.0"
+    gap: "Phase 4 of plan scene-usable-by-hand: no walk or fly, local view, roll (Shift+keypad 4 / 6), align to the active object (Shift+keypad 1 / 3 / 7), Ctrl+keypad 0, Alt+middle snapping, zoom to the pointer or border zoom; the tilt stops at straight up and straight down (no orbit over the top); entering and leaving the camera view jumps instead of moving smoothly; a trackpad is told from a mouse by its scroll events alone (a trackpad's whole-pixel vertical scroll at a gesture's start zooms), and no real trackpad has been tried; the camera placed at the view keeps its own lens and the camera's undo step is named Set Transform; a camera with a parent is not placed."
+    cases: [regressions/issue-keypad-views, regressions/issue-back-left-bottom-views, regressions/issue-navigation-gizmo, regressions/issue-trackpad-orbit, regressions/issue-align-camera-to-view, regressions/issue-opening-view, regressions/issue-zoom-limits, regressions/issue-auto-perspective, regressions/issue-camera-view-frame, regressions/issue-camera-view-frame-by-hand, regressions/issue-undo-after-menu]
     since: "2026-11-26"

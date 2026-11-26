@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-undo-after-menu
+feature: scene.editor.navigation
+intent: >-
+  Ctrl/Cmd+Z right after choosing a row of a menu at the pointer (edit mode's Delete menu)
+  undoes that row's command. The frame keeps a list of which commands can run, which follows a
+  change one call to the engine later, and dropped a Ctrl/Cmd shortcut whose command it still
+  thought disabled (Undo, before the first change); the editor now asks the engine. Before, the
+  Ctrl+Z did nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan plans/2026-11-26-scene-usable-by-hand.md, section 12, phase 3 (plan scene-usable-by-hand, phase 4)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/navigate.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/navigate.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

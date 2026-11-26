@@ -194,14 +194,10 @@ export class ModalTransform {
     })
   }
 
-  /**
-   * The wheel, when the transform takes it (proportional editing's radius); answers whether.
-   * `proportional`: proportional editing is on, so a transform a tool's press started (whose
-   * first answer may still be on its way) takes it too.
-   */
-  wheel(delta: number, proportional = false) {
+  /** The wheel, when the transform takes it (proportional editing's radius); answers whether. */
+  wheel(delta: number) {
     const hooks = this.hooks
-    if (!hooks || (this.answer.proportional == null && !proportional)) return false
+    if (!hooks || this.answer.proportional == null) return false
     void this.enqueue(async () => {
       this.take(parse(await hooks.run('modal.wheel', { delta }, 'all').catch(() => null)))
     })

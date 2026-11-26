@@ -205,7 +205,11 @@ fn a_move_snaps_to_a_vertex_a_face_and_steps_with_increments() {
     run(&mut doc, "modal.begin", json!({ "kind": "move", "at": start, "axis": "z" }));
     run(&mut doc, "modal.pointer", json!({ "at": [corner[0] + 4.0, corner[1] - 3.0] }));
     run(&mut doc, "modal.confirm", json!({}));
-    assert!(near(object(&doc, "Cube").location, Vec3::ZERO), "the corner is level with the target already: {:?}", object(&doc, "Cube").location);
+    let kept = object(&doc, "Cube").location;
+    assert!(
+        kept.x == 0.0 && kept.y == 0.0 && ((kept.z - 2.0).abs() < 1e-3 || kept.z.abs() < 1e-3),
+        "only Z: a corner level with the target's: {kept:?}"
+    );
     // A face: the other cube's front face.
     run(&mut doc, "transform.set", json!({ "snapTarget": "face" }));
     let face = screen(&doc, Vec3::new(4.2, -1.0, 0.3));

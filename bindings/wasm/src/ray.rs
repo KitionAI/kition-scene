@@ -156,7 +156,6 @@ impl SceneDocument {
             Mode::Edit(object) => {
                 Overlays { edit: Some(EditOverlay { object, vertices: Default::default(), faces: Default::default() }), ..Overlays::default() }
             }
-            Mode::Object if self.session.sculpt.is_some() => self.overlays(),
             Mode::Object => Overlays::default(),
         };
         kition_scene_raster::viewport_meshes(&self.scene, &overlays, &mut self.meshes.borrow_mut())

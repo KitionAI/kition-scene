@@ -329,8 +329,9 @@ fn command(id: &str, title: &str, menu: &[&str], schema: Value) -> KitCommand {
 }
 
 /// The cursor's and the transform settings' commands: session commands (no undo step).
-pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
-    vec![
+pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
+    let off = disabled(doc);
+    let mut commands = vec![
         command(
             "cursor.set",
             "Set 3D Cursor",
@@ -363,7 +364,11 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
                 ("snapTarget", s::choice("What they snap to (increment)", &["increment", "vertex", "edge", "face"])),
             ]),
         ),
-    ]
+    ];
+    for command in &mut commands {
+        command.enabled = !off.contains(&command.id);
+    }
+    commands
 }
 
 /// The ones that cannot run now.

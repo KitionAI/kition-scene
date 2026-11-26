@@ -105,7 +105,7 @@
   "mode.sculpt": ["mode", "selection"],
   "cursor.moveToActive": ["mode", "selection"],
   "cursor.moveToSelected": ["mode", "selection"],
-  "cursor.set": ["mode", "selection"],
+  "cursor.set": ["mode"],
   "modal.begin": ["mode", "selection"],
   "modal.cancel": ["mode", "selection"],
   "modal.confirm": ["mode", "selection"],

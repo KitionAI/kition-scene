@@ -479,6 +479,8 @@ impl SceneDocument {
                 self.tool.ignore_release = true;
             }
             (PointerAction::Up, Some(Started::Press { select })) => {
+                // The release's place counts: the page's last pointer step may still be on its way.
+                self.modal_pointer(at, event.mods.shift, event.mods.command);
                 if self.modal_click(at) {
                     self.modal_cancel()?;
                     if select {

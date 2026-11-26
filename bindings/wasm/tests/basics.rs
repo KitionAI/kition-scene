@@ -217,9 +217,13 @@ fn lights_and_cameras_are_picked_on_their_drawn_lines() {
     let kition_scene_model::ObjectData::Camera(data) = &camera.data else { panic!("not a camera") };
     let aspect = doc.scene().render.width as f32 / doc.scene().render.height as f32;
     let (w, h) = data.frame_half_size(aspect);
-    let at = screen(&doc, "Camera", Vec3::new(w, h, -1.0));
+    // Halfway along the pyramid's edge from the origin to the frame's corner.
+    let at = screen(&doc, "Camera", Vec3::new(w, h, -1.0) * 0.5);
+    let origin = screen(&doc, "Camera", Vec3::ZERO);
+    assert!((at.0 - origin.0).hypot(at.1 - origin.1) > 20.0, "the edge is drawn away from the origin ({origin:?}, {at:?})");
+    assert!(at.0 > 0.0 && at.1 > 0.0 && at.0 < 800.0 && at.1 < 600.0, "the edge is in the view ({at:?})");
     click(&mut doc, at, NONE);
-    assert_eq!(selected(&doc), ["Camera"], "a click on the camera's frame picks it");
+    assert_eq!(selected(&doc), ["Camera"], "a click on the camera's pyramid picks it");
 }
 
 #[test]

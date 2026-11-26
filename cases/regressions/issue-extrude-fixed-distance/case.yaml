@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-extrude-fixed-distance
+feature: scene.editor.modal-operators
+intent: >-
+  E in a mesh's edit mode extrudes the selected faces at once and moves the extrusion along their
+  normal with the pointer (the header reads D: … normal); typed values give the distance, a minus
+  makes it negative (the mug's hollow: the top 0.5 m in), and Enter makes one Extrude Faces step
+  that one undo takes back. Before, E pushed the faces out a fixed 1 m and the pointer did nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B6 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: extrude_moves_along_the_normal_and_takes_a_negative_value
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

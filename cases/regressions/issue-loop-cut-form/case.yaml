@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-loop-cut-form
+feature: scene.editor.modal-operators
+intent: >-
+  Ctrl/Cmd+R (and Mesh ▸ Loop Cut) shows the loop under the pointer, the wheel and typed digits set
+  the number of cuts, a click cuts and slides the loop, the right button keeps it in the middle and
+  Escape before the click cuts nothing; one Loop Cut step. Before, the menu row opened a form of
+  raw parameters asking for the edge as [vertex, vertex].
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B15, N15 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: loop_cut_shows_cuts_then_slides_and_the_right_button_centres
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

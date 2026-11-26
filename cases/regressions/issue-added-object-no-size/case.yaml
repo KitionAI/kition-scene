@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-added-object-no-size
+feature: scene.editor.adjust-last
+intent: >-
+  An added object's size and segments (a cylinder's vertices and radius, with the defaults its
+  command states) can be changed after adding it: the object is made again, not a second one.
+  Before, an added object had no parameters to change.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N5 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: an_added_object_shows_its_size_and_segments
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

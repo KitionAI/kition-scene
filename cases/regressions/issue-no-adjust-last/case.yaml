@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-no-adjust-last
+feature: scene.editor.adjust-last
+intent: >-
+  The person's last operation (an extrusion, a confirmed move with its axis) runs again with a
+  changed value in place of its own undo step: the undo stack keeps its depth, one undo takes it
+  back, and an undo or another change ends it. Before, no value could be changed after the fact.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N5 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: adjust_last_operation_runs_it_again_in_its_own_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

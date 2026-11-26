@@ -611,3 +611,25 @@ features:
     gap: "Phase 2 of plan scene-usable-by-hand: no snapping to elements, pivot or orientation choices beyond Median Point and Global/Local, gizmos (phase 5); no expressions or units in typed values; no trackball (R R), no automatic constraint (middle button), no vertex/edge slide by G G; Ctrl's move step is 1 m in every view (Blender's follows the grid in orthographic views); the pointer does not wrap at the screen's edge."
     cases: [regressions/issue-g-starts-modal, regressions/issue-x-during-drag-constrains, regressions/issue-duplicate-moves, regressions/issue-transform-lag, regressions/issue-right-click-cancels]
     since: "2026-11-26"
+  - id: scene.editor.modal-operators
+    title: "Edit mode's operations as Blender's modals: E extrudes and moves along the faces' normal (loose vertices and edges: freely; the right button keeps the extrusion), I insets by the pointer (Ctrl: depth), Ctrl/Cmd+B bevels by the pointer with the wheel's segments, Ctrl/Cmd+R shows the loop, cuts it on a click and slides it; typed values; X / Delete, M and P open the Delete, Merge and Separate menus at the pointer; menu rows that asked for raw parameters start the modal"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [modal.begin, modal.pointer, modal.key, modal.wheel, modal.confirm, modal.cancel, mesh.extrude, mesh.inset, mesh.bevel, mesh.loopCut]
+    paths: [bindings/wasm/src/modal.rs, bindings/wasm/src/tools.rs, bindings/wasm/src/commands.rs, web/src/App.tsx, web/src/modal.ts, web/src/ModalUi.tsx, web/src/PointerMenu.tsx, web/src/ToolOverlay.ts, web/src/Viewport.tsx, web/tests/editops.mjs, bindings/wasm/tests/editops.rs]
+    target: "Blender 5.3.0"
+    gap: "Phase 3 of plan scene-usable-by-hand: inset is per face (no region inset) and has no Outset, Boundary or Individual switches; bevel has no profile, no width types and no vertex mode from Ctrl+B (Cmd+Shift+B runs a fixed vertex bevel); loop cut has no smoothness and slides one loop at a time; no Alt+E menu; the Delete menu has no Edges, Only Edges & Faces, Limited Dissolve or Edge Loops, the Merge menu only At Center, the Separate menu only Selection (the engine has no others); object mode's X deletes at once (a test asserts it), without Blender's confirmation."
+    cases: [regressions/issue-extrude-fixed-distance, regressions/issue-extrude-cancel-keeps, regressions/issue-inset-fixed-thickness, regressions/issue-bevel-fixed-width, regressions/issue-loop-cut-form]
+    since: "2026-11-26"
+  - id: scene.editor.adjust-last
+    title: "Adjust Last Operation: a panel in the viewport's corner with the last operation's parameters (from its command's description; a transform's vector, axis and orientation); a changed value runs it again in place of its undo step; F9 opens the fields; any other change ends it"
+    dimension: [function]
+    priority: P0
+    status: partial
+    commands: [operation.get, operation.set]
+    paths: [bindings/wasm/src/operation.rs, bindings/wasm/src/modal.rs, bindings/wasm/src/commands.rs, bindings/wasm/src/inspect.rs, web/src/AdjustLast.tsx, web/src/scene.ts, web/tests/editops.mjs, bindings/wasm/tests/editops.rs]
+    target: "Blender 5.3.0"
+    gap: "Phase 3 of plan scene-usable-by-hand: only the commands listed as adjustable in operation.rs (adding mesh objects, lights, cameras and empties; edit mode's operations; transforms; duplicate) show it; a value set to nothing (a move of zero) ends it; choices without a stated default show a blank; a field applies on Enter or when it loses the focus, not while its label is dragged; each change reruns the whole operation (about 0.2 s on the default cube, 0.3–0.5 s on a 143k-vertex sphere)."
+    cases: [regressions/issue-no-adjust-last, regressions/issue-added-object-no-size]
+    since: "2026-11-26"

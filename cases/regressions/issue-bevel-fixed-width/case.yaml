@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-bevel-fixed-width
+feature: scene.editor.modal-operators
+intent: >-
+  Ctrl/Cmd+B bevels the selected edges by the pointer's distance, the wheel adds segments (it no
+  longer zooms), typed values give the width; one Bevel Edges step. Before, it bevelled a fixed
+  0.1 m in one segment and the wheel zoomed the view.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B6, N15 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: bevel_follows_the_pointer_and_the_wheel_adds_segments
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

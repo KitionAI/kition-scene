@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-inset-fixed-thickness
+feature: scene.editor.modal-operators
+intent: >-
+  I insets the selected faces by the pointer's distance to their centre (closer is thicker); with
+  Ctrl the pointer sizes the depth; typed values and Tab set thickness and depth; Enter makes one
+  Inset Faces step, Escape leaves nothing. Before, I inset a fixed 0.1 m.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B6 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: inset_takes_the_pointer_typed_values_and_a_depth
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

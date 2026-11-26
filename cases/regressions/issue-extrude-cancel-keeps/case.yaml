@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-extrude-cancel-keeps
+feature: scene.editor.modal-operators
+intent: >-
+  The right button (or Escape) during an extrusion's move stops the move and keeps the extruded
+  geometry where it was made, as one Extrude Faces step, as Blender leaves it.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B6 (plan scene-usable-by-hand, phase 3)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: editops
+      filter: cancelling_the_extrusions_move_keeps_its_geometry
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

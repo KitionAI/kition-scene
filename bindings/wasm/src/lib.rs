@@ -86,6 +86,10 @@ pub const MERGE_DRAFT_LABEL: &str = "Merge Draft";
 
 /// The undo label of an earlier version written over the scene (a checkpoint restored).
 pub const RESTORE_VERSION_LABEL: &str = "Restore Version";
+
+/// The undo label of an object-model batch (`model/batch`): one step of the replica's, however
+/// many commands and raw writes it ran.
+pub const MODEL_BATCH_LABEL: &str = "Batch Edit";
 /// The origin of the host's own person (contract 1's `execute`).
 pub fn person() -> Origin {
     Origin::person("person:local")
@@ -292,6 +296,30 @@ impl History {
             UndoScope::Agent => &mut self.agent,
             _ => &mut self.person,
         }
+    }
+
+    /// Names the step a change recorded in `scope` as `label`, with what it wrote, keeping the
+    /// labels in step with the replica's steps (`depth`, the scope's `undo_depth` after the
+    /// change). In an undo group (`grouped`: a `model/batch` running) the step is the batch's,
+    /// named [`MODEL_BATCH_LABEL`]: the change that started it adds the label, every later one
+    /// joins it. Like any new step, it clears the scope's redo labels.
+    fn record(&mut self, scope: UndoScope, label: &str, touched: rests::Touched, depth: usize, grouped: bool) {
+        let labels = self.of(scope);
+        let label = if grouped { MODEL_BATCH_LABEL } else { label };
+        // In a group, a change that added no step joined the group's step: the top one.
+        let joins = grouped && labels.undo.len() >= depth;
+        match labels.undo.last_mut() {
+            Some(top) if joins => {
+                top.label = label.to_owned();
+                top.touched.ids.extend(touched.ids);
+                top.touched.root.extend(touched.root);
+            }
+            _ => labels.undo.push(Recorded { label: label.to_owned(), touched }),
+        }
+        labels.redo.clear();
+        // Steps the replica no longer keeps (its oldest) leave their labels too.
+        let excess = labels.undo.len().saturating_sub(depth);
+        labels.undo.drain(..excess);
     }
 
     /// What every step of `scope` an undo (`undo`) or a redo may take back wrote, newest first;
@@ -532,9 +560,8 @@ impl SceneDocument {
                 if self.replica.version() != version
                     && let Some(scope) = UndoScope::of(origin.kind)
                 {
-                    let labels = self.history.of(scope);
-                    labels.undo.push(Recorded { label, touched: touched.unwrap_or_default() });
-                    labels.redo.clear();
+                    let (depth, grouped) = (self.replica.undo_depth(scope), self.replica.in_undo_group());
+                    self.history.record(scope, &label, touched.unwrap_or_default(), depth, grouped);
                 }
                 self.content += 1;
                 self.revision += 1;
@@ -588,9 +615,8 @@ impl SceneDocument {
     /// behind the replica's, and every later undo would be named by the step above it.
     fn recorded_outside(&mut self, scope: UndoScope, label: &str, before: &Scene) {
         let touched = rests::Touched::between(before, &self.replica.model().stored);
-        let labels = self.history.of(scope);
-        labels.undo.push(Recorded { label: label.to_string(), touched });
-        labels.redo.clear();
+        let (depth, grouped) = (self.replica.undo_depth(scope), self.replica.in_undo_group());
+        self.history.record(scope, label, touched, depth, grouped);
     }
 
     /// Whether `scope` (either, when `None`) has a step to undo or redo.
@@ -882,8 +908,16 @@ impl KitDocument for SceneDocument {
     }
 
     fn batch_applied(&mut self) {
-        // The batch is a step of the replica the kit wrote nothing of.
+        // A raw write of the batch: what it wrote the kit does not know. When it started the
+        // batch's step (no command of the batch did), the step gets the batch's label; a command
+        // of the batch after it joins that label (`History::record`).
         self.history.untold = true;
+        for scope in [UndoScope::Person, UndoScope::Agent] {
+            let depth = self.replica.undo_depth(scope);
+            if self.replica.in_undo_group() && self.history.of(scope).undo.len() < depth {
+                self.history.record(scope, MODEL_BATCH_LABEL, rests::Touched::default(), depth, false);
+            }
+        }
         self.replica_changed();
     }
 
@@ -1079,16 +1113,16 @@ impl KitSessionDocument for SceneDocument {
     /// A draft's changes taken in as one undo step of the person, whoever made the draft (KitModel
     /// M12a): the replica records it in the person's history (none for a `system` or `import`
     /// origin), and the labels name it [`MERGE_DRAFT_LABEL`] with what it wrote.
-    fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage, String> {
+    fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Damage), String> {
         let before = self.replica.model().stored.clone();
-        let damage = self.replica.merge_changes(bytes, origin).map_err(|error| error.to_string())?;
+        let (scope, damage) = self.replica.merge_changes(bytes, origin).map_err(|error| error.to_string())?;
         if damage != Damage::None {
-            if UndoScope::of(origin.kind).is_some() {
-                self.recorded_outside(UndoScope::Person, MERGE_DRAFT_LABEL, &before);
+            if let Some(scope) = scope {
+                self.recorded_outside(scope, MERGE_DRAFT_LABEL, &before);
             }
             self.replica_changed();
         }
-        Ok(damage)
+        Ok((scope, damage))
     }
 
     /// A snapshot's state written over the scene as one transaction of `origin` (a checkpoint

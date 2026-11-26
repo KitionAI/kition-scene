@@ -189,3 +189,55 @@ fn a_merge_and_a_restore_are_named_steps_of_the_person() {
     assert_eq!(redone["redone"], json!(kition_scene_kit::RESTORE_VERSION_LABEL));
     assert_eq!(exact(&doc), restored, "the redo gives back the restored state exactly");
 }
+
+/// An object-model batch (`model/batch`) is one step of the replica, its commands and raw writes
+/// included (an undo group): the labels keep one step for it, named "Batch Edit", by the replica's
+/// `undo_depth` and `in_undo_group`. Before, each command of the batch pushed a label of its own
+/// and a raw write none, so the labels drifted from the replica's steps: the undo of the batch
+/// was named by its last command and the next one by the command before it. Undo gives back the
+/// exact state before the batch and names it; the next undo is named by the step before it; redo
+/// gives the batch's state back exactly.
+#[test]
+fn a_model_batch_is_one_named_step_of_the_labels() {
+    use kition_kit::kdm::UndoScope;
+    use kition_kit::session::model::session_batch;
+    let mut doc = SceneDocument::create("Undo.kscene", 320, 180).unwrap();
+    let label = |doc: &SceneDocument, key: &str| doc.inspect().unwrap()[key].clone();
+    let depth = |doc: &SceneDocument| KitSessionDocument::session(doc).undo_depth(UndoScope::Person);
+    let names = |doc: &SceneDocument| doc.scene().objects.iter().map(|object| object.name.clone()).collect::<Vec<_>>();
+    doc.execute("object.addCube", json!({ "name": "A", "location": [3, 0, 0] })).unwrap();
+    let added = label(&doc, "undo");
+    assert!(added.is_string(), "{added}");
+    let (before, steps) = (exact(&doc), depth(&doc));
+
+    session_batch(
+        &mut doc,
+        &json!({ "ops": [
+            { "op": "command", "id": "object.addEmpty", "params": { "name": "B", "location": [0, 5, 0] } },
+            { "op": "command", "id": "object.translate", "params": { "objects": "A", "offset": [1, 0, 0] } },
+            { "op": "set", "target": "root", "field": "world.strength", "value": 2 }
+        ] }),
+        false,
+    )
+    .unwrap();
+    assert!(!KitSessionDocument::session(&doc).in_undo_group());
+    assert_eq!(depth(&doc), steps + 1, "the batch is one step of the replica");
+    assert!(names(&doc).contains(&"B".to_owned()));
+    assert_eq!(doc.scene().object_named("A").map(|object| object.location.x), Some(4.0));
+    let batched = exact(&doc);
+    assert_eq!(label(&doc, "undo"), json!(kition_scene_kit::MODEL_BATCH_LABEL));
+
+    let undone = doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(undone["undone"], json!(kition_scene_kit::MODEL_BATCH_LABEL), "the undo is named by the batch");
+    assert_eq!(exact(&doc), before, "the undo gives back the state before the batch exactly");
+    assert!(!names(&doc).contains(&"B".to_owned()));
+    assert_eq!(label(&doc, "undo"), added, "the next undo is named by the step before the batch");
+    assert_eq!(label(&doc, "redo"), json!(kition_scene_kit::MODEL_BATCH_LABEL));
+    let redone = doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(redone["redone"], json!(kition_scene_kit::MODEL_BATCH_LABEL));
+    assert_eq!(exact(&doc), batched, "the redo gives back the batch's state exactly");
+    doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    let undone = doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(undone["undone"], added, "then the step before the batch");
+    assert!(names(&doc).iter().all(|name| name != "A" && name != "B"), "{:?}", names(&doc));
+}

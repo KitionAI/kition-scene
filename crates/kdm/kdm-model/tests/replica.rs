@@ -44,7 +44,7 @@ fn edit(replica: &mut Replica, blobs: &mut MemoryBlobs, edit: impl FnOnce(&mut S
 
 /// The person's `live` replica and an agent's draft of it (a fork at its version, data model
 /// 6.6): the draft takes `drafted`, the person meanwhile `meanwhile`, and the person merges the
-/// draft as `KitSession::merge_changes` does: one change of the person's, then the repair.
+/// draft as `KitSession::merge_changes` does: one change of the person's, the repair in it.
 fn merge_draft(live: &mut Replica, blobs: &mut MemoryBlobs, drafted: impl FnOnce(&mut Scene), meanwhile: impl FnOnce(&mut Scene)) {
     let base = live.version();
     let mut draft = live.fork(ActorId::random()).unwrap();
@@ -54,8 +54,10 @@ fn merge_draft(live: &mut Replica, blobs: &mut MemoryBlobs, drafted: impl FnOnce
     for (hash, bytes) in draft_blobs.0 {
         blobs.0.entry(hash).or_insert(bytes);
     }
-    live.merge_changes(&draft.export_changes(&base).unwrap(), &Origin::agent("agent:test")).unwrap();
-    live.transact(&Origin::system("repair"), |tx| Ok(kition_scene_kdm::repair::repair(tx).unwrap())).unwrap();
+    live.merge_changes_repaired(&draft.export_changes(&base).unwrap(), &Origin::agent("agent:test"), |tx, _| {
+        kition_scene_kdm::repair::repair(tx).map(drop)
+    })
+    .unwrap();
 }
 
 #[test]

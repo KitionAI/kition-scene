@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-batch-undo-labels
+feature: scene.edit.history
+intent: >-
+  An object-model batch (model/batch) of two commands and a raw write is one undo step of the
+  replica, and the kit's undo labels keep one step for it, named "Batch Edit" (kition-sdk
+  undo_depth and in_undo_group). Undo is named by the batch and gives back the exact state
+  before it (the replica's state hash and the engine's view), the next undo is named by the step
+  before the batch, and redo gives the batch's state back exactly. Before, each command of the
+  batch pushed a label and the raw write none, so the labels drifted from the replica's steps.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+      filter: a_model_batch_is_one_named_step_of_the_labels
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 600

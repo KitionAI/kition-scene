@@ -23,6 +23,10 @@ await context.addInitScript((setting) => window.localStorage.setItem('kition.sce
 const page = await context.newPage()
 const errors = []
 page.on('pageerror', (error) => errors.push(error.message))
+// What the pages said, printed when the document does not open (on a runner nothing else shows why).
+const said = []
+page.on('console', (message) => said.push(`${message.type()}: ${message.text()}`))
+page.on('pageerror', (error) => said.push(`pageerror: ${error.message}\n${error.stack ?? ''}`))
 const until = async (check, message, timeout = 15000) => {
   const end = Date.now() + timeout
   while (Date.now() < end) {
@@ -38,7 +42,11 @@ const turned = (a, b) => ((((a - b) % 360) + 540) % 360) - 180
 
 try {
   await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/dev.html`)
-  await page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
+  await page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 }).catch(async (error) => {
+    console.log(`status: ${await page.evaluate(() => document.getElementById('status')?.textContent).catch(() => '?')}`)
+    console.log(said.slice(-60).join('\n'))
+    throw error
+  })
   const kit = page.frameLocator('#kit')
   const frame = page.frames().find((item) => item.url().includes('index.html'))
   const viewport = kit.getByTestId('scene-viewport')

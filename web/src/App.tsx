@@ -85,7 +85,33 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // A key pressed while the tools were busy (a pointer event in flight) comes back here once they
   // are done: it runs the command or picks the tool it would have, so no key is lost.
   const deferredKey = useRef<(key: string, shift: boolean) => void>(() => {})
-  const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', onDeferredKey: (key, shift) => deferredKey.current(key, shift) })
+  // Whether a pointer is down: a drag, a stroke or a gesture Escape takes back.
+  const pointerHeld = useRef(false)
+  useEffect(() => {
+    const down = () => (pointerHeld.current = true)
+    const up = () => (pointerHeld.current = false)
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
+    return () => {
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
+    }
+  }, [])
+  const toolsRef = useRef<ReturnType<typeof useEngineTools> | null>(null)
+  const tools = useEngineTools(session.tool, doc != null, change, {
+    initial: 'select',
+    onDeferredKey: (key, shift) => deferredKey.current(key, shift),
+    // The tools' Escape takes back a drag or a stroke, ends the knife's cut and leaves a text's
+    // typing; any other Escape is the frame's (it leaves Focus), also while an event (the stage
+    // resized by Focus) is still on its way to the engine.
+    escapable: () => {
+      const current = toolsRef.current
+      return current != null && (current.wantsText || pointerHeld.current || current.active === 'knife')
+    },
+  })
+  toolsRef.current = tools
   const canvas = useRef<KitCanvasHandle>(null)
   // A text's edit mode takes typed text: the tools answer whether they want it once the mode
   // changes, however it changed (Tab, the panel, an agent).

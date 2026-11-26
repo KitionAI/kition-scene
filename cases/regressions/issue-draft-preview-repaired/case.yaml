@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-draft-preview-repaired
+feature: scene.edit.history
+intent: >-
+  A draft's preview is what accepting it gives, the scene's repair included: an agent's draft
+  parents the cube to the light while the person deletes the light, and the merge's repair clears
+  the cube's dangling parent. The preview's merged state equals the state after the merge, its
+  comparison is what the merge changed (also through the engine's compareChanges), and the
+  preview changes nothing. Before (kition-sdk 68dd08b) the preview showed the unrepaired merge,
+  the cube parented to a deleted object. One Undo gives back the exact state before the merge.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/undo_premises.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: undo_premises
+      filter: a_drafts_preview_is_the_repaired_merge
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 600

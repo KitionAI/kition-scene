@@ -241,3 +241,46 @@ fn a_model_batch_is_one_named_step_of_the_labels() {
     assert_eq!(undone["undone"], added, "then the step before the batch");
     assert!(names(&doc).iter().all(|name| name != "A" && name != "B"), "{:?}", names(&doc));
 }
+
+/// A draft's preview runs the scene's repair, as accepting the draft does: the agent parents the
+/// cube to the light while the person deletes the light (the draft writes only the cube, so the
+/// merge applies, rule D8), and the repair clears the cube's dangling parent. The preview's merged
+/// state is the state after the merge, its comparison what the merge changed, the engine's
+/// `compareChanges` answers that comparison, and the preview changes nothing. Before (kition-sdk
+/// 68dd08b) the preview was the unrepaired merge, with the cube's parent naming a deleted object.
+/// One Undo gives back the exact state before the merge, one Redo the repaired state.
+#[test]
+fn a_drafts_preview_is_the_repaired_merge() {
+    use kition_kit::session::{__compare_changes, __export_changes, __snapshot};
+    let mut doc = SceneDocument::create("Preview.kscene", 320, 180).unwrap();
+    let agent = Origin::agent("agent:test");
+    let base = KitSessionDocument::session(&doc).version();
+    let mut draft = SceneDocument::open_with_replica("Preview.kscene", &[], &__snapshot(&doc).unwrap(), &doc.blobs_bundle()).unwrap();
+    draft.execute_as("object.parent", json!({ "objects": ["Cube"], "parent": "Light" }), &agent).unwrap();
+    assert!(draft.scene().object_named("Cube").unwrap().parent.is_some(), "the control: the draft parents the cube");
+    let changes = __export_changes(&draft, &base.encode()).unwrap();
+    doc.execute("edit.delete", json!({ "objects": "Light" })).unwrap();
+    doc.add_blobs(&draft.blobs_bundle()).unwrap();
+
+    let session = KitSessionDocument::session(&doc);
+    let (version, before) = (session.version(), exact(&doc));
+    let unrepaired = session.replica().merged_state(&changes).unwrap();
+    let preview = session.merged_state(&changes).unwrap();
+    let compared = session.compare_changes(&changes).unwrap().to_json();
+    let engine: Value = serde_json::from_str(&__compare_changes(&doc, &changes).unwrap()).unwrap();
+    assert_eq!(engine, compared, "compareChanges answers the repaired comparison");
+    assert_ne!(preview, unrepaired, "the control: the repair changes this merge");
+    assert_eq!((KitSessionDocument::session(&doc).version(), exact(&doc)), (version.clone(), before.clone()), "a preview changes nothing");
+
+    KitSessionDocument::merge_changes(&mut doc, &changes, &agent).unwrap();
+    assert!(doc.scene().object_named("Light").is_none());
+    assert_eq!(doc.scene().object_named("Cube").unwrap().parent, None, "the repair cleared the dangling parent");
+    let session = KitSessionDocument::session(&doc);
+    assert_eq!(session.replica().state_json().unwrap(), preview, "the preview is the merge");
+    assert_eq!(session.replica().diff_since(&version).unwrap().to_json(), compared, "the comparison is what the merge changed");
+    let merged = exact(&doc);
+    doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(exact(&doc), before, "one undo: the exact state before the merge");
+    doc.execute("edit.redo", json!({ "scope": "person" })).unwrap();
+    assert_eq!(exact(&doc), merged, "one redo: the repaired state");
+}

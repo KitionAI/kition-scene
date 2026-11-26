@@ -261,8 +261,8 @@ fn groups_put_into_each_other_by_a_merge_resolve() {
 }
 
 /// A node listed twice in its group (a state only a file written by another program can hold:
-/// a merge refuses two insertions of one item, rule D6) keeps its first place when the repair
-/// runs.
+/// a merge takes one item both sides inserted at one place as one insertion and refuses it at two
+/// places, rule D6) keeps its first place when the repair runs.
 #[test]
 fn repair_keeps_the_first_place_of_a_node_listed_twice() {
     let (scene, group, _) = with_group();

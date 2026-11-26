@@ -259,7 +259,8 @@ fn repair_clears_what_a_merge_left_dangling() {
 }
 
 /// A record listed twice in the scene's objects (a state only a file written by another program
-/// can hold: a merge refuses two insertions of one item, rule D6, and minted ids never meet) keeps
+/// can hold: a merge takes one item both sides inserted at one place as one insertion and refuses
+/// it at two places, rule D6, and minted ids never meet) keeps
 /// its first place when the repair runs (after the next undo, redo, merge or import).
 #[test]
 fn repair_keeps_the_first_place_of_a_record_listed_twice() {

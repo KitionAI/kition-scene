@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-pivot-point
+feature: scene.editor.transform-tools
+intent: >-
+  transform.set's pivot point sets what a rotation turns about: the 3D cursor, each object's own
+  origin (individual origins), the active object's origin, the median.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N14 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: cursor
+      filter: rotations_turn_about_the_pivot_point
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-snapping
+feature: scene.editor.transform-tools
+intent: >-
+  With snapping on, a move snaps the moved selection's nearest point onto the vertex or the
+  surface under the pointer (kept to an axis, only that axis's part counts), Ctrl turns it off
+  while held, increments step by 1 m, and Shift+Tab during the move turns it off for the next one
+  too.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N14 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: cursor
+      filter: a_move_snaps_to_a_vertex_a_face_and_steps_with_increments
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

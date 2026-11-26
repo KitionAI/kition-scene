@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-cursor-view-state
+feature: scene.editor.transform-tools
+intent: >-
+  cursor.set puts the 3D cursor at a location or on the surface under a viewport pixel (over
+  nothing, on the plane through the cursor facing the view); cursor.reset, cursor.moveToSelected
+  and cursor.moveToActive move it; it is kept in the view state and is no undo step. An agent's
+  object.add command without a location still adds at the origin.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N4 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: cursor
+      filter: the_cursor_is_view_state_and_lands_on_the_surface_under_a_point
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

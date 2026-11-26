@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-3d-cursor
+feature: scene.editor.transform-tools
+intent: >-
+  Shift+right click puts the 3D cursor on the surface under the pointer (over nothing, on the
+  plane through the cursor facing the view) and opens no context menu; an object added from the
+  menus lands at the cursor, selected and active; Shift+S offers Cursor to World Origin, Cursor to
+  Selected, Cursor to Active and Selection to Cursor (one undo step); Shift+C puts the cursor back
+  at the origin and frames everything. The cursor is the person's view state: no undo step.
+  Before, there was no cursor and every new object appeared at the world origin, inside what was
+  there.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N4 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/gizmo.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/gizmo.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-transform-orientation
+feature: scene.editor.transform-tools
+intent: >-
+  transform.set's orientation is the first an axis key keeps to (local: the object's own axes,
+  pressed again the global ones; view: the view's), the gizmo's axes follow it, and in edit mode a
+  handle's drag in the normal orientation keeps to the selected faces' normal.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N14 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: cursor
+      filter: axis_keys_follow_the_orientation_and_the_gizmo_its_axes
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

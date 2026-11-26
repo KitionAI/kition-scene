@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-pivot-orientation-snap
+feature: scene.editor.transform-tools
+intent: >-
+  `.` opens the pivot point menu and `,` the transform orientation menu (also as drop-downs at the
+  viewport's top left); with the 3D cursor as pivot R Z 90 turns the cube about the cursor; with
+  the View orientation X keeps a move to the view's X first and the global X pressed again;
+  Shift+Tab turns snapping on, and a move snaps to the nearest vertex, the surface or an edge
+  under the pointer (a small ring marks it), Ctrl turning it off while held. Before, the pivot was
+  always the median, the axes always global, and Ctrl only stepped.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N14 (plan scene-usable-by-hand, phase 5)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/gizmo.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/gizmo.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

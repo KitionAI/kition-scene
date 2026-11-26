@@ -450,6 +450,17 @@ fn describe(id: &str) -> &'static str {
         "particleEdit.brush" => "Sets the grooming brush (comb, cut, length, puff, smooth, …) and answers it.",
         "particleEdit.stroke" => "Grooms hair along `points` with a brush.",
         "particleEdit.reset" => "Deletes the grooming edits of the hair system.",
+        "modal.begin" => {
+            "Starts an interactive move, rotation or scale of the selection that follows the pointer (`modal.pointer`) without a button held; no undo step until `modal.confirm`."
+        }
+        "modal.pointer" => "Moves the transform under way to where the pointer is now, with Shift's slowing and Ctrl's steps; answers the transform.",
+        "modal.key" => {
+            "Gives the transform under way a key: X, Y or Z keeps it to an axis (Shift: a plane), digits type its value, G, R and S switch it."
+        }
+        "modal.wheel" => "Gives the transform under way the wheel: with proportional editing it resizes the radius; answers whether it took it.",
+        "modal.confirm" => "Ends the transform under way as it is now, as one undo step named after it (none when it changed nothing).",
+        "modal.cancel" => "Ends the transform under way and puts everything back as it was, leaving no undo step (Shift+D's copies stay).",
+        "modal.state" => "Answers the transform under way: what it does, its header text, its axis, typed numbers and the pivot.",
         "presence.local" => "Shares this person's pointer and selection with collaborators; answers what it shares.",
         "presence.peers" => "Tells the editor where other people's pointers and selections are, for drawing them.",
         "presence.place" => "Answers where to draw other people's pointers in the viewport.",
@@ -616,6 +627,15 @@ fn output(id: &str) -> Option<Value> {
             r#"{"type":"object","additionalProperties":true,"properties":{"object":{"type":"integer"},"weightPaint":{"type":"boolean"}}}"#
         }
         "mode.sculpt" => r#"{"type":"object","additionalProperties":true,"properties":{"mode":{"type":"string"},"object":{"type":"integer"}}}"#,
+        "modal.begin" | "modal.pointer" | "modal.key" | "modal.wheel" | "modal.state" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"kind":{"type":"string","enum":["move","rotate","scale"]},"header":{"type":"string"},"changed":{"type":"boolean"},"taken":{"type":"boolean"}}}"#
+        }
+        "modal.confirm" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"confirmed":{"type":"boolean"}}}"#
+        }
+        "modal.cancel" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"cancelled":{"type":"boolean"}}}"#
+        }
         "presence.local" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"selection":{"type":"array","items":{"type":"string"}},"viewport":{"type":"object","additionalProperties":true,"properties":{}}}}"#
         }

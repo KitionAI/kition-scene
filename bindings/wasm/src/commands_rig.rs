@@ -18,8 +18,9 @@ use kition_scene_model::{Id, Modifier, ModifierKind, ObjectData, Property, Scene
 use kition_scene_raster::BoneOverlay;
 use serde_json::{Value, json};
 
+use crate::modal::{Change, Kind, Started};
 use crate::params::{self, bad, schema as s};
-use crate::{Mode, SceneDocument, Step};
+use crate::{Mode, SceneDocument};
 
 /// An armature in edit or pose mode.
 #[derive(Debug, Clone, PartialEq)]
@@ -29,23 +30,8 @@ pub struct RigSession {
     pub pose: bool,
     pub selected: BTreeSet<String>,
     pub active: Option<String>,
-    drag: Option<RigDrag>,
-}
-
-#[derive(Debug, Clone)]
-struct RigDrag {
-    start: (f64, f64),
-    pivot: Vec3,
-    pivot_screen: (f32, f32),
-    before: Box<Step>,
-    moved: bool,
-    marquee: bool,
-}
-
-impl PartialEq for RigDrag {
-    fn eq(&self, other: &Self) -> bool {
-        self.start == other.start && self.moved == other.moved
-    }
+    /// Where the Select tool's box was pressed, while it is dragged.
+    marquee: Option<(f64, f64)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -543,9 +529,9 @@ fn set_mode(doc: &mut SceneDocument, object: Id, pose: Option<bool>) {
         // Toggling edit mode: from object mode into edit mode; from edit or pose back out.
         None => match current {
             Some(_) => None,
-            None => Some(RigSession { object, pose: false, selected: BTreeSet::new(), active: None, drag: None }),
+            None => Some(RigSession { object, pose: false, selected: BTreeSet::new(), active: None, marquee: None }),
         },
-        Some(true) => Some(RigSession { object, pose: true, selected: BTreeSet::new(), active: None, drag: None }),
+        Some(true) => Some(RigSession { object, pose: true, selected: BTreeSet::new(), active: None, marquee: None }),
         Some(false) => None,
     };
     doc.session.editor.active = Some(object);
@@ -1384,7 +1370,7 @@ fn pick(doc: &mut SceneDocument, start: (f64, f64), end: (f64, f64), toggle: boo
 }
 
 /// The world-space centre of the selected bones (heads in pose mode; heads and tails in edit mode).
-fn pivot(doc: &SceneDocument, rig: &RigSession) -> Option<Vec3> {
+pub(crate) fn pivot(doc: &SceneDocument, rig: &RigSession) -> Option<Vec3> {
     let points: Vec<Vec3> = bone_segments(doc, rig)
         .into_iter()
         .filter(|(name, _, _)| rig.selected.contains(name))
@@ -1393,116 +1379,68 @@ fn pivot(doc: &SceneDocument, rig: &RigSession) -> Option<Vec3> {
     (!points.is_empty()).then(|| points.iter().copied().sum::<Vec3>() / points.len() as f32)
 }
 
-/// A world-space change of the drag: what it does to a point, as a rotation about the view axis,
-/// a move, or a scale about the pivot.
-enum Gesture {
-    Move(Vec3),
-    Rotate(Mat3),
-    Scale(f32),
-}
-
-fn gesture(doc: &SceneDocument, tool: &str, drag: &RigDrag, at: (f64, f64), shift: bool) -> Option<(Gesture, String)> {
-    let projector = projector(doc);
-    let fine = if shift { 0.1 } else { 1.0 };
-    let (dx, dy) = ((at.0 - drag.start.0) as f32 * fine, (at.1 - drag.start.1) as f32 * fine);
-    let (sx, sy) = drag.pivot_screen;
-    let depth = projector.to_screen(projector.view_projection() * drag.pivot.extend(1.0)).z;
-    match tool {
-        "move" => {
-            let delta = projector.unproject(sx + dx, sy + dy, depth) - projector.unproject(sx, sy, depth);
-            Some((Gesture::Move(delta), format!("D: {:.3}  {:.3}  {:.3} m", delta.x, delta.y, delta.z)))
-        }
-        "rotate" => {
-            let from = (drag.start.1 as f32 - sy).atan2(drag.start.0 as f32 - sx);
-            let to = (at.1 as f32 - sy).atan2(at.0 as f32 - sx);
-            let angle = -(to - from) * fine;
-            let axis = if projector.perspective {
-                (projector.eye() - drag.pivot).normalize_or_zero()
-            } else {
-                Mat3::from_mat4(projector.view.inverse()) * Vec3::Z
-            };
-            Some((Gesture::Rotate(Mat3::from_axis_angle(axis, angle)), format!("Rotation: {:.1}°", angle.to_degrees())))
-        }
-        "scale" => {
-            let from = (drag.start.0 as f32 - sx).hypot(drag.start.1 as f32 - sy).max(1.0);
-            let to = (at.0 as f32 - sx).hypot(at.1 as f32 - sy);
-            let factor = 1.0 + (to / from - 1.0) * fine;
-            Some((Gesture::Scale(factor), format!("Scale: {factor:.3}")))
-        }
-        _ => None,
-    }
-}
-
 fn orthonormal(matrix: Mat3) -> Mat3 {
     let x = matrix.x_axis.normalize_or_zero();
     let y = (matrix.y_axis - x * x.dot(matrix.y_axis)).normalize_or_zero();
     Mat3::from_cols(x, y, x.cross(y))
 }
 
-/// Applies a drag to the bones, from the state before it began.
-fn apply(doc: &mut SceneDocument, rig: &RigSession, drag: &RigDrag, gesture: &Gesture) {
-    let mut scene = drag.before.scene.clone();
-    let Ok(world) = scene.world_matrix(rig.object) else { return };
+/// The transform under way (`modal.rs`) applied to an armature's `selected` bones, from the
+/// armature as it was (`original`): in edit mode their heads and tails go where `change` takes
+/// them; in pose mode their pose moves, turns or scales in each bone's own frame.
+pub(crate) fn transform_bones(doc: &mut SceneDocument, object: Id, original: &ObjectData, pose: bool, selected: &BTreeSet<String>, change: &Change) {
+    let Ok(world) = doc.scene.world_matrix(object) else { return };
     let inverse = world.inverse();
-    let Some(armature) = armature_mut(&mut scene, rig.object) else { return };
-    if rig.pose {
+    let Ok(target) = doc.scene.object_mut(object) else { return };
+    target.data = original.clone();
+    let ObjectData::Armature(armature) = &mut target.data else { return };
+    if pose {
         let poses = armature.pose_matrices();
-        for bone in armature.bones.iter_mut().filter(|bone| rig.selected.contains(&bone.name)) {
-            let Some(pose) = poses.get(&bone.name) else { continue };
+        for bone in armature.bones.iter_mut().filter(|bone| selected.contains(&bone.name)) {
+            let Some(posed) = poses.get(&bone.name) else { continue };
             // The bone's frame before its own pose: world × armature pose × own pose⁻¹.
-            let base = world * *pose * bone.pose.matrix(bone.connected).inverse();
-            match gesture {
-                Gesture::Move(delta) => {
+            let base = world * *posed * bone.pose.matrix(bone.connected).inverse();
+            let frame = orthonormal(Mat3::from_mat4(base));
+            match change.kind {
+                Kind::Move => {
                     if !bone.connected {
-                        bone.pose.location += base.inverse().transform_vector3(*delta);
+                        bone.pose.location += base.inverse().transform_vector3(change.offset);
                     }
                 }
-                Gesture::Rotate(rotation) => {
-                    let frame = orthonormal(Mat3::from_mat4(base));
-                    let turned = frame.transpose() * *rotation * frame * euler_matrix(bone.pose.rotation);
+                Kind::Rotate => {
+                    let turned = frame.transpose() * change.linear * frame * euler_matrix(bone.pose.rotation);
                     bone.pose.rotation = matrix_euler(orthonormal(turned));
                 }
-                Gesture::Scale(factor) => bone.pose.scale *= *factor,
+                Kind::Scale => {
+                    // The scale along the bone's own axes.
+                    let own = frame.transpose() * change.linear * frame;
+                    bone.pose.scale *= Vec3::new(own.x_axis.x, own.y_axis.y, own.z_axis.z);
+                }
             }
         }
     } else {
-        let pivot = inverse.transform_point3(drag.pivot);
-        let change = |point: Vec3| -> Vec3 {
-            match gesture {
-                Gesture::Move(delta) => point + inverse.transform_vector3(*delta),
-                Gesture::Rotate(rotation) => {
-                    let local = Mat3::from_mat4(inverse) * *rotation * Mat3::from_mat4(world);
-                    pivot + local * (point - pivot)
-                }
-                Gesture::Scale(factor) => pivot + (point - pivot) * *factor,
-            }
-        };
-        let moving_heads: Vec<(String, Option<String>, bool)> = armature
-            .bones
-            .iter()
-            .filter(|bone| rig.selected.contains(&bone.name))
-            .map(|bone| (bone.name.clone(), bone.parent.clone(), bone.connected))
-            .collect();
-        for bone in armature.bones.iter_mut().filter(|bone| rig.selected.contains(&bone.name)) {
-            bone.head = change(bone.head);
-            bone.tail = change(bone.tail);
+        let moved = |point: Vec3| inverse.transform_point3(change.point(world.transform_point3(point)));
+        let connected: Vec<Option<String>> =
+            armature.bones.iter().filter(|bone| selected.contains(&bone.name) && bone.connected).map(|bone| bone.parent.clone()).collect();
+        for bone in armature.bones.iter_mut().filter(|bone| selected.contains(&bone.name)) {
+            bone.head = moved(bone.head);
+            bone.tail = moved(bone.tail);
         }
         // A connected bone moved without its parent takes the parent's tail along.
-        for (_, parent, connected) in &moving_heads {
-            if let (true, Some(parent)) = (*connected, parent)
-                && !rig.selected.contains(parent)
-                && let Some(parent) = armature.bone_mut(parent)
+        for parent in connected.into_iter().flatten() {
+            if !selected.contains(&parent)
+                && let Some(parent) = armature.bone_mut(&parent)
             {
-                parent.tail = change(parent.tail);
+                parent.tail = moved(parent.tail);
             }
         }
         follow_connections(armature);
     }
-    doc.scene = scene;
-    doc.touched();
 }
 
-/// The armature mode's handling of a pointer event, or `None` when no armature mode is on.
+/// The armature mode's handling of a pointer event, or `None` when no armature mode is on: the
+/// Select tool picks and boxes bones; Move, Rotate and Scale start the transform on a press (the
+/// bone under the pointer first, when none is selected), which runs until the release.
 pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Option<ToolResponse> {
     let rig = doc.session.rig.clone()?;
     let at = (event.x, event.y);
@@ -1516,66 +1454,31 @@ pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Opti
     let idle = |busy: bool| ToolResponse { cursor: cursor.into(), busy, ..Default::default() };
     match event.action {
         PointerAction::Down => {
-            let selecting = tool == "select" || !["move", "rotate", "scale"].contains(&tool);
-            if !selecting && rig.selected.is_empty() {
-                pick(doc, at, at, false, false);
+            if let Some(kind) = Kind::parse(tool) {
+                if rig.selected.is_empty() {
+                    pick(doc, at, at, false, false);
+                }
+                let _ = doc.modal_begin(kind, Some(at), Started::Press { select: false }, None, false);
+                return Some(idle(true));
             }
-            let rig = doc.session.rig.clone()?;
-            let pivot = pivot(doc, &rig).unwrap_or(Vec3::ZERO);
-            let screen = to_screen(&projector(doc), pivot).unwrap_or((0.0, 0.0));
-            let drag = RigDrag {
-                start: at,
-                pivot,
-                pivot_screen: screen,
-                before: Box::new(doc.step(if selecting { "Select" } else { "Transform Bones" })),
-                moved: false,
-                marquee: selecting,
-            };
             if let Some(session) = doc.session.rig.as_mut() {
-                session.drag = Some(drag);
+                session.marquee = Some(at);
             }
             Some(idle(true))
         }
         PointerAction::Drag => {
-            let drag = rig.drag.clone()?;
-            if drag.marquee {
-                return Some(ToolResponse {
-                    overlays: vec![ToolOverlay::Marquee { x0: drag.start.0, y0: drag.start.1, x1: at.0, y1: at.1 }],
-                    cursor: cursor.into(),
-                    busy: true,
-                    ..Default::default()
-                });
-            }
-            let (change, status) = gesture(doc, tool, &drag, at, event.mods.shift)?;
-            apply(doc, &rig, &drag, &change);
-            if let Some(session) = doc.session.rig.as_mut()
-                && let Some(drag) = session.drag.as_mut()
-            {
-                drag.moved = true;
-            }
+            let Some((x0, y0)) = rig.marquee else { return Some(idle(false)) };
             Some(ToolResponse {
-                overlays: vec![ToolOverlay::Measure { x: at.0, y: at.1, text: status }],
+                overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
                 cursor: cursor.into(),
                 busy: true,
                 ..Default::default()
             })
         }
         PointerAction::Up => {
-            let drag = doc.session.rig.as_mut().and_then(|session| session.drag.take())?;
-            if drag.marquee {
-                let boxed = (at.0 - drag.start.0).abs() > 4.0 || (at.1 - drag.start.1).abs() > 4.0;
-                pick(doc, drag.start, at, event.mods.shift, boxed);
-            } else if drag.moved && doc.scene != drag.before.scene {
-                if doc.scene.validate().is_ok() {
-                    // A refused change was put back by `committed`; the picture follows.
-                    let _ = doc.committed(*drag.before);
-                } else {
-                    let rig = doc.session.rig.clone();
-                    doc.restore(*drag.before);
-                    doc.session.rig = rig;
-                    doc.touched();
-                }
-            }
+            let Some(start) = doc.session.rig.as_mut().and_then(|session| session.marquee.take()) else { return Some(idle(false)) };
+            let boxed = (at.0 - start.0).abs() > 4.0 || (at.1 - start.1).abs() > 4.0;
+            pick(doc, start, at, event.mods.shift, boxed);
             Some(idle(false))
         }
         PointerAction::DoubleClick => {
@@ -1586,14 +1489,7 @@ pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Opti
     }
 }
 
-/// Escape during a bone drag puts everything back.
+/// Escape during a box of the Select tool drops it.
 pub fn cancel(doc: &mut SceneDocument) -> bool {
-    let Some(drag) = doc.session.rig.as_mut().and_then(|session| session.drag.take()) else { return false };
-    if drag.moved {
-        let rig = doc.session.rig.clone();
-        doc.restore(*drag.before);
-        doc.session.rig = rig;
-        doc.touched();
-    }
-    true
+    doc.session.rig.as_mut().and_then(|session| session.marquee.take()).is_some()
 }

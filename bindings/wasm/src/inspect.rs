@@ -21,8 +21,16 @@ fn color(value: [f32; 4]) -> Value {
 }
 
 /// The document as JSON.
+/// An object's mesh after its modifiers, from the viewport's cache: evaluated again only when the
+/// object or what it depends on changed (an inspect after every pointer event would otherwise
+/// evaluate every modifier of the scene each time).
+fn evaluated(doc: &SceneDocument, object: &kition_scene_model::Object) -> Option<std::sync::Arc<kition_scene_raster::Prepared>> {
+    doc.meshes.borrow_mut().get(&doc.scene, object, false)
+}
+
 pub fn inspect(doc: &SceneDocument) -> Value {
     let scene = &doc.scene;
+    let empty = kition_scene_model::Mesh::default();
     let objects: Vec<Value> = scene
         .objects
         .iter()
@@ -50,7 +58,8 @@ pub fn inspect(doc: &SceneDocument) -> Value {
             }
             match &object.data {
                 ObjectData::Mesh(mesh) => {
-                    let evaluated = object.evaluated_mesh(scene).unwrap_or_default();
+                    let prepared = evaluated(doc, object);
+                    let evaluated = prepared.as_deref().map_or(&empty, |prepared| &prepared.mesh);
                     let size = evaluated.bounds(Mat4::from_scale(object.scale)).size();
                     map.insert(
                         "mesh".into(),
@@ -84,23 +93,26 @@ pub fn inspect(doc: &SceneDocument) -> Value {
                     }
                 }
                 ObjectData::Curve(curve) => {
-                    let evaluated = object.evaluated_mesh(scene).unwrap_or_default();
-                    map.insert("curve".into(), crate::commands_curve::curve_json(curve, &evaluated));
+                    let prepared = evaluated(doc, object);
+                    let evaluated = prepared.as_deref().map_or(&empty, |prepared| &prepared.mesh);
+                    map.insert("curve".into(), crate::commands_curve::curve_json(curve, evaluated));
                     map.insert("dimensions".into(), triple(evaluated.bounds(Mat4::from_scale(object.scale)).size()));
                     if !object.modifiers.is_empty() {
                         map.insert("modifiers".into(), Value::Array(object.modifiers.iter().map(crate::commands::modifier_json).collect()));
                     }
                 }
                 ObjectData::Text(text) => {
-                    let evaluated = object.evaluated_mesh(scene).unwrap_or_default();
-                    map.insert("text".into(), crate::commands_curve::text_json(text, &evaluated));
+                    let prepared = evaluated(doc, object);
+                    let evaluated = prepared.as_deref().map_or(&empty, |prepared| &prepared.mesh);
+                    map.insert("text".into(), crate::commands_curve::text_json(text, evaluated));
                     map.insert("dimensions".into(), triple(evaluated.bounds(Mat4::from_scale(object.scale)).size()));
                     if !object.modifiers.is_empty() {
                         map.insert("modifiers".into(), Value::Array(object.modifiers.iter().map(crate::commands::modifier_json).collect()));
                     }
                 }
                 ObjectData::Surface(surface) => {
-                    let evaluated = object.evaluated_mesh(scene).unwrap_or_default();
+                    let prepared = evaluated(doc, object);
+                    let evaluated = prepared.as_deref().map_or(&empty, |prepared| &prepared.mesh);
                     // Each patch's grid, orders and resolutions; its control points are left out.
                     let patches = surface
                         .patches
@@ -265,6 +277,6 @@ pub fn inspect(doc: &SceneDocument) -> Value {
             "width": doc.session.width,
             "height": doc.session.height,
         },
-        "tool": doc.tool.describe(),
+        "tool": doc.tool_json(),
     })
 }

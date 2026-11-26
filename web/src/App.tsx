@@ -40,7 +40,9 @@ import { SculptToggle } from './Sculpt'
 import { RenderDialog } from './RenderDialog'
 import { UvEditor } from './UvEditor'
 import { useSceneViewState, type SceneViewState } from './viewState'
-import { toolGesture } from './gesture'
+import { TRANSFORM_MODES, toolGesture } from './gesture'
+import { modalTransform, type ModalKind } from './modal'
+import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
 import { focusEditor } from './NumberBox'
 
@@ -59,6 +61,22 @@ function encodeBase64(bytes: Uint8Array) {
   let binary = ''
   for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
   return btoa(binary)
+}
+
+/** The keys a transform under way takes, as `modal.key` names them, by the key's code. */
+const MODAL_KEYS: Record<string, string> = {
+  KeyX: 'x', KeyY: 'y', KeyZ: 'z', KeyC: 'c', KeyG: 'g', KeyR: 'r', KeyS: 's',
+  Period: '.', NumpadDecimal: '.', Minus: '-', NumpadSubtract: '-', Slash: '/', NumpadDivide: '/',
+  Backspace: 'Backspace', Tab: 'Tab',
+}
+
+/** What G, R and S start. */
+const MODAL_START: Record<string, ModalKind> = { KeyG: 'move', KeyR: 'rotate', KeyS: 'scale' }
+
+/** The key `modal.key` takes for `event`, or null. */
+function modalKey(event: Pick<KeyboardEvent, 'code'>) {
+  const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)
+  return digit ? digit[1] : (MODAL_KEYS[event.code] ?? null)
 }
 
 /** A shortcut without a modifier (Blender's single keys: X, A, E, Tab), which the frame leaves to the kit. */
@@ -127,13 +145,15 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // an agent's ai/run keeps an editor state of its own (C3b), so it cannot set the person's.
   useEffect(() => {
     if (!import.meta.env.DEV) return
-    const page = window as Window & { kitScene?: { run: (steps: Array<{ command: string; params?: Record<string, unknown> }>) => Promise<void>; state: () => unknown } }
+    const page = window as Window & { kitScene?: { run: (steps: Array<{ command: string; params?: Record<string, unknown> }>) => Promise<void>; state: () => unknown; engine: () => unknown } }
     page.kitScene = {
       run: async (steps) => {
         for (const step of steps) await latest.current.editor.run(step.command, step.params ?? {})
       },
       // The scene as the person's editor shows it now (a number field's preview included).
       state: () => latest.current.editor.session.state,
+      // The engine itself, for measuring what its calls cost.
+      engine: () => latest.current.editor.session.doc,
     }
     return () => {
       delete page.kitScene
@@ -254,7 +274,12 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   useEffect(() => {
     const keyDown = (event: globalThis.KeyboardEvent) => {
       if (event.target !== document.body && event.target !== document.documentElement) return
-      if (toolGesture.held) return
+      if (toolGesture.held || modalTransform.active) return
+      if (MODAL_START[event.code] || event.code === 'KeyD') {
+        latestStart.current(event)
+        document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
+        return
+      }
       if (!latestPlain.current(event)) return
       event.preventDefault()
       document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
@@ -264,7 +289,13 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }, [])
   // F12 renders (the engine's command answers the picture).
   const frameKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // While the left button holds a tool's gesture on the viewport (a move, a box), keys run no
+    // A transform under way (or a transform tool's press) takes the keys: Escape cancels it,
+    // Enter confirms it, axis letters, digits and the rest go to it, and no shortcut runs.
+    if (modalTransform.active || (toolGesture.held && toolGesture.transform)) {
+      modalKeyDown(event)
+      return
+    }
+    // While the left button holds a tool's gesture on the viewport (a box), keys run no
     // shortcut: X there deleted the object being moved. Escape still cancels the gesture.
     if (toolGesture.held && !['Escape', 'Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) {
       event.preventDefault()
@@ -272,6 +303,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       return
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    if (!typing && startKey(event)) return
     if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
       event.preventDefault()
       event.stopPropagation()
@@ -301,6 +333,61 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       event.currentTarget.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
     }
   }
+
+  /** A key during a transform. */
+  const modalKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = event.ctrlKey || event.metaKey
+    if (['Shift', 'Control', 'Meta'].includes(event.key)) {
+      modalTransform.modifiers(event.shiftKey, step)
+      return
+    }
+    // Alt lets the view's own keys and buttons through (Blender's Navigate).
+    if (event.key === 'Alt') return
+    // Cmd/Ctrl shortcuts (Undo, Save) still run: Undo ends the transform first, then undoes.
+    if (step && event.code !== 'Tab') return
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.key === 'Escape') modalTransform.cancel()
+    else if (event.key === 'Enter') modalTransform.confirm()
+    else {
+      const key = event.altKey || (step && event.code !== 'Tab') ? null : modalKey(event)
+      if (key) modalTransform.key(key, event.shiftKey, step)
+    }
+  }
+  const frameKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (modalTransform.active && ['Shift', 'Control', 'Meta'].includes(event.key)) modalTransform.modifiers(event.shiftKey, event.ctrlKey || event.metaKey)
+  }
+  /**
+   * The keys that start a transform where the pointer is: G, R and S (the tool they pick is
+   * still picked), Shift+D (copies, then moves them); and Alt+G, Alt+R, Alt+S clear the
+   * location, rotation and scale. Answers whether the key was taken whole.
+   */
+  const startKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'preventDefault' | 'stopPropagation'>) => {
+    const mode = state?.mode ?? 'object'
+    if (host.readOnly || !TRANSFORM_MODES.includes(mode) || event.metaKey || event.ctrlKey) return false
+    const kind = MODAL_START[event.code]
+    if (kind && !event.altKey && !event.shiftKey) {
+      modalTransform.begin(kind)
+      return false
+    }
+    if (event.code === 'KeyD' && event.shiftKey && !event.altKey && (mode === 'object' || mode === 'edit')) {
+      event.preventDefault()
+      event.stopPropagation()
+      modalTransform.begin('move', { duplicate: true })
+      return true
+    }
+    if (kind && event.altKey && !event.shiftKey && mode === 'object' && editor.enabled('object.transform') && (state?.selected.length ?? 0) > 0) {
+      event.preventDefault()
+      event.stopPropagation()
+      const cleared = kind === 'move' ? { location: [0, 0, 0] } : kind === 'rotate' ? { rotation: [0, 0, 0] } : { scale: [1, 1, 1] }
+      void editor.run('object.transform', cleared)
+      return true
+    }
+    return false
+  }
+  const latestStart = useRef(startKey)
+  latestStart.current = startKey
+  const modalActive = useModalActive()
 
   // The note stays a few seconds, or until the next change.
   useEffect(() => {
@@ -363,7 +450,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
               ? t('caretAt', { caret: state.caret })
             : t('objectsSelected', { selected: state.selected.length, count: state.objects.length })}
       </span>
-      {tools.status ? <span>{phrase(tools.status)}</span> : null}
+      {modalActive ? <ModalKeys t={t} /> : tools.status ? <span>{phrase(tools.status)}</span> : null}
       {note ? (
         <span className="scene-status-note" role="status" data-testid="scene-status-note">
           {note.text}
@@ -409,7 +496,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
 
   return (
     <KitEditorProvider editor={editor} tools={tools}>
-      <div className="scene-editor-root" onKeyDownCapture={frameKeyDown}>
+      <div className="scene-editor-root" onKeyDownCapture={frameKeyDown} onKeyUpCapture={frameKeyUp}>
         <EditorFrame
           tabs={tabs}
           defaultTab={DEFAULT_TAB}

@@ -10,8 +10,10 @@ import { useGpuViewport } from './GlViewport'
 import { RenderedViewport } from './RenderedViewport'
 import { orbit, pan, zoom } from './gl/camera'
 import { useColorScheme } from './colorScheme'
-import { toolGesture } from './gesture'
+import { TRANSFORM_MODES, TRANSFORM_TOOLS, toolGesture } from './gesture'
 import { useToolOverlay } from './ToolOverlay'
+import { modalTransform } from './modal'
+import { ModalHeader } from './ModalUi'
 
 /** Degrees the view turns per CSS pixel of an orbit drag. */
 const ORBIT_SPEED = 0.4
@@ -46,18 +48,34 @@ export function SceneViewport({
   const region = useRef<HTMLDivElement>(null)
   const viewMemory = useRef<RasterView | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
-  const latest = useRef({ editor, doc, info })
-  latest.current = { editor, doc, info }
-  // A drag of the engine's tools under way (left button on the canvas, not navigating): the wheel
-  // then resizes proportional editing's radius instead of zooming.
-  const toolDrag = useRef(false)
+  const tools = useKitTools()
+  const latest = useRef({ editor, doc, info, tool: tools?.active ?? null })
+  latest.current = { editor, doc, info, tool: tools?.active ?? null }
   // The GPU viewport, when it draws: navigation then moves its view at once and hands the engine
   // the result when the gesture ends.
   const gpu = useGpuViewport(region, info?.shading !== 'rendered')
   const gpuRef = useRef(gpu)
   gpuRef.current = gpu
-  // The tools' overlays over the GPU picture (the software picture, which carries them, is hidden).
-  useToolOverlay(region, gpu.active)
+  // The transform under way: the engine runs it; the page gives it the pointer, the right button
+  // and the wheel, draws its lines and shows its header.
+  const modal = modalTransform
+  modal.hooks = {
+    run: async (command, params, refresh) => {
+      const result = await latest.current.editor.session.run(command, params, null, { refresh })
+      return typeof result === 'string' ? result : null
+    },
+    invoke: async (name, ...args) => {
+      const open = latest.current.doc
+      return open ? open.invoke(name, ...args) : null
+    },
+    gpu: () => gpuRef.current.active,
+    adopt: (frame) => gpuRef.current.adopt(frame),
+  }
+  // The tools' overlays and the transform's lines over the picture.
+  useToolOverlay(region, gpu, modal)
+  // A change of the document may be the end of the transform (the tools confirm and cancel too).
+  const { change } = editor.session
+  useEffect(() => modal.sync(), [change, modal])
   const wheelCommit = useRef(0)
   // The document that was the viewport's size once: until then, the viewport is not ready.
   const [readyDoc, setReadyDoc] = useState<typeof doc>(null)
@@ -174,18 +192,22 @@ export function SceneViewport({
       event.stopPropagation()
       return true
     }
+    /** Where an event is in the document (device pixels from the canvas's top left). */
+    const documentPoint = (event: MouseEvent): [number, number] => {
+      const box = element.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1
+      return [(event.clientX - box.left) * dpr, (event.clientY - box.top) * dpr]
+    }
+    /** The pointer goes to the transform: one is under way, or a transform tool's press is held. */
+    const transforming = () => modal.active || (toolGesture.held && toolGesture.transform)
     const wheel = (event: WheelEvent) => {
       if (!(event.target instanceof HTMLCanvasElement)) return
       event.preventDefault()
       event.stopPropagation()
       if (!readyRef.current) return
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1)
-      const proportional = latest.current.info?.proportional
-      if (toolDrag.current && proportional) {
-        const radius = Math.max(1e-3, proportional.radius * Math.exp(-Math.max(-400, Math.min(400, delta)) * WHEEL_SPEED))
-        void latest.current.editor.session.run('mesh.proportional', { on: true, radius }).catch(() => undefined)
-        return
-      }
+      // The transform takes the wheel when it has a use for it (proportional editing's radius).
+      if (modal.active && modal.wheel(delta)) return
       const factor = Math.exp(Math.max(-400, Math.min(400, delta)) * WHEEL_SPEED * (event.ctrlKey ? 4 : 1))
       if (gpuRef.current.active) {
         gpuRef.current.move((view) => zoom(view, factor))
@@ -197,13 +219,25 @@ export function SceneViewport({
       schedule()
     }
     let drag: { x: number; y: number; pan: boolean; id: number } | null = null
+    // The right button cancelled a transform: the context menu it brings stays closed.
+    let cancelledMenu = false
     const down = (event: PointerEvent) => {
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
+      modal.pointer = documentPoint(event)
+      if (event.button === 2 && transforming()) {
+        // The right button cancels the transform (the canvas never gives it to the tools).
+        event.preventDefault()
+        event.stopPropagation()
+        cancelledMenu = true
+        modal.cancel()
+        return
+      }
       const orbit = event.button === 1 || (event.button === 0 && event.altKey)
       if (!orbit) {
         if (event.button === 0) {
-          toolDrag.current = true
+          const { info: shown, tool } = latest.current
           toolGesture.held = true
+          toolGesture.transform = TRANSFORM_TOOLS.includes(tool ?? '') && TRANSFORM_MODES.includes(shown?.mode ?? 'object')
         }
         return
       }
@@ -215,7 +249,18 @@ export function SceneViewport({
     }
     const move = (event: PointerEvent) => {
       if (!drag && unready(event)) return
-      if (!drag || event.pointerId !== drag.id) return
+      if (!drag) {
+        if (!(event.target instanceof HTMLCanvasElement) && !element.contains(event.target as Node)) return
+        const at = documentPoint(event)
+        modal.pointer = at
+        // During a transform the pointer drives it; the tools hear nothing of it.
+        if (transforming()) {
+          event.stopPropagation()
+          modal.move(at, event.shiftKey, event.ctrlKey || event.metaKey)
+        }
+        return
+      }
+      if (event.pointerId !== drag.id) return
       event.stopPropagation()
       const dx = event.clientX - drag.x
       const dy = event.clientY - drag.y
@@ -238,8 +283,8 @@ export function SceneViewport({
     }
     const up = (event: PointerEvent) => {
       if (event.button === 0) {
-        toolDrag.current = false
         toolGesture.held = false
+        toolGesture.transform = false
       }
       if (!drag && unready(event)) return
       if (!drag || event.pointerId !== drag.id) return
@@ -261,9 +306,31 @@ export function SceneViewport({
     element.addEventListener('mousedown', mouseDown, true)
     // A tool drag can end outside the viewport.
     const release = () => {
-      toolDrag.current = false
       toolGesture.held = false
+      toolGesture.transform = false
     }
+    // Outside the viewport the pointer still drives the transform a key started, and a press there
+    // confirms it.
+    const outsideMove = (event: PointerEvent) => {
+      if (!modal.active || element.contains(event.target as Node)) return
+      const at = documentPoint(event)
+      modal.pointer = at
+      modal.move(at, event.shiftKey, event.ctrlKey || event.metaKey)
+    }
+    const outsideDown = (event: PointerEvent) => {
+      if (!modal.active || element.contains(event.target as Node)) return
+      if (event.button === 2) modal.cancel()
+      else modal.confirm()
+    }
+    window.addEventListener('pointermove', outsideMove, true)
+    window.addEventListener('pointerdown', outsideDown, true)
+    const menu = (event: MouseEvent) => {
+      if (!cancelledMenu && !modal.active) return
+      cancelledMenu = false
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    element.addEventListener('contextmenu', menu, true)
     window.addEventListener('pointerup', release)
     window.addEventListener('pointercancel', release)
     return () => {
@@ -273,6 +340,9 @@ export function SceneViewport({
       element.removeEventListener('pointerup', up, true)
       element.removeEventListener('pointercancel', up, true)
       element.removeEventListener('mousedown', mouseDown, true)
+      element.removeEventListener('contextmenu', menu, true)
+      window.removeEventListener('pointermove', outsideMove, true)
+      window.removeEventListener('pointerdown', outsideDown, true)
       window.removeEventListener('pointerup', release)
       window.removeEventListener('pointercancel', release)
     }
@@ -302,7 +372,6 @@ export function SceneViewport({
     }
   }, [])
 
-  const tools = useKitTools()
   /**
    * Before the context menu opens, the engine's tools hear where the pointer is and the menu key:
    * an object there that is not selected becomes the selection, so the menu acts on it (a
@@ -352,6 +421,7 @@ export function SceneViewport({
           <IconButton icon={FocusIcon} label={p('Frame All')} onClick={() => void run('view.frameAll', {})} data-testid="scene-nav-view.frameAll" />
         </div>
       ) : null}
+      <ModalHeader />
       <RenderedViewport active={info?.shading === 'rendered'} />
       {info ? <WeightPaintControls info={info} /> : null}
       {info ? <SculptControls info={info} /> : null}

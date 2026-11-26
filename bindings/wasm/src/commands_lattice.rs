@@ -5,7 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use glam::{Mat3, Vec3};
+use glam::Vec3;
 use kition_kit::KitCommand;
 use kition_kit::tools::{PointerAction, ToolOverlay, ToolPointer, ToolResponse};
 use kition_scene_model::{Id, Lattice, LatticeInterpolation, ObjectData};
@@ -14,36 +14,20 @@ use serde_json::{Value, json};
 
 use crate::commands_curve::{ShapeSession, change, projector, to_screen};
 use crate::params::{self, bad, schema as s};
-use crate::{Mode, SceneDocument, Step};
+use crate::{Mode, SceneDocument};
 
 /// A lattice's points being edited.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LatticeEdit {
     pub object: Id,
     pub selected: BTreeSet<u32>,
-    drag: Option<LatticeDrag>,
+    /// Where the Select tool's box was pressed, while it is dragged.
+    marquee: Option<(f64, f64)>,
 }
 
 impl LatticeEdit {
     pub fn new(object: Id) -> Self {
-        Self { object, selected: BTreeSet::new(), drag: None }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct LatticeDrag {
-    start: (f64, f64),
-    before: Box<Step>,
-    original: Lattice,
-    pivot: Vec3,
-    pivot_screen: (f32, f32),
-    moved: bool,
-    marquee: bool,
-}
-
-impl PartialEq for LatticeDrag {
-    fn eq(&self, other: &Self) -> bool {
-        self.start == other.start && self.moved == other.moved
+        Self { object, selected: BTreeSet::new(), marquee: None }
     }
 }
 
@@ -462,7 +446,7 @@ fn points_at(doc: &SceneDocument, edit: &LatticeEdit, start: (f64, f64), end: (f
     found
 }
 
-fn pivot(doc: &SceneDocument, edit: &LatticeEdit) -> Option<Vec3> {
+pub(crate) fn pivot(doc: &SceneDocument, edit: &LatticeEdit) -> Option<Vec3> {
     let lattice = lattice_of(doc, edit.object)?;
     let world = doc.scene.world_matrix(edit.object).ok()?;
     let chosen: Vec<Vec3> =
@@ -470,7 +454,9 @@ fn pivot(doc: &SceneDocument, edit: &LatticeEdit) -> Option<Vec3> {
     (!chosen.is_empty()).then(|| chosen.iter().copied().sum::<Vec3>() / chosen.len() as f32)
 }
 
-/// The viewport tools in lattice edit mode (select, move, rotate, scale on points).
+/// The viewport tools in lattice edit mode: the Select tool picks and boxes points; Move, Rotate
+/// and Scale start the transform on a press (the point under the pointer first, when none is
+/// selected).
 pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> ToolResponse {
     let cursor = match tool {
         "move" => "move",
@@ -482,127 +468,51 @@ pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Tool
     let at = (event.x, event.y);
     match event.action {
         PointerAction::Down => {
-            let selecting = !["move", "rotate", "scale"].contains(&tool);
-            if !selecting && edit.selected.is_empty() {
-                let points = points_at(doc, &edit, at, at);
-                if let Some(edit) = edited_mut(doc) {
-                    edit.selected = points;
+            if let Some(kind) = crate::modal::Kind::parse(tool) {
+                if edit.selected.is_empty() {
+                    let points = points_at(doc, &edit, at, at);
+                    if let Some(edit) = edited_mut(doc) {
+                        edit.selected = points;
+                    }
                 }
+                let _ = doc.modal_begin(kind, Some(at), crate::modal::Started::Press { select: false }, None, false);
+                return idle(true);
             }
-            let Some(edit) = edited(doc).cloned() else { return idle(false) };
-            let Some(original) = lattice_of(doc, edit.object).cloned() else { return idle(false) };
-            let pivot = pivot(doc, &edit).unwrap_or(Vec3::ZERO);
-            let pivot_screen = to_screen(&projector(doc), pivot).unwrap_or((0.0, 0.0));
-            let drag = LatticeDrag {
-                start: at,
-                before: Box::new(doc.step(if selecting { "Select" } else { "Transform Points" })),
-                original,
-                pivot,
-                pivot_screen,
-                moved: false,
-                marquee: selecting,
-            };
             if let Some(edit) = edited_mut(doc) {
-                edit.drag = Some(drag);
+                edit.marquee = Some(at);
             }
-            doc.touched();
             idle(true)
         }
         PointerAction::Drag => {
-            let Some(mut drag) = edit.drag.clone() else { return idle(false) };
-            drag.moved = true;
-            if drag.marquee {
-                if let Some(edit) = edited_mut(doc) {
-                    edit.drag = Some(drag.clone());
-                }
-                let (x0, y0) = drag.start;
-                return ToolResponse {
-                    overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
-                    cursor: cursor.into(),
-                    busy: true,
-                    ..Default::default()
-                };
+            let Some((x0, y0)) = edit.marquee else { return idle(false) };
+            ToolResponse {
+                overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
+                cursor: cursor.into(),
+                busy: true,
+                ..Default::default()
             }
-            let Ok(world) = doc.scene.world_matrix(edit.object) else { return idle(true) };
-            let inverse = world.inverse();
-            let projector = projector(doc);
-            let fine = if event.mods.shift { 0.1 } else { 1.0 };
-            let (sx, sy) = drag.pivot_screen;
-            let (dx, dy) = ((at.0 - drag.start.0) as f32 * fine, (at.1 - drag.start.1) as f32 * fine);
-            let depth = projector.to_screen(projector.view_projection() * drag.pivot.extend(1.0)).z;
-            let pivot = drag.pivot;
-            let world_change: Box<dyn Fn(Vec3) -> Vec3> = match tool {
-                "move" => {
-                    let delta = projector.unproject(sx + dx, sy + dy, depth) - projector.unproject(sx, sy, depth);
-                    Box::new(move |point| point + delta)
-                }
-                "rotate" => {
-                    let angle = -(((at.1 as f32 - sy).atan2(at.0 as f32 - sx)) - ((drag.start.1 as f32 - sy).atan2(drag.start.0 as f32 - sx))) * fine;
-                    let axis = (projector.eye() - pivot).normalize_or_zero();
-                    let rotation = Mat3::from_axis_angle(if axis == Vec3::ZERO { Vec3::Z } else { axis }, angle);
-                    Box::new(move |point| pivot + rotation * (point - pivot))
-                }
-                _ => {
-                    let from = ((drag.start.0 as f32 - sx).hypot(drag.start.1 as f32 - sy)).max(1.0);
-                    let factor = 1.0 + ((at.0 as f32 - sx).hypot(at.1 as f32 - sy) / from - 1.0) * fine;
-                    Box::new(move |point| pivot + (point - pivot) * factor)
-                }
-            };
-            let mut lattice = drag.original.clone();
-            for index in &edit.selected {
-                if let Some(point) = lattice.points.get_mut(*index as usize) {
-                    *point = inverse.transform_point3(world_change(world.transform_point3(*point)));
-                }
-            }
-            if let Ok(object) = doc.scene.object_mut(edit.object) {
-                object.data = ObjectData::Lattice(lattice);
-            }
-            if let Some(edit) = edited_mut(doc) {
-                edit.drag = Some(drag);
-            }
-            doc.touched();
-            idle(true)
         }
         PointerAction::Up => {
-            let Some(mut edit) = edited(doc).cloned() else { return idle(false) };
-            let Some(drag) = edit.drag.take() else { return idle(false) };
-            if drag.marquee {
-                let points = points_at(doc, &edit, drag.start, at);
-                edit.selected = if event.mods.shift {
-                    if points.is_subset(&edit.selected) && !points.is_empty() {
-                        edit.selected.difference(&points).copied().collect()
-                    } else {
-                        edit.selected.union(&points).copied().collect()
-                    }
+            let Some(start) = edit.marquee else { return idle(false) };
+            let points = points_at(doc, &edit, start, at);
+            let selected = if event.mods.shift {
+                if points.is_subset(&edit.selected) && !points.is_empty() {
+                    edit.selected.difference(&points).copied().collect()
                 } else {
-                    points
-                };
-                doc.session.shape = Some(ShapeSession::Lattice(edit));
-                doc.touched();
-            } else {
-                doc.session.shape = Some(ShapeSession::Lattice(edit));
-                if drag.moved && doc.scene != drag.before.scene {
-                    if doc.scene.validate().is_ok() {
-                        let _ = doc.committed(*drag.before);
-                    } else {
-                        doc.restore(*drag.before);
-                        doc.touched();
-                    }
+                    edit.selected.union(&points).copied().collect()
                 }
-            }
+            } else {
+                points
+            };
+            doc.session.shape = Some(ShapeSession::Lattice(LatticeEdit { selected, marquee: None, ..edit }));
+            doc.touched();
             idle(false)
         }
         _ => idle(false),
     }
 }
 
-/// Escape during a lattice drag puts the points back; answers whether it did anything.
+/// Escape during a box of the Select tool drops it; answers whether there was one.
 pub fn cancel(doc: &mut SceneDocument) -> bool {
-    let Some(edit) = edited_mut(doc) else { return false };
-    let Some(drag) = edit.drag.take() else { return false };
-    if drag.moved && !drag.marquee {
-        doc.restore(*drag.before);
-    }
-    doc.touched();
-    true
+    edited_mut(doc).and_then(|edit| edit.marquee.take()).is_some()
 }

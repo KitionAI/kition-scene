@@ -39,6 +39,7 @@ mod files;
 mod formats;
 pub mod gl;
 mod inspect;
+mod modal;
 pub mod params;
 mod place;
 mod render;
@@ -254,6 +255,9 @@ pub struct SceneDocument {
     /// A number field's drag under way (`object.previewTransform`): the scene and selection as
     /// they were before it, put back when it ends or before any other change (never saved).
     field_preview: Option<Step>,
+    /// The transform under way (`modal.begin`): what it moves as it was, and how far it went
+    /// (never saved; the scene shows it, without an undo step, until it is confirmed).
+    modal: Option<modal::Modal>,
     /// The path-traced render under way (session state, never saved).
     trace: Option<kition_scene_trace::Tracer>,
     /// The progressive viewport, independent of the final render and never saved.
@@ -375,6 +379,7 @@ impl SceneDocument {
             meshes: RefCell::new(kition_scene_raster::MeshCache::new()),
             tool: ToolState::default(),
             field_preview: None,
+            modal: None,
             trace: None,
             viewport_trace: RefCell::default(),
             particles: RefCell::default(),
@@ -442,8 +447,9 @@ impl SceneDocument {
     /// this replica's ids to mint, and drops session state that no longer applies.
     fn view_from_replica(&mut self, frame: Option<i32>) {
         let frame = frame.unwrap_or(self.scene.animation.timeline.frame);
-        // The replica's scene replaces the view: a number field's preview is over.
+        // The replica's scene replaces the view: a number field's preview and a transform are over.
         self.field_preview = None;
+        self.modal = None;
         let mut scene = self.replica.model().stored.clone();
         let actor = self.replica.replica().actor();
         ids::allocate(self.replica.replica(), actor, &mut scene);
@@ -593,6 +599,8 @@ impl SceneDocument {
     /// took back together become one step on the other stack, named by the one taken back and
     /// writing what all of them wrote. So the labels stay in line with the replica's steps.
     fn step_history(&mut self, scope: UndoScope, undo: bool) -> Result<bool, String> {
+        // A transform under way ends first (an undo takes back steps, not a preview).
+        self.modal_cancel()?;
         let (outcome, _) =
             if undo { self.replica.undo_in_outcome(scope) } else { self.replica.redo_in_outcome(scope) }.map_err(|error| error.to_string())?;
         let labels = self.history.of(scope);
@@ -1241,6 +1249,13 @@ mod web {
         #[wasm_bindgen(js_name = glScene)]
         pub fn gl_scene(&self) -> String {
             self.0.gl_scene().to_string()
+        }
+
+        /// The transform under way, quickly (`modal.pointer`, `modal.key`, `modal.state` without
+        /// moving the revision): answers it as JSON, with the GPU viewport's frame when `frame`.
+        #[wasm_bindgen(js_name = modalStep)]
+        pub fn modal_step(&mut self, command: &str, params: &str, frame: bool) -> Result<String, JsError> {
+            self.0.modal_step(command, params, frame).map_err(|error| JsError::new(&error))
         }
 
         /// One object's geometry for the GPU viewport, as the viewport draws it.

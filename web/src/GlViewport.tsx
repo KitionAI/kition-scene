@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useKitEditor } from '@kition/sdk/editor'
 import { GlRenderer } from './gl/renderer'
 import { decodeGeometry, decodeWorld, type GlFrame } from './gl/protocol'
-import type { OrbitView } from './gl/camera'
+import { multiply, projection, viewMatrix, type OrbitView, type Vec3 } from './gl/camera'
 
 /**
  * `localStorage['kition.scene.gl']`: `'off'` keeps the software viewport (for comparing, and tests);
@@ -46,6 +46,12 @@ export type GpuViewport = {
    * it (at once when it draws nothing): what it shows then is the engine's state now.
    */
   settled: () => Promise<void>
+  /** Draws a frame the engine answered some other way (a transform's step). */
+  adopt: (frame: GlFrame) => void
+  /** Where a world point is in the picture as drawn now, in document pixels (null behind the eye). */
+  project: (point: Vec3) => [number, number] | null
+  /** Calls `listener` after each frame drawn (the view may have moved); answers how to stop. */
+  onDraw: (listener: () => void) => () => void
 }
 
 /** For tests and measurement: frames drawn, and whether the GPU viewport is on. */
@@ -90,7 +96,9 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     /** Callers of `settled` waiting for the next frame asked for, then for its drawing. */
     asking: Array<() => void>
     drawing: Array<() => void>
-  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, fetching: false, again: false, raf: 0, failed: !wanted(), asking: [], drawing: [] })
+    /** Who wants to know when a frame was drawn. */
+    drawn: Set<() => void>
+  }>({ renderer: null, canvas: null, frame: null, local: null, holding: false, fetching: false, again: false, raf: 0, failed: !wanted(), asking: [], drawing: [], drawn: new Set() })
   const probe = useRef<Probe>({ active: false, frames: 0, reason: null, lastFrameMs: 0 })
   const latest = useRef({ doc, editor, enabled })
   latest.current = { doc, editor, enabled }
@@ -136,6 +144,7 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
     }
     probe.current.frames += 1
     probe.current.lastFrameMs = performance.now() - started
+    for (const listener of s.drawn) listener()
   }
   const schedule = () => {
     if (!state.current.raf) state.current.raf = requestAnimationFrame(draw)
@@ -197,37 +206,10 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         // Who asked before this frame was asked for: let go once it is drawn.
         asked.push(...s.asking.splice(0))
         const frame = JSON.parse(await open.invoke<string>('glScene')) as GlFrame
-        const renderer = s.renderer
-        if (!renderer || !latest.current.enabled) {
-          setOn(false)
+        if (!(await show(open, frame))) {
           release(asked)
           return
         }
-        const held = renderer.heldKeys()
-        for (const object of frame.objects) {
-          if (held.get(object.id) === object.key) continue
-          const bytes = await open.invoke<Uint8Array>('glMesh', object.id, object.tangents).catch(() => null)
-          const geometry = bytes ? decodeGeometry(bytes) : null
-          if (geometry) renderer.setGeometry(object.id, object.key, geometry)
-        }
-        renderer.retain(new Set(frame.objects.map((object) => object.id)))
-        const environment = frame.shading === 'material' ? frame.environment : null
-        if (environment && renderer.environmentKey() !== environment.key) {
-          const bytes = await open.invoke<Uint8Array>('glWorld').catch(() => null)
-          renderer.setEnvironment(environment.key, bytes ? decodeWorld(bytes) : null)
-        }
-        // Geometry and environment requests can finish after rendered shading takes over.
-        if (!latest.current.enabled) {
-          setOn(false)
-          release(asked)
-          return
-        }
-        s.frame = frame
-        // Shadows need float render targets; without them the software picture shows them.
-        const missing = renderer.shadowsMissing(frame)
-        probe.current.reason = missing ? 'shadows need float render targets' : frame.reason
-        if (!s.holding) s.local = null
-        setOn(frame.supported && !missing)
         s.drawing.push(...asked.splice(0))
         schedule()
       } while (s.again)
@@ -238,6 +220,95 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
       s.fetching = false
     }
   }
+  /**
+   * Takes `frame` for drawing: fetches the geometry whose key changed and the world image, then
+   * schedules the drawing. Answers false when the GPU viewport stopped meanwhile.
+   */
+  const show = async (open: NonNullable<typeof doc>, frame: GlFrame) => {
+    const s = state.current
+    const renderer = s.renderer
+    if (!renderer || !latest.current.enabled) {
+      setOn(false)
+      return false
+    }
+    const held = renderer.heldKeys()
+    for (const object of frame.objects) {
+      if (held.get(object.id) === object.key) continue
+      const bytes = await open.invoke<Uint8Array>('glMesh', object.id, object.tangents).catch(() => null)
+      const geometry = bytes ? decodeGeometry(bytes) : null
+      if (geometry) renderer.setGeometry(object.id, object.key, geometry)
+    }
+    const environment = frame.shading === 'material' ? frame.environment : null
+    if (environment && renderer.environmentKey() !== environment.key) {
+      const bytes = await open.invoke<Uint8Array>('glWorld').catch(() => null)
+      renderer.setEnvironment(environment.key, bytes ? decodeWorld(bytes) : null)
+    }
+    return settle(frame)
+  }
+
+  /** Whether drawing `frame` needs nothing more from the engine (no geometry, no world image). */
+  const ready = (frame: GlFrame) => {
+    const renderer = state.current.renderer
+    if (!renderer) return false
+    const held = renderer.heldKeys()
+    const environment = frame.shading === 'material' ? frame.environment : null
+    return frame.objects.every((object) => held.get(object.id) === object.key) && (!environment || renderer.environmentKey() === environment.key)
+  }
+
+  /** Makes `frame` the one drawn (its geometry is in the renderer). */
+  const settle = (frame: GlFrame) => {
+    const s = state.current
+    const renderer = s.renderer
+    // Geometry and environment requests can finish after rendered shading takes over.
+    if (!renderer || !latest.current.enabled) {
+      setOn(false)
+      return false
+    }
+    renderer.retain(new Set(frame.objects.map((object) => object.id)))
+    s.frame = frame
+    // Shadows need float render targets; without them the software picture shows them.
+    const missing = renderer.shadowsMissing(frame)
+    probe.current.reason = missing ? 'shadows need float render targets' : frame.reason
+    if (!s.holding) s.local = null
+    setOn(frame.supported && !missing)
+    return true
+  }
+
+  /**
+   * A frame answered some other way (a transform's step): drawn at once, not at the next animation
+   * frame, which would make the picture a frame later than the pointer; while a refresh is under
+   * way that refresh asks again instead.
+   */
+  const adopt = (frame: GlFrame) => {
+    const s = state.current
+    const open = latest.current.doc
+    if (!open || !s.renderer || s.failed) return
+    if (s.fetching) {
+      s.again = true
+      return
+    }
+    // Only matrices moved (an object's transform): drawn now, before anything else runs.
+    if (ready(frame)) {
+      if (settle(frame)) {
+        cancelAnimationFrame(s.raf)
+        draw()
+      }
+      return
+    }
+    s.fetching = true
+    void show(open, frame)
+      .then((shown) => {
+        if (!shown) return
+        cancelAnimationFrame(s.raf)
+        draw()
+      })
+      .catch((error) => fail(error))
+      .finally(() => {
+        s.fetching = false
+        if (s.again) void refreshRef.current()
+      })
+  }
+
   const refreshRef = useRef(refresh)
   refreshRef.current = refresh
 
@@ -327,6 +398,30 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
         state.current.asking.push(done)
         void refreshRef.current()
       }),
+    adopt,
+    project: (point) => {
+      const s = state.current
+      const { frame, canvas } = s
+      if (!frame || !canvas) return null
+      const dpr = window.devicePixelRatio || 1
+      const width = Math.max(1, Math.round(canvas.clientWidth * dpr))
+      const height = Math.max(1, Math.round(canvas.clientHeight * dpr))
+      const view = s.local ?? frame.view
+      const camera = s.local == null ? frame.camera : null
+      const matrix = camera
+        ? multiply(Float32Array.from(camera.projection), Float32Array.from(camera.viewMatrix))
+        : multiply(projection(view, width, height), viewMatrix(view))
+      const [x, y, z] = point
+      const clip = [0, 1, 2, 3].map((row) => matrix[row] * x + matrix[4 + row] * y + matrix[8 + row] * z + matrix[12 + row])
+      if (!(clip[3] > 1e-9)) return null
+      return [((clip[0] / clip[3]) * 0.5 + 0.5) * width, (0.5 - (clip[1] / clip[3]) * 0.5) * height]
+    },
+    onDraw: (listener) => {
+      state.current.drawn.add(listener)
+      return () => {
+        state.current.drawn.delete(listener)
+      }
+    },
     commit: () => {
       const s = state.current
       const view = s.local

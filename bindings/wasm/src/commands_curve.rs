@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 
-use glam::{Mat3, Vec3};
+use glam::Vec3;
 use kition_kit::KitCommand;
 use kition_kit::tools::{PointerAction, ToolOverlay, ToolPointer, ToolResponse};
 use kition_scene_model::curve::{Dimensions, FillMode};
@@ -17,7 +17,7 @@ use kition_scene_raster::{CaretOverlay, CurveOverlay, CurvePointOverlay};
 use serde_json::{Value, json};
 
 use crate::params::{self, bad, schema as s};
-use crate::{Mode, SceneDocument, Step};
+use crate::{Mode, SceneDocument};
 
 /// A curve or a text in its edit mode.
 #[derive(Debug, Clone, PartialEq)]
@@ -33,24 +33,8 @@ pub enum ShapeSession {
 pub struct CurveEdit {
     pub object: Id,
     pub selected: BTreeSet<u32>,
-    drag: Option<CurveDrag>,
-}
-
-#[derive(Debug, Clone)]
-struct CurveDrag {
-    start: (f64, f64),
-    before: Box<Step>,
-    original: Curve,
-    pivot: Vec3,
-    pivot_screen: (f32, f32),
-    moved: bool,
-    marquee: bool,
-}
-
-impl PartialEq for CurveDrag {
-    fn eq(&self, other: &Self) -> bool {
-        self.start == other.start && self.moved == other.moved
-    }
+    /// Where the Select tool's box was pressed, while it is dragged.
+    marquee: Option<(f64, f64)>,
 }
 
 /// A text being typed into: the caret is a character index into its body.
@@ -688,7 +672,7 @@ fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Va
             let id = doc.session.editor.active.ok_or("not-allowed: there is no active curve, text, or lattice")?;
             match data_of(doc, id) {
                 Some(ObjectData::Curve(_)) => {
-                    doc.session.shape = Some(ShapeSession::Curve(CurveEdit { object: id, selected: BTreeSet::new(), drag: None }));
+                    doc.session.shape = Some(ShapeSession::Curve(CurveEdit { object: id, selected: BTreeSet::new(), marquee: None }));
                     Ok(json!({ "mode": "curveEdit" }))
                 }
                 Some(ObjectData::Text(text)) => {
@@ -1060,7 +1044,7 @@ fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<
 
 /// Moves the selected points (their handles along) and selected handles by `change`; a moved
 /// handle stops being automatic, and an aligned partner turns to stay in line.
-fn transform_parts(curve: &mut Curve, selected: &BTreeSet<u32>, change: impl Fn(Vec3) -> Vec3) {
+pub(crate) fn transform_parts(curve: &mut Curve, selected: &BTreeSet<u32>, change: impl Fn(Vec3) -> Vec3) {
     let points: BTreeSet<u32> = selected.iter().filter(|part| *part % 3 == 0).map(|part| part / 3).collect();
     let mut index = 0u32;
     for spline in &mut curve.splines {
@@ -1346,7 +1330,7 @@ fn parts_at(doc: &SceneDocument, edit: &CurveEdit, start: (f64, f64), end: (f64,
     found
 }
 
-fn pivot(doc: &SceneDocument, edit: &CurveEdit) -> Option<Vec3> {
+pub(crate) fn pivot(doc: &SceneDocument, edit: &CurveEdit) -> Option<Vec3> {
     let Some(ObjectData::Curve(curve)) = data_of(doc, edit.object) else { return None };
     let world = doc.scene.world_matrix(edit.object).ok()?;
     let mut sum = Vec3::ZERO;
@@ -1366,8 +1350,9 @@ fn pivot(doc: &SceneDocument, edit: &CurveEdit) -> Option<Vec3> {
     (count > 0.0).then(|| sum / count)
 }
 
-/// The viewport tools in curve edit mode (select, move, rotate, scale on points and handles);
-/// `None` when no curve is being edited, so the other modes get the event.
+/// The viewport tools in curve edit mode: the Select tool picks and boxes points and handles;
+/// Move, Rotate and Scale start the transform on a press (the part under the pointer first, when
+/// none is selected). `None` when no curve is being edited, so the other modes get the event.
 pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Option<ToolResponse> {
     let edit = match &doc.session.shape {
         Some(ShapeSession::Curve(edit)) => edit.clone(),
@@ -1386,128 +1371,55 @@ pub fn pointer(doc: &mut SceneDocument, tool: &str, event: &ToolPointer) -> Opti
     let idle = |busy: bool| ToolResponse { cursor: cursor.into(), busy, ..Default::default() };
     match event.action {
         PointerAction::Down => {
-            let selecting = !["move", "rotate", "scale"].contains(&tool);
-            if !selecting && edit.selected.is_empty() {
-                let parts = parts_at(doc, &edit, at, at);
-                set_selected(doc, parts);
+            if let Some(kind) = crate::modal::Kind::parse(tool) {
+                if edit.selected.is_empty() {
+                    let parts = parts_at(doc, &edit, at, at);
+                    set_selected(doc, parts);
+                }
+                let _ = doc.modal_begin(kind, Some(at), crate::modal::Started::Press { select: false }, None, false);
+                return Some(idle(true));
             }
-            let Some(ShapeSession::Curve(edit)) = doc.session.shape.clone() else { return Some(idle(false)) };
-            let Some(ObjectData::Curve(curve)) = data_of(doc, edit.object).cloned() else { return Some(idle(false)) };
-            let pivot = pivot(doc, &edit).unwrap_or(Vec3::ZERO);
-            let pivot_screen = to_screen(&projector(doc), pivot).unwrap_or((0.0, 0.0));
-            let drag = CurveDrag {
-                start: at,
-                before: Box::new(doc.step(if selecting { "Select" } else { "Transform Points" })),
-                original: curve,
-                pivot,
-                pivot_screen,
-                moved: false,
-                marquee: selecting,
-            };
             if let Some(ShapeSession::Curve(edit)) = doc.session.shape.as_mut() {
-                edit.drag = Some(drag);
+                edit.marquee = Some(at);
             }
-            doc.touched();
             Some(idle(true))
         }
         PointerAction::Drag => {
-            let Some(ShapeSession::Curve(edit)) = doc.session.shape.clone() else { return Some(idle(false)) };
-            let Some(mut drag) = edit.drag.clone() else { return Some(idle(false)) };
-            drag.moved = true;
-            if drag.marquee {
-                if let Some(ShapeSession::Curve(edit)) = doc.session.shape.as_mut() {
-                    edit.drag = Some(drag.clone());
-                }
-                let (x0, y0) = drag.start;
-                return Some(ToolResponse {
-                    overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
-                    cursor: cursor.into(),
-                    busy: true,
-                    ..Default::default()
-                });
-            }
-            let Ok(world) = doc.scene.world_matrix(edit.object) else { return Some(idle(true)) };
-            let inverse = world.inverse();
-            let projector = projector(doc);
-            let fine = if event.mods.shift { 0.1 } else { 1.0 };
-            let (sx, sy) = drag.pivot_screen;
-            let (dx, dy) = ((at.0 - drag.start.0) as f32 * fine, (at.1 - drag.start.1) as f32 * fine);
-            let depth = projector.to_screen(projector.view_projection() * drag.pivot.extend(1.0)).z;
-            let pivot = drag.pivot;
-            let world_change: Box<dyn Fn(Vec3) -> Vec3> = match tool {
-                "move" => {
-                    let delta = projector.unproject(sx + dx, sy + dy, depth) - projector.unproject(sx, sy, depth);
-                    Box::new(move |point| point + delta)
-                }
-                "rotate" => {
-                    let angle = -(((at.1 as f32 - sy).atan2(at.0 as f32 - sx)) - ((drag.start.1 as f32 - sy).atan2(drag.start.0 as f32 - sx))) * fine;
-                    let axis = (projector.eye() - pivot).normalize_or_zero();
-                    let rotation = Mat3::from_axis_angle(if axis == Vec3::ZERO { Vec3::Z } else { axis }, angle);
-                    Box::new(move |point| pivot + rotation * (point - pivot))
-                }
-                _ => {
-                    let from = ((drag.start.0 as f32 - sx).hypot(drag.start.1 as f32 - sy)).max(1.0);
-                    let factor = 1.0 + ((at.0 as f32 - sx).hypot(at.1 as f32 - sy) / from - 1.0) * fine;
-                    Box::new(move |point| pivot + (point - pivot) * factor)
-                }
-            };
-            let mut curve = drag.original.clone();
-            transform_parts(&mut curve, &edit.selected, |local| inverse.transform_point3(world_change(world.transform_point3(local))));
-            if let Ok(object) = doc.scene.object_mut(edit.object) {
-                object.data = ObjectData::Curve(curve);
-            }
-            if let Some(ShapeSession::Curve(edit)) = doc.session.shape.as_mut() {
-                edit.drag = Some(drag);
-            }
-            doc.touched();
-            Some(idle(true))
+            let Some((x0, y0)) = edit.marquee else { return Some(idle(false)) };
+            Some(ToolResponse {
+                overlays: vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }],
+                cursor: cursor.into(),
+                busy: true,
+                ..Default::default()
+            })
         }
         PointerAction::Up => {
-            let Some(ShapeSession::Curve(mut edit)) = doc.session.shape.clone() else { return Some(idle(false)) };
-            let Some(drag) = edit.drag.take() else { return Some(idle(false)) };
-            if drag.marquee {
-                let parts = parts_at(doc, &edit, drag.start, at);
-                let selected = if event.mods.shift {
-                    if parts.is_subset(&edit.selected) && !parts.is_empty() {
-                        edit.selected.difference(&parts).copied().collect()
-                    } else {
-                        edit.selected.union(&parts).copied().collect()
-                    }
+            let Some(start) = edit.marquee else { return Some(idle(false)) };
+            let parts = parts_at(doc, &edit, start, at);
+            let selected = if event.mods.shift {
+                if parts.is_subset(&edit.selected) && !parts.is_empty() {
+                    edit.selected.difference(&parts).copied().collect()
                 } else {
-                    parts
-                };
-                edit.selected = selected;
-                doc.session.shape = Some(ShapeSession::Curve(edit));
-                doc.touched();
-            } else {
-                doc.session.shape = Some(ShapeSession::Curve(edit));
-                if drag.moved && doc.scene != drag.before.scene {
-                    if doc.scene.validate().is_ok() {
-                        let _ = doc.committed(*drag.before);
-                    } else {
-                        doc.restore(*drag.before);
-                        doc.touched();
-                    }
+                    edit.selected.union(&parts).copied().collect()
                 }
-            }
+            } else {
+                parts
+            };
+            doc.session.shape = Some(ShapeSession::Curve(CurveEdit { selected, marquee: None, ..edit }));
+            doc.touched();
             Some(idle(false))
         }
         _ => Some(idle(false)),
     }
 }
 
-/// Escape during a curve drag puts the points back; answers whether it did anything.
+/// Escape during a box of the Select tool drops it; answers whether there was one.
 pub fn cancel(doc: &mut SceneDocument) -> bool {
     if let Some(ShapeSession::Lattice(_)) = &doc.session.shape {
         return crate::commands_lattice::cancel(doc);
     }
     let Some(ShapeSession::Curve(edit)) = doc.session.shape.as_mut() else { return false };
-    let Some(drag) = edit.drag.take() else { return false };
-    if drag.moved && !drag.marquee {
-        doc.restore(*drag.before);
-    }
-    doc.touched();
-    true
+    edit.marquee.take().is_some()
 }
 
 /// Whether text edit mode is on (the tools then take typed text).

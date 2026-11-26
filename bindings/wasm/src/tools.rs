@@ -1,19 +1,20 @@
 //! The viewport's tools, driven by the host's pointer: Select (click, Shift to toggle, Cmd/Ctrl
 //! to pick by the origin; drag for a box, Shift to add to the selection, Cmd/Ctrl to take from it,
-//! both to keep what is in both), Move, Rotate, and Scale (drag; Shift for fine steps, Cmd to snap;
-//! a click selects as the Select tool's does), and Loop Cut in edit mode (hover to see the loop,
-//! click to cut). A drag is one undo step; Escape cancels it. The context-menu key selects the
-//! object under the pointer when it is not selected, before the editor opens its menu.
+//! both to keep what is in both), Move, Rotate, and Scale (a press starts the modal transform,
+//! `modal.rs`, and the release confirms it; a click selects as the Select tool's does), and Loop
+//! Cut in edit mode (hover to see the loop, click to cut). A drag is one undo step; Escape cancels
+//! it. While a transform runs, the pointer and the keys go to it. The context-menu key selects
+//! the object under the pointer when it is not selected, before the editor opens its menu.
 
 use std::collections::BTreeSet;
 
-use glam::{Mat3, Vec3};
+use glam::Vec3;
 use kition_kit::KitDocument;
 use kition_kit::tools::{KitTools, PointerAction, ToolInfo, ToolMods, ToolOverlay, ToolPointer, ToolResponse};
 use kition_scene_model::Id;
 use serde_json::{Value, json};
 
-use crate::commands::{rotate_objects, translate_objects};
+use crate::modal::{Kind, Started};
 use crate::{Mode, SceneDocument, SelectMode, Step};
 
 /// The tools, in rail order.
@@ -34,37 +35,26 @@ const EDIT_TOOLS: &[&str] = &["loopCut", "knife", "slide"];
 /// Screen pixels of drag for a full slide (factor 1).
 const SLIDE_PIXELS: f64 = 200.0;
 
-/// Screen pixels a press may travel and still be a click.
-const CLICK_PIXELS: f64 = 4.0;
-
 /// Screen pixels from an object's origin within which a Cmd/Ctrl+click picks it by the origin.
 const ORIGIN_PIXELS: f32 = 75.0;
 
 const ORANGE: [u8; 4] = [241, 88, 0, 255];
 const YELLOW: [u8; 4] = [255, 214, 0, 255];
 
+/// A drag of the Select tool (a box) or of Edge Slide (with the scene before it).
 #[derive(Debug, Clone)]
 struct Drag {
     start: (f64, f64),
-    last: (f64, f64),
-    /// The selection's centre in world space, and on screen.
-    pivot: Vec3,
-    pivot_screen: (f32, f32),
-    before: Step,
+    before: Option<Step>,
     moved: bool,
-    /// What the drag shows now (the box, the readout, the dashed line): kept with the drag, so an
-    /// answer to the tools' state while it is under way shows them too.
+    /// What the drag shows now (the box, the readout): kept with the drag, so an answer to the
+    /// tools' state while it is under way shows them too.
     overlays: Vec<ToolOverlay>,
 }
 
 impl Drag {
-    fn new(start: (f64, f64), pivot: Vec3, pivot_screen: (f32, f32), before: Step) -> Self {
-        Self { start, last: start, pivot, pivot_screen, before, moved: false, overlays: Vec::new() }
-    }
-
-    /// Whether the pointer, now at `at`, stayed close enough to the press for a click.
-    fn click(&self, at: (f64, f64)) -> bool {
-        (at.0 - self.start.0).hypot(at.1 - self.start.1) <= CLICK_PIXELS
+    fn new(start: (f64, f64), before: Option<Step>) -> Self {
+        Self { start, before, moved: false, overlays: Vec::new() }
     }
 }
 
@@ -106,20 +96,24 @@ pub struct ToolState {
     /// The knife's points so far, and where the pointer is.
     knife: Vec<(f64, f64)>,
     hover: Option<(f64, f64)>,
-    /// Where the pointer last was over the viewport, for the context-menu key.
+    /// Where the pointer last was over the viewport, for the context-menu key and a transform
+    /// a key starts.
     pointer: Option<(f64, f64)>,
+    /// The press under way already ended (a key's transform it confirmed, a transform cancelled
+    /// while the button was held): its release does nothing.
+    ignore_release: bool,
 }
 
 impl Default for ToolState {
     fn default() -> Self {
-        Self { tool: "select", drag: None, hover_edge: None, knife: Vec::new(), hover: None, pointer: None }
+        Self { tool: "select", drag: None, hover_edge: None, knife: Vec::new(), hover: None, pointer: None, ignore_release: false }
     }
 }
 
 impl ToolState {
-    /// The tool as inspect reports it.
-    pub fn describe(&self) -> Value {
-        json!({ "id": self.tool, "busy": self.drag.is_some() || !self.knife.is_empty(), "knifePoints": self.knife.len() })
+    /// Where the pointer last was over the viewport.
+    pub(crate) fn pointer_at(&self) -> Option<(f64, f64)> {
+        self.pointer
     }
 }
 
@@ -135,13 +129,25 @@ fn cursor(tool: &str) -> String {
 }
 
 impl SceneDocument {
-    fn projector(&self) -> kition_scene_raster::Projector {
+    /// The tool as inspect reports it, with the transform under way.
+    pub(crate) fn tool_json(&self) -> Value {
+        let tool = &self.tool;
+        let modal = self.modal_answer();
+        json!({
+            "id": tool.tool,
+            "busy": tool.drag.is_some() || !tool.knife.is_empty() || self.modal_started().is_some(),
+            "knifePoints": tool.knife.len(),
+            "modal": modal.get("kind").cloned().unwrap_or(Value::Null),
+        })
+    }
+
+    pub(crate) fn projector(&self) -> kition_scene_raster::Projector {
         self.session.editor.view.projector(&self.scene, self.session.width, self.session.height)
     }
 
     /// The world-space centre of what the tools act on (selected objects' origins, or the
     /// selected vertices in edit mode).
-    fn pivot(&self) -> Option<Vec3> {
+    pub(crate) fn pivot(&self) -> Option<Vec3> {
         match self.session.mode {
             Mode::Object => {
                 let points: Vec<Vec3> = self
@@ -318,144 +324,6 @@ impl SceneDocument {
         self.touched();
     }
 
-    /// Applies a drag of the move, rotate, or scale tool, from the state before it began.
-    /// Applies the drag under way again where the pointer last was (after its settings changed).
-    pub(crate) fn redrag(&mut self) {
-        if let Some(drag) = self.tool.drag.take() {
-            if drag.moved {
-                let _ = self.apply_drag(&drag, drag.last, ToolMods::default());
-            }
-            self.tool.drag = Some(drag);
-        }
-    }
-
-    fn apply_drag(&mut self, drag: &Drag, at: (f64, f64), mods: ToolMods) -> Option<String> {
-        let projector = self.projector();
-        let original = &drag.before.scene;
-        let mut scene = original.clone();
-        let fine = if mods.shift { 0.1 } else { 1.0 };
-        let (dx, dy) = ((at.0 - drag.start.0) as f32 * fine, (at.1 - drag.start.1) as f32 * fine);
-        let pivot_depth = projector.to_screen(projector.view_projection() * drag.pivot.extend(1.0)).z;
-        let view_axis = (projector.eye() - drag.pivot).normalize_or_zero();
-        let view_axis = if projector.perspective { view_axis } else { Mat3::from_mat4(projector.view.inverse()) * Vec3::Z };
-        let (sx, sy) = drag.pivot_screen;
-        let status;
-        let change: Box<dyn Fn(Vec3) -> Vec3> = match self.tool.tool {
-            "move" => {
-                let a = projector.unproject(sx, sy, pivot_depth);
-                let b = projector.unproject(sx + dx, sy + dy, pivot_depth);
-                let mut delta = b - a;
-                if mods.command {
-                    delta = (delta / 0.25).round() * 0.25;
-                }
-                status = format!("D: {:.3}  {:.3}  {:.3} m", delta.x, delta.y, delta.z);
-                Box::new(move |point| point + delta)
-            }
-            "rotate" => {
-                let begin = ((drag.start.1 as f32 - sy).atan2(drag.start.0 as f32 - sx), (at.1 as f32 - sy).atan2(at.0 as f32 - sx));
-                let mut angle = -(begin.1 - begin.0) * fine;
-                if mods.command {
-                    angle = (angle / 5f32.to_radians()).round() * 5f32.to_radians();
-                }
-                status = format!("Rotation: {:.1}°", angle.to_degrees());
-                let rotation = Mat3::from_axis_angle(view_axis, angle);
-                let pivot = drag.pivot;
-                if self.session.mode == Mode::Object {
-                    let ids = drag.before.selected.clone();
-                    if rotate_objects(&mut scene, &ids, rotation).is_err() {
-                        return None;
-                    }
-                }
-                Box::new(move |point| pivot + rotation * (point - pivot))
-            }
-            "scale" => {
-                let from = ((drag.start.0 as f32 - sx).hypot(drag.start.1 as f32 - sy)).max(1.0);
-                let to = (at.0 as f32 - sx).hypot(at.1 as f32 - sy);
-                let mut factor = 1.0 + (to / from - 1.0) * fine;
-                if mods.command {
-                    factor = (factor * 10.0).round() / 10.0;
-                }
-                status = format!("Scale: {factor:.3}");
-                let pivot = drag.pivot;
-                if self.session.mode == Mode::Object {
-                    for id in &drag.before.selected {
-                        if let Ok(object) = scene.object_mut(*id) {
-                            object.scale *= factor;
-                        }
-                    }
-                }
-                Box::new(move |point| pivot + (point - pivot) * factor)
-            }
-            _ => return None,
-        };
-        match self.session.mode {
-            Mode::Object => {
-                // Each top-level selected object's origin goes where the change takes it.
-                for id in drag.before.selected.clone() {
-                    let Ok(world) = original.world_matrix(id) else { continue };
-                    let origin = world.transform_point3(Vec3::ZERO);
-                    let target = change(origin);
-                    let _ = translate_objects(&mut scene, &[id], target - origin);
-                }
-            }
-            Mode::Edit(id) => {
-                let Ok(world) = original.world_matrix(id) else { return None };
-                let inverse = world.inverse();
-                let vertices = drag.before.vertices.clone();
-                // With proportional editing, nearby vertices follow part of the way.
-                let followers = self
-                    .session
-                    .proportional
-                    .and_then(|settings| {
-                        original
-                            .object(id)
-                            .ok()
-                            .and_then(|object| object.mesh())
-                            .map(|mesh| kition_scene_model::proportional::weights(mesh, &vertices, settings))
-                    })
-                    .unwrap_or_default();
-                if let Some(mesh) = scene.object_mut(id).ok().and_then(|object| object.mesh_mut()) {
-                    for vertex in vertices {
-                        if let Some(point) = mesh.positions.get_mut(vertex as usize) {
-                            *point = inverse.transform_point3(change(world.transform_point3(*point)));
-                        }
-                    }
-                    for (vertex, weight) in &followers {
-                        if let Some(point) = mesh.positions.get_mut(*vertex as usize) {
-                            let before = world.transform_point3(*point);
-                            *point = inverse.transform_point3(before + (change(before) - before) * *weight);
-                        }
-                    }
-                }
-            }
-        }
-        self.scene = scene;
-        self.touched();
-        Some(status)
-    }
-
-    /// The proportional editing radius round the drag's pivot, as a circle on the screen.
-    fn proportional_circle(&self, drag: &Drag) -> Option<ToolOverlay> {
-        let settings = self.session.proportional?;
-        let Mode::Edit(id) = self.session.mode else { return None };
-        let world = self.scene.world_matrix(id).ok()?;
-        let scale = world.to_scale_rotation_translation().0.abs().max_element().max(1e-6);
-        let projector = self.projector();
-        let pixel = projector.pixel_size_at(drag.pivot).max(1e-9);
-        let radius = f64::from(settings.radius * scale / pixel);
-        if !radius.is_finite() || radius > 100_000.0 {
-            return None;
-        }
-        let (cx, cy) = (f64::from(drag.pivot_screen.0), f64::from(drag.pivot_screen.1));
-        let mut path = String::new();
-        for step in 0..=48 {
-            let angle = std::f64::consts::TAU * f64::from(step) / 48.0;
-            let (x, y) = (cx + radius * angle.cos(), cy + radius * angle.sin());
-            path.push_str(&format!("{}{x:.1} {y:.1}", if step == 0 { "M" } else { " L" }));
-        }
-        Some(ToolOverlay::Path { d: path, color: [60, 60, 66, 200], width: 1.0, dashed: true })
-    }
-
     /// The edge under the pointer in edit mode: the nearest on screen within a few pixels.
     fn edge_at(&self, x: f32, y: f32) -> Option<(u32, u32)> {
         let Mode::Edit(id) = self.session.mode else { return None };
@@ -549,7 +417,7 @@ impl SceneDocument {
     /// changes nothing.
     fn select_for_menu(&mut self) {
         let Some(at) = self.tool.pointer else { return };
-        if self.tool.drag.is_some() || self.session.mode != Mode::Object || self.special_session() {
+        if self.tool.drag.is_some() || self.modal_started().is_some() || self.session.mode != Mode::Object || self.special_session() {
             return;
         }
         let projector = self.projector();
@@ -582,10 +450,62 @@ impl SceneDocument {
         if let Some(drag) = &self.tool.drag {
             overlays.extend(drag.overlays.iter().cloned());
         }
-        let busy = self.tool.drag.is_some() || !self.tool.knife.is_empty();
+        overlays.extend(self.modal_overlays());
+        let busy = self.tool.drag.is_some() || !self.tool.knife.is_empty() || self.modal_started().is_some();
         // Text edit mode takes typed text.
         let wants_text = crate::commands_curve::typing(self);
         ToolResponse { overlays, cursor: if wants_text { "text".into() } else { cursor(self.tool.tool) }, busy, wants_text, ..Default::default() }
+    }
+
+    /// A pointer event while a transform runs: moving drives it; with a key's transform the left
+    /// button confirms it (a press where it began, with nothing changed yet, goes to the tool
+    /// instead, as if the key had only picked the tool); with a press's transform the release
+    /// confirms it, or, where it was pressed, is a click.
+    fn modal_event(&mut self, event: &ToolPointer) -> Result<ToolResponse, String> {
+        let at = (event.x, event.y);
+        match (event.action, self.modal_started()) {
+            (PointerAction::Move | PointerAction::Drag, _) => {
+                self.modal_pointer(at, event.mods.shift, event.mods.command);
+            }
+            (PointerAction::Down, Some(Started::Key)) => {
+                self.modal_pointer(at, event.mods.shift, event.mods.command);
+                if self.modal_click(at) || !self.modal_changes() {
+                    // Nothing done yet (pressed where the key was, or the value is none): the key
+                    // only picked the tool, whose press this is.
+                    self.modal_cancel()?;
+                    return self.pointer(event);
+                }
+                self.modal_confirm()?;
+                self.tool.ignore_release = true;
+            }
+            (PointerAction::Up, Some(Started::Press { select })) => {
+                if self.modal_click(at) {
+                    self.modal_cancel()?;
+                    if select {
+                        self.select_at(at, at, event.mods);
+                    }
+                } else {
+                    self.modal_confirm()?;
+                }
+            }
+            _ => {}
+        }
+        Ok(self.respond())
+    }
+
+    /// Ends the transform under way from a key or a command while the button may be held: the
+    /// release that follows does nothing.
+    fn modal_end(&mut self, confirm: bool) -> Result<(), String> {
+        let pressed = matches!(self.modal_started(), Some(Started::Press { .. }));
+        if confirm {
+            self.modal_confirm()?;
+        } else {
+            self.modal_cancel()?;
+        }
+        if pressed {
+            self.tool.ignore_release = true;
+        }
+        Ok(())
     }
 }
 
@@ -611,13 +531,27 @@ impl KitTools for SceneDocument {
         let Some((found, ..)) = TOOLS.iter().find(|(tool, ..)| *tool == id) else {
             return Err(format!("not-found: no tool {id}"));
         };
-        self.tool = ToolState { tool: found, ..ToolState::default() };
+        // A transform a tool's press started ends with the tool; a key's goes on.
+        if matches!(self.modal_started(), Some(Started::Press { .. })) {
+            self.modal_cancel()?;
+        }
+        self.tool = ToolState { tool: found, pointer: self.tool.pointer, ..ToolState::default() };
         Ok(self.respond())
     }
 
     fn pointer(&mut self, event: &ToolPointer) -> Result<ToolResponse, String> {
         if !(event.x.is_finite() && event.y.is_finite()) {
             return Err("invalid-params: the pointer position is not a number".into());
+        }
+        self.tool.pointer = Some((event.x, event.y));
+        if self.modal_started().is_some() {
+            return self.modal_event(event);
+        }
+        if event.action == PointerAction::Up && std::mem::take(&mut self.tool.ignore_release) {
+            return Ok(self.respond());
+        }
+        if event.action == PointerAction::Down {
+            self.tool.ignore_release = false;
         }
         // Sculpt, Particle Edit, and weight paint take the pointer for the brush.
         if let Some(response) = crate::commands_particles::pointer(self, event) {
@@ -658,12 +592,14 @@ impl KitTools for SceneDocument {
                 self.confirm_knife()?;
             }
             ("slide", PointerAction::Down) => {
-                self.tool.drag = Some(Drag::new(at, Vec3::ZERO, (0.0, 0.0), self.step("Edge Slide")));
+                self.tool.drag = Some(Drag::new(at, Some(self.step("Edge Slide"))));
             }
             ("slide", PointerAction::Drag) => {
                 if let Some(mut drag) = self.tool.drag.take() {
                     let factor = ((at.0 - drag.start.0) / SLIDE_PIXELS).clamp(-1.0, 1.0) as f32;
-                    self.scene = drag.before.scene.clone();
+                    if let Some(before) = &drag.before {
+                        self.scene = before.scene.clone();
+                    }
                     if let Mode::Edit(id) = self.session.mode {
                         let vertices = self.session.vertices.clone();
                         if let Some(mesh) = self.scene.object_mut(id).ok().and_then(|object| object.mesh_mut()) {
@@ -671,7 +607,6 @@ impl KitTools for SceneDocument {
                         }
                     }
                     self.touched();
-                    drag.last = at;
                     drag.moved = true;
                     drag.overlays = vec![ToolOverlay::Measure { x: at.0, y: at.1, text: format!("Factor: {factor:.3}") }];
                     self.tool.drag = Some(drag);
@@ -679,14 +614,13 @@ impl KitTools for SceneDocument {
                 }
             }
             ("slide", PointerAction::Up) => {
-                if let Some(drag) = self.tool.drag.take()
-                    && drag.moved
-                    && self.scene != drag.before.scene
+                if let Some(Drag { before: Some(before), moved: true, .. }) = self.tool.drag.take()
+                    && self.scene != before.scene
                 {
                     if self.scene.validate().is_ok() {
-                        self.committed(drag.before)?;
+                        self.committed(before)?;
                     } else {
-                        self.restore(drag.before);
+                        self.restore(before);
                         self.touched();
                     }
                 }
@@ -701,11 +635,10 @@ impl KitTools for SceneDocument {
                 }
             }
             ("select", PointerAction::Down) => {
-                self.tool.drag = Some(Drag::new(at, Vec3::ZERO, (0.0, 0.0), self.step("Select")));
+                self.tool.drag = Some(Drag::new(at, None));
             }
             ("select", PointerAction::Drag) => {
                 if let Some(drag) = &mut self.tool.drag {
-                    drag.last = at;
                     let (x0, y0) = drag.start;
                     drag.overlays = vec![ToolOverlay::Marquee { x0, y0, x1: at.0, y1: at.1 }];
                     return Ok(self.respond());
@@ -716,71 +649,19 @@ impl KitTools for SceneDocument {
                     self.select_at(drag.start, at, mods);
                 }
             }
+            // A press starts the transform; its release (in `modal_event`) confirms it, or selects
+            // as a click.
             ("move" | "rotate" | "scale", PointerAction::Down) => {
                 if !self.has_tool_selection() {
                     self.select_at(at, at, ToolMods::default());
                 }
-                if let Some(pivot) = self.pivot() {
-                    let projector = self.projector();
-                    let screen = projector.to_screen(projector.view_projection() * pivot.extend(1.0));
-                    let label = match self.tool.tool {
-                        "move" => "Move",
-                        "rotate" => "Rotate",
-                        _ => "Scale",
-                    };
-                    self.tool.drag = Some(Drag::new(at, pivot, (screen.x, screen.y), self.step(label)));
+                if let Some(kind) = Kind::parse(self.tool.tool) {
+                    // Nothing to move: the release is a click on nothing.
+                    let _ = self.modal_begin(kind, Some(at), Started::Press { select: true }, None, false);
                 }
             }
-            ("move" | "rotate" | "scale", PointerAction::Drag) => {
-                if let Some(mut drag) = self.tool.drag.take() {
-                    let status = self.apply_drag(&drag, at, mods);
-                    drag.last = at;
-                    drag.moved = true;
-                    let mut overlays = Vec::new();
-                    if self.tool.tool != "move" {
-                        overlays.push(ToolOverlay::Line {
-                            ax: f64::from(drag.pivot_screen.0),
-                            ay: f64::from(drag.pivot_screen.1),
-                            bx: at.0,
-                            by: at.1,
-                            color: ORANGE,
-                            dashed: true,
-                        });
-                    }
-                    if let Some(text) = status {
-                        overlays.push(ToolOverlay::Measure { x: at.0, y: at.1, text });
-                    }
-                    if let Some(circle) = self.proportional_circle(&drag) {
-                        overlays.push(circle);
-                    }
-                    drag.overlays = overlays;
-                    self.tool.drag = Some(drag);
-                    return Ok(self.respond());
-                }
-            }
-            ("move" | "rotate" | "scale", PointerAction::Up) => {
-                match self.tool.drag.take() {
-                    // A click, as with the Select tool: it selects what is under the pointer, or
-                    // clears the selection on nothing (Blender's transform tools select so too).
-                    Some(drag) if drag.click(at) => {
-                        if self.scene != drag.before.scene {
-                            self.restore(drag.before);
-                        }
-                        self.select_at(at, at, mods);
-                    }
-                    Some(drag) if drag.moved && self.scene != drag.before.scene => {
-                        if self.scene.validate().is_ok() {
-                            self.committed(drag.before)?;
-                        } else {
-                            self.restore(drag.before);
-                            self.touched();
-                        }
-                    }
-                    Some(_) => {}
-                    // A press that started no drag (nothing to move): a click on nothing.
-                    None => self.select_at(at, at, mods),
-                }
-            }
+            // A press that started no transform (nothing to move): a click on nothing.
+            ("move" | "rotate" | "scale", PointerAction::Up) => self.select_at(at, at, mods),
             (_, PointerAction::DoubleClick)
                 // A double click on a mesh in object mode edits it.
                 if self.session.mode == Mode::Object => {
@@ -794,7 +675,19 @@ impl KitTools for SceneDocument {
         Ok(self.respond())
     }
 
-    fn key(&mut self, key: &str, _mods: ToolMods, _zoom: f64) -> Result<ToolResponse, String> {
+    fn key(&mut self, key: &str, mods: ToolMods, _zoom: f64) -> Result<ToolResponse, String> {
+        // A transform under way takes the keys: Escape cancels it, Enter confirms it, the others
+        // go to it (Backspace and Tab edit a typed value).
+        if self.modal_started().is_some() {
+            match key {
+                "Escape" => self.modal_end(false)?,
+                "Enter" => self.modal_end(true)?,
+                _ => {
+                    self.modal_key(key, mods.shift, mods.command);
+                }
+            }
+            return Ok(self.respond());
+        }
         if crate::commands_curve::text_key(self, key)? {
             return Ok(self.respond());
         }
@@ -822,10 +715,8 @@ impl KitTools for SceneDocument {
             "Escape" if crate::commands_rig2::cancel(self) => {}
             "Escape" if crate::commands_rig::cancel(self) => {}
             "Escape" => {
-                if let Some(drag) = self.tool.drag.take()
-                    && drag.moved
-                {
-                    self.restore(drag.before);
+                if let Some(Drag { before: Some(before), moved: true, .. }) = self.tool.drag.take() {
+                    self.restore(before);
                     self.touched();
                 }
             }

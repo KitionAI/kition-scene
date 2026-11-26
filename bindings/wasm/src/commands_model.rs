@@ -156,8 +156,8 @@ pub fn run_view(doc: &mut SceneDocument, command: &str, params: &Value) -> Resul
                 settings.connected = connected;
             }
             doc.session.proportional = on.then_some(settings);
-            // A drag under way follows the new radius at once (the wheel resizes it mid-drag).
-            doc.redrag();
+            // A transform under way follows the new radius at once (the wheel resizes it mid-drag).
+            doc.modal_refollow();
             doc.touched();
             Ok(json!({ "proportional": doc.session.proportional.map(proportional_json) }))
         }

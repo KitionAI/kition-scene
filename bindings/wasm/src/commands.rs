@@ -751,6 +751,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
         .chain(crate::commands_world::catalogue(doc))
         .chain(crate::commands_render::catalogue(doc))
         .chain(crate::commands_uvedit::catalogue(doc))
+        .chain(crate::modal::catalogue(doc))
         .chain(std::iter::once(crate::render::command()))
         .collect();
     // The edit-mode commands take the mesh and its elements in one step.
@@ -790,6 +791,7 @@ pub fn disabled(doc: &SceneDocument) -> Vec<String> {
         .chain(crate::commands_world::disabled(doc))
         .chain(crate::commands_render::disabled(doc))
         .chain(crate::commands_uvedit::disabled(doc))
+        .chain(crate::modal::disabled(doc))
         .collect();
     ids.extend(crate::commands_anim::disabled(doc));
     ids.extend(crate::commands_anim2::disabled(doc));
@@ -833,6 +835,12 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
     let params = &crate::place::resolve_pick(&doc.scene, schema_of(doc, command), params)?;
     refuse_unknown(doc, command, params)?;
     let params = &params::ids_as_numbers(&doc.scene, schema_of(doc, command), params);
+    // A transform under way ends (cancelled) before any other change: the scene that change
+    // starts from is the scene as it was. The view, presence and the transform's own commands
+    // leave it running.
+    if !keeps_modal(command) {
+        doc.modal_cancel()?;
+    }
     // An edit-mode command given its mesh and elements runs in that edit mode and puts it back.
     if let Some(elements) = params.get("elements").filter(|value| !value.is_null()) {
         return crate::context::with_elements(doc, command, params, elements);
@@ -902,6 +910,9 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
 
 /// Runs `command` when one of the other command files has it; `None` for this file's commands.
 fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<Result<Value, String>> {
+    if let Some(result) = crate::modal::execute(doc, command, params) {
+        return Some(result);
+    }
     if let Some(result) = crate::commands_presence::execute(doc, command, params) {
         return Some(result);
     }
@@ -960,6 +971,14 @@ fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<
         return Some(result);
     }
     None
+}
+
+/// Whether `command` leaves a transform under way running: its own commands, the view's,
+/// presence, proportional editing's settings, and the agent's preview.
+fn keeps_modal(command: &str) -> bool {
+    ["modal.", "view.", "presence."].iter().any(|prefix| command.starts_with(prefix))
+        || command == "mesh.proportional"
+        || command == crate::render::RENDER
 }
 
 /// Whether the call names what it acts on, so the gate's look at the selection does not apply:
@@ -1712,7 +1731,7 @@ fn preview_transform(doc: &mut SceneDocument, params: &Value) -> Result<Value, S
     }
 }
 
-fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
+pub(crate) fn run_change(doc: &mut SceneDocument, command: &str, params: &Value) -> Result<Value, String> {
     match command {
         "edit.delete" if params.get("objects").is_some_and(|value| !value.is_null()) => {
             let ids = chosen(doc, params)?;
@@ -2735,7 +2754,7 @@ fn moved(scene: &Scene, ids: Vec<Id>) -> Value {
 }
 
 /// The ids whose parents are not also among them.
-fn top_level(scene: &Scene, ids: &[Id]) -> Vec<Id> {
+pub(crate) fn top_level(scene: &Scene, ids: &[Id]) -> Vec<Id> {
     ids.iter().copied().filter(|id| !ids.iter().any(|other| other != id && scene.is_ancestor(*other, *id))).collect()
 }
 

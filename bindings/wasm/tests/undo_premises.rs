@@ -287,9 +287,8 @@ fn a_drafts_preview_is_the_repaired_merge() {
     assert_eq!(exact(&doc), merged, "one redo: the repaired state");
 }
 
-/// A draft the merge's repair takes back whole leaves the replica a step whose changes cancel out
-/// (it keeps it: `undo_depth` grows by one), and the replica's undo passes it over and takes back
-/// the step below. The labels keep a step for it, unnamed: the person deletes the light, the
+/// A draft the merge's repair takes back whole changes nothing and records no step (`undo_depth`
+/// stays), so the labels keep none for it: the person deletes the light, the
 /// agent's draft only parents the cube to the light, and the repair clears the dangling parent,
 /// so the merge changes nothing. The next undo is still named by the deletion, the person's Undo
 /// answers that name and gives back the exact state before the deletion, and the Redo the exact
@@ -316,7 +315,7 @@ fn a_merge_the_repair_cancels_names_no_step() {
     doc.add_blobs(&draft.blobs_bundle()).unwrap();
     KitSessionDocument::merge_changes(&mut doc, &changes, &agent).unwrap();
     assert_eq!(exact(&doc), deleted, "the repair took the draft back whole: the merge changes nothing");
-    assert_eq!(KitSessionDocument::session(&doc).undo_depth(UndoScope::Person), depth + 1, "the replica keeps the merge's step");
+    assert_eq!(KitSessionDocument::session(&doc).undo_depth(UndoScope::Person), depth, "the merge records no step");
     assert_eq!(label(&doc, "undo"), deletion, "the next undo is named by the deletion");
 
     let undone = doc.execute("edit.undo", json!({ "scope": "person" })).unwrap();

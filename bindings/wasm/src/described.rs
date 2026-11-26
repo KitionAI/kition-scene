@@ -461,6 +461,12 @@ fn describe(id: &str) -> &'static str {
         "modal.confirm" => "Ends the transform under way as it is now, as one undo step named after it (none when it changed nothing).",
         "modal.cancel" => "Ends the transform under way and puts everything back as it was, leaving no undo step (Shift+D's copies stay).",
         "modal.state" => "Answers the transform under way: what it does, its header text, its axis, typed numbers and the pivot.",
+        "operation.get" => {
+            "Answers the person's last operation (an added object, an edit-mode operation, a confirmed transform) with the values it ran with and its adjustable fields, or null once anything else happened."
+        }
+        "operation.set" => {
+            "Runs the person's last operation again with `params` over the values it ran with, from the selection it started from, in place of its undo step (Adjust Last Operation)."
+        }
         "presence.local" => "Shares this person's pointer and selection with collaborators; answers what it shares.",
         "presence.peers" => "Tells the editor where other people's pointers and selections are, for drawing them.",
         "presence.place" => "Answers where to draw other people's pointers in the viewport.",
@@ -628,10 +634,13 @@ fn output(id: &str) -> Option<Value> {
         }
         "mode.sculpt" => r#"{"type":"object","additionalProperties":true,"properties":{"mode":{"type":"string"},"object":{"type":"integer"}}}"#,
         "modal.begin" | "modal.pointer" | "modal.key" | "modal.wheel" | "modal.state" => {
-            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"kind":{"type":"string","enum":["move","rotate","scale"]},"header":{"type":"string"},"changed":{"type":"boolean"},"taken":{"type":"boolean"}}}"#
+            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"kind":{"type":"string","enum":["move","rotate","scale","inset","bevel","loopCut","slide"]},"header":{"type":"string"},"changed":{"type":"boolean"},"taken":{"type":"boolean"}}}"#
         }
         "modal.confirm" => {
-            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"confirmed":{"type":"boolean"}}}"#
+            r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"confirmed":{"type":"boolean"},"kind":{"type":"string"}}}"#
+        }
+        "operation.get" | "operation.set" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"operation":{"type":["object","null"],"additionalProperties":true,"properties":{"title":{"type":"string"},"command":{"type":["string","null"]},"params":{"type":"object","additionalProperties":true,"properties":{}},"fields":{"type":"array","items":{"type":"object","additionalProperties":true,"properties":{"key":{"type":"string"},"type":{"type":"string"}}}}}}}}"#
         }
         "modal.cancel" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"cancelled":{"type":"boolean"}}}"#

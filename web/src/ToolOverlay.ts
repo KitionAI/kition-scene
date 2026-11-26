@@ -116,6 +116,29 @@ function drawModal(
   dpr: number,
   pointer: [number, number] | null,
 ) {
+  // A loop cut's loops, yellow, before its click.
+  if (answer.kind === 'loopCut' || answer.kind === 'slide') {
+    context.strokeStyle = '#ffd600'
+    context.lineWidth = 2 * dpr
+    context.setLineDash([])
+    context.beginPath()
+    if (gpu.active) {
+      for (const segment of answer.loops ?? []) {
+        const a = gpu.project([segment[0], segment[1], segment[2]])
+        const b = gpu.project([segment[3], segment[4], segment[5]])
+        if (!a || !b) continue
+        context.moveTo(a[0], a[1])
+        context.lineTo(b[0], b[1])
+      }
+    } else {
+      for (const [ax, ay, bx, by] of answer.loopScreen ?? []) {
+        context.moveTo(ax, ay)
+        context.lineTo(bx, by)
+      }
+    }
+    context.stroke()
+    return
+  }
   const pivot = answer.pivot
   const projected = gpu.active && pivot ? gpu.project(pivot) : null
   const centre = projected ?? answer.pivotScreen ?? null

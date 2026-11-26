@@ -362,7 +362,10 @@ static SPECS: &[Spec] = &[
         s::of(vec![("distance", s::number("How far along the faces' mean normal, in metres (1)")), ("offset", s::vec3("An extra offset in metres"))])
     }),
     spec("mesh.inset", "Inset Faces", &["Mesh"], Some("I"), true, Needs::EditSelection, || {
-        s::of(vec![("thickness", s::number("How far in, in metres (0.1)"))])
+        s::of(vec![
+            ("thickness", s::number("How far in, in metres (0.1)")),
+            ("depth", s::number("How far the inset faces then move along their normals, in metres; negative is inwards (0)")),
+        ])
     }),
     spec("mesh.bevel", "Bevel Edges", &["Mesh"], Some("Cmd+B"), true, Needs::EditSelection, || {
         s::of(vec![("width", s::number("The bevel's width in metres (0.1)")), ("segments", s::integer("Segments across the bevel (1)"))])
@@ -752,6 +755,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
         .chain(crate::commands_render::catalogue(doc))
         .chain(crate::commands_uvedit::catalogue(doc))
         .chain(crate::modal::catalogue(doc))
+        .chain(crate::operation::catalogue(doc))
         .chain(std::iter::once(crate::render::command()))
         .collect();
     // The edit-mode commands take the mesh and its elements in one step.
@@ -889,6 +893,8 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
     }
     let before = doc.step(spec.title);
     let session = doc.session.clone();
+    let selected = crate::operation::Selected::of(doc);
+    let content = doc.content;
     match run_change(doc, command, params) {
         Ok(value) => {
             doc.tidy_session();
@@ -898,6 +904,10 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
                 return Err(format!("failed: the change would break the scene ({error})"));
             }
             doc.committed(before)?;
+            // A step of the person's: the last operation, which Adjust Last Operation reruns.
+            if doc.content != content {
+                crate::operation::record_command(doc, command, params, selected, spec.title);
+            }
             Ok(value)
         }
         Err(error) => {
@@ -911,6 +921,9 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Result
 /// Runs `command` when one of the other command files has it; `None` for this file's commands.
 fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<Result<Value, String>> {
     if let Some(result) = crate::modal::execute(doc, command, params) {
+        return Some(result);
+    }
+    if let Some(result) = crate::operation::execute(doc, command, params) {
         return Some(result);
     }
     if let Some(result) = crate::commands_presence::execute(doc, command, params) {
@@ -977,6 +990,7 @@ fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<
 /// presence, proportional editing's settings, and the agent's preview.
 fn keeps_modal(command: &str) -> bool {
     ["modal.", "view.", "presence."].iter().any(|prefix| command.starts_with(prefix))
+        || command == "operation.get"
         || command == "mesh.proportional"
         || command == crate::render::RENDER
 }
@@ -2151,12 +2165,26 @@ pub(crate) fn run_change(doc: &mut SceneDocument, command: &str, params: &Value)
         }
         "mesh.inset" => {
             let thickness = params::number(params, "thickness")?.unwrap_or(0.1);
+            let depth = params::number(params, "depth")?.unwrap_or(0.0);
             let inner = edit_mesh(doc, |mesh, vertices| {
                 let faces = selected_faces(mesh, vertices);
                 if faces.is_empty() {
                     return Err("not-allowed: select faces to inset".into());
                 }
                 ops::inset(mesh, &faces, thickness).map_err(|error| error.to_string())?;
+                // Each inset face (it keeps its index, and corners of its own) moves along its
+                // normal.
+                if depth != 0.0 {
+                    for face in &faces {
+                        let Some(corners) = mesh.faces.get(*face as usize).cloned() else { continue };
+                        let along = mesh.face_normal(&corners).normalize_or_zero() * depth;
+                        for corner in corners {
+                            if let Some(point) = mesh.positions.get_mut(corner as usize) {
+                                *point += along;
+                            }
+                        }
+                    }
+                }
                 Ok(ops::face_vertices(mesh, &faces.into_iter().collect()))
             })?;
             doc.session.vertices = inner;

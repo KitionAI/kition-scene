@@ -247,6 +247,19 @@ export type SceneMaterial = {
 /** An image the scene keeps for its materials. */
 export type SceneImage = { hash: string; name: string; format: string; bytes: number; materials: number[] }
 
+/** One field of Adjust Last Operation's panel: a parameter of the last operation, as its command describes it. */
+export type OperationField = {
+  key: string
+  label: string
+  type: 'number' | 'integer' | 'boolean' | 'choice' | 'vector'
+  value: unknown
+  description: string
+  choices?: string[]
+}
+
+/** The person's last operation, which Adjust Last Operation runs again with other values. */
+export type LastOperation = { title: string; command: string | null; params: Record<string, unknown>; fields: OperationField[] }
+
 /** What the editor reads from the engine's `inspect()`. */
 export type SceneInfo = {
   objects: SceneObject[]
@@ -309,6 +322,8 @@ export type SceneInfo = {
   physics: PhysicsInfo
   /** Drivers, actions, and keying sets. */
   animation: AnimationData
+  /** Adjust Last Operation: the last operation while nothing else has happened since. */
+  operation: LastOperation | null
 }
 
 type Raw = Record<string, any>
@@ -452,6 +467,7 @@ export function describe(info: KitEngineInfo): SceneInfo {
     viewHeight: Number(view.height ?? info.height),
     physics: physicsOf(raw.physics),
     animation: animationDataOf(raw.animation),
+    operation: raw.operation && typeof raw.operation === 'object' && Array.isArray(raw.operation.fields) ? (raw.operation as LastOperation) : null,
   }
 }
 

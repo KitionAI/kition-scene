@@ -1416,6 +1416,8 @@ pub(crate) fn transform_bones(doc: &mut SceneDocument, object: Id, original: &Ob
                     let own = frame.transpose() * change.linear * frame;
                     bone.pose.scale *= Vec3::new(own.x_axis.x, own.y_axis.y, own.z_axis.z);
                 }
+                // Edit mode's operations move no bones.
+                Kind::Inset | Kind::Bevel | Kind::LoopCut | Kind::Slide => {}
             }
         }
     } else {

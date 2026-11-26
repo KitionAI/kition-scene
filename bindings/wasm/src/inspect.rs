@@ -278,5 +278,7 @@ pub fn inspect(doc: &SceneDocument) -> Value {
             "height": doc.session.height,
         },
         "tool": doc.tool_json(),
+        // Adjust Last Operation: the person's last operation and its fields, while it lasts.
+        "operation": doc.operation_json(),
     })
 }

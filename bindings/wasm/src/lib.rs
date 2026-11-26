@@ -40,6 +40,7 @@ mod formats;
 pub mod gl;
 mod inspect;
 mod modal;
+mod operation;
 pub mod params;
 mod place;
 mod render;
@@ -258,6 +259,8 @@ pub struct SceneDocument {
     /// The transform under way (`modal.begin`): what it moves as it was, and how far it went
     /// (never saved; the scene shows it, without an undo step, until it is confirmed).
     modal: Option<modal::Modal>,
+    /// The person's last operation, for Adjust Last Operation (never saved).
+    last_operation: Option<operation::LastOperation>,
     /// The path-traced render under way (session state, never saved).
     trace: Option<kition_scene_trace::Tracer>,
     /// The progressive viewport, independent of the final render and never saved.
@@ -380,6 +383,7 @@ impl SceneDocument {
             tool: ToolState::default(),
             field_preview: None,
             modal: None,
+            last_operation: None,
             trace: None,
             viewport_trace: RefCell::default(),
             particles: RefCell::default(),

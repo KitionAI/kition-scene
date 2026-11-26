@@ -41,7 +41,9 @@ import { RenderDialog } from './RenderDialog'
 import { UvEditor } from './UvEditor'
 import { useSceneViewState, type SceneViewState } from './viewState'
 import { TRANSFORM_MODES, toolGesture } from './gesture'
-import { modalTransform, type ModalKind } from './modal'
+import { modalTransform, type ModalKind, type ModalOperation } from './modal'
+import { PointerMenu, pointerPoint, type PointerMenuRow, type PointerMenuState } from './PointerMenu'
+import { toggleAdjustLast } from './AdjustLast'
 import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
 import { focusEditor } from './NumberBox'
@@ -72,6 +74,35 @@ const MODAL_KEYS: Record<string, string> = {
 
 /** What G, R and S start. */
 const MODAL_START: Record<string, ModalKind> = { KeyG: 'move', KeyR: 'rotate', KeyS: 'scale' }
+
+/** Menu rows that start a modal instead of running once with fixed values (Blender's menus do the same). */
+const MENU_MODALS: Record<string, ModalKind | ModalOperation> = {
+  'mesh.extrude': 'extrude',
+  'mesh.inset': 'inset',
+  'mesh.bevel': 'bevel',
+}
+
+/**
+ * Menu rows whose commands need values the frame would ask for in a form of raw parameters: the
+ * editor puts its own rows at the top of their menus instead, which start the modal (or the
+ * rename box), by menu.
+ */
+const FORM_ROWS: Record<string, Array<{ id: string; label: string; shortcut: string; modal?: ModalKind | ModalOperation }>> = {
+  Object: [
+    { id: 'object.translate', label: 'Move', shortcut: 'G', modal: 'move' },
+    { id: 'object.rotate', label: 'Rotate', shortcut: 'R', modal: 'rotate' },
+    { id: 'object.scale', label: 'Scale', shortcut: 'S', modal: 'scale' },
+    { id: 'object.rename', label: 'Rename', shortcut: 'F2' },
+  ],
+  Mesh: [
+    { id: 'mesh.loopCut', label: 'Loop Cut', shortcut: 'Ctrl+R', modal: 'loopCut' },
+    { id: 'mesh.translate', label: 'Move', shortcut: 'G', modal: 'move' },
+    { id: 'mesh.rotate', label: 'Rotate', shortcut: 'R', modal: 'rotate' },
+    { id: 'mesh.scale', label: 'Scale', shortcut: 'S', modal: 'scale' },
+  ],
+  Curve: [{ id: 'curve.translate', label: 'Move', shortcut: 'G', modal: 'move' }],
+}
+const FORM_ROW_IDS = Object.values(FORM_ROWS).flatMap((rows) => rows.map((row) => row.id))
 
 /** The key `modal.key` takes for `event`, or null. */
 function modalKey(event: Pick<KeyboardEvent, 'code'>) {
@@ -191,6 +222,11 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   /** Menu rows the editor runs itself: they answer files and pictures, not changes. */
   const onCommand = useCallback(
     (id: string) => {
+      const modal = MENU_MODALS[id]
+      if (modal) {
+        modalTransform.begin(modal)
+        return
+      }
       if (id === 'render.image' || id === 'render.trace.start') void renderImage()
       else if (id === 'file.export') setExporting({ format: 'glb', selectedOnly: false })
       else if (id === 'file.import') void importFile()
@@ -202,8 +238,20 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // Export needs the kit's format dialog and the host's destination picker.
   const tabs = useMemo<FrameTab[]>(() => commandMenuTabs(commands, {
     order: MENU_ORDER,
-    exclude: [...HOST_FILE_COMMANDS, 'file.export'],
-    before: { File: [{ label: t('exportTitle'), testId: 'scene-cmd-file.export', onSelect: () => onCommand('file.export') }] },
+    exclude: [...HOST_FILE_COMMANDS, 'file.export', ...FORM_ROW_IDS],
+    before: {
+      File: [{ label: t('exportTitle'), testId: 'scene-cmd-file.export', onSelect: () => onCommand('file.export') }],
+      ...Object.fromEntries(
+        Object.entries(FORM_ROWS).map(([menu, rows]) => [
+          menu,
+          rows.map((row) => ({
+            label: `${phrase(row.label)} (${row.shortcut})`,
+            testId: `scene-cmd-${row.id}`,
+            onSelect: () => (row.modal ? modalTransform.begin(row.modal) : latestRename.current()),
+          })),
+        ]),
+      ),
+    },
     phrase,
     view: VIEW_MENUS,
     primary: SCENE_PRIMARY,
@@ -289,6 +337,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }, [])
   // F12 renders (the engine's command answers the picture).
   const frameKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // A menu at the pointer takes the keys (the arrows, Enter, Escape).
+    if (popup) return
     // A transform under way (or a transform tool's press) takes the keys: Escape cancels it,
     // Enter confirms it, axis letters, digits and the rest go to it, and no shortcut runs.
     if (modalTransform.active || (toolGesture.held && toolGesture.transform)) {
@@ -304,6 +354,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
     if (!typing && startKey(event)) return
+    if (!typing && editKey(event)) return
     if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
       event.preventDefault()
       event.stopPropagation()
@@ -387,6 +438,72 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }
   const latestStart = useRef(startKey)
   latestStart.current = startKey
+
+  // A menu at the pointer (X, Delete, M, P in a mesh's edit mode).
+  const [popup, setPopup] = useState<PointerMenuState | null>(null)
+  const openMenu = (title: string, testId: string, rows: PointerMenuRow[]) => {
+    const viewport = document.querySelector('[data-testid="scene-viewport"]')
+    setPopup({ at: pointerPoint(viewport), title, testId, rows })
+  }
+  // Every row is offered: the editor's list of what can run may lag a selection made a moment
+  // ago, and a command that cannot run says why.
+  const commandRow = (id: string, label: string): PointerMenuRow => ({ id, label, onSelect: () => void editor.run(id, {}) })
+  /**
+   * Edit mode's keys: E extrudes and moves, I insets, Ctrl/Cmd+B bevels, Ctrl/Cmd+R loop cuts (all
+   * sized by the pointer, as modals); X and Delete open the Delete menu, M the Merge menu, P the
+   * Separate menu. F9 opens Adjust Last Operation's fields in any mode. Ctrl/Cmd+R never reloads
+   * the page. Answers whether the key was taken.
+   */
+  const editKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'preventDefault' | 'stopPropagation'>) => {
+    const take = () => {
+      event.preventDefault()
+      event.stopPropagation()
+      return true
+    }
+    const command = event.metaKey || event.ctrlKey
+    if (event.key === 'F9' && !command && !event.altKey && !event.shiftKey) {
+      toggleAdjustLast()
+      return take()
+    }
+    const edit = state?.mode === 'edit' && !host.readOnly
+    if (event.code === 'KeyR' && command && !event.altKey && !event.shiftKey) {
+      if (edit) modalTransform.begin('loopCut')
+      return take()
+    }
+    if (!edit || event.altKey) return false
+    if (command && !event.shiftKey && event.code === 'KeyB') {
+      modalTransform.begin('bevel')
+      return take()
+    }
+    if (command || event.shiftKey) return false
+    switch (event.code) {
+      case 'KeyE':
+        modalTransform.begin('extrude')
+        return take()
+      case 'KeyI':
+        modalTransform.begin('inset')
+        return take()
+      case 'KeyX':
+      case 'Delete':
+        openMenu(t('menuDelete'), 'scene-delete-menu', [
+          commandRow('mesh.deleteVertices', t('deleteVertices')),
+          commandRow('mesh.deleteFaces', t('deleteFaces')),
+          'separator',
+          commandRow('mesh.dissolveVertices', t('dissolveVertices')),
+          commandRow('mesh.dissolveEdges', t('dissolveEdges')),
+          commandRow('mesh.dissolveFaces', t('dissolveFaces')),
+        ])
+        return take()
+      case 'KeyM':
+        openMenu(t('menuMerge'), 'scene-merge-menu', [commandRow('mesh.merge', t('mergeAtCenter'))])
+        return take()
+      case 'KeyP':
+        openMenu(t('menuSeparate'), 'scene-separate-menu', [commandRow('mesh.separate', t('separateSelection'))])
+        return take()
+      default:
+        return false
+    }
+  }
   const modalActive = useModalActive()
 
   // The note stays a few seconds, or until the next change.
@@ -412,6 +529,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
 
   // F2 renames the active object: in its outliner row, or, with no row shown, in a small box.
   const [renaming, setRenaming] = useState<{ id: number; name: string } | null>(null)
+  const latestRename = useRef<() => void>(() => {})
   const renameActive = () => {
     const active = state?.objects.find((object) => object.id === state.active)
     if (!active || host.readOnly) return
@@ -423,6 +541,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       setRenaming({ id: active.id, name: active.name })
     }
   }
+  latestRename.current = renameActive
 
   const [graph, setGraph] = useState(false)
   const [nlaOpen, setNlaOpen] = useState(false)
@@ -515,7 +634,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <div className="scene-stage">
             <div className="scene-split">
-              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} />
+              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} />
               {state && uvOpen && mode === 'edit' ? (
                 <FrameChrome>
                   <UvEditor info={state} onClose={() => setUvOpen(false)} />
@@ -533,6 +652,14 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
             ) : null}
           </div>
         </EditorFrame>
+        <PointerMenu
+          menu={popup}
+          onClose={() => {
+            setPopup(null)
+            // After the menu has given the focus back where it was (it may be gone by then).
+            window.requestAnimationFrame(() => focusEditor())
+          }}
+        />
         {rendering ? <RenderDialog
             host={host}
             base={base}

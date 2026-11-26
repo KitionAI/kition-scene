@@ -13,7 +13,8 @@ import { useColorScheme } from './colorScheme'
 import { TRANSFORM_MODES, TRANSFORM_TOOLS, toolGesture } from './gesture'
 import { useToolOverlay } from './ToolOverlay'
 import { modalTransform } from './modal'
-import { ModalHeader } from './ModalUi'
+import { ModalHeader, useModalActive } from './ModalUi'
+import { AdjustLast } from './AdjustLast'
 
 /** Degrees the view turns per CSS pixel of an orbit drag. */
 const ORBIT_SPEED = 0.4
@@ -37,11 +38,14 @@ export function SceneViewport({
   info,
   onRender,
   presence,
+  t,
 }: {
   canvas: RefObject<KitCanvasHandle | null>
   info: SceneInfo | null
   onRender: () => void
   presence?: { available: boolean; peers: readonly PlacedPeer[]; movePointer: (at: [number, number] | null) => void }
+  /** The editor's strings (Adjust Last Operation's). */
+  t?: (key: string) => string
 }) {
   const editor = useKitEditor()
   const { doc } = editor.session
@@ -208,6 +212,8 @@ export function SceneViewport({
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1)
       // The transform takes the wheel when it has a use for it (proportional editing's radius).
       if (transforming()) {
+        // A bevel's segments, a loop cut's cuts.
+        if (modal.answer.wheel && modal.wheel(delta)) return
         // Proportional editing's radius: set as a setting, which the transform under way (if the
         // press started one; nothing may be selected) follows at once.
         const proportional = latest.current.info?.proportional
@@ -231,6 +237,8 @@ export function SceneViewport({
     let drag: { x: number; y: number; pan: boolean; id: number } | null = null
     // The right button cancelled a transform: the context menu it brings stays closed.
     let cancelledMenu = false
+    // The press that confirmed an operation: its release is the page's too.
+    let swallowed: number | null = null
     const down = (event: PointerEvent) => {
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       modal.pointer = documentPoint(event)
@@ -240,6 +248,15 @@ export function SceneViewport({
         event.stopPropagation()
         cancelledMenu = true
         modal.cancel()
+        return
+      }
+      // The left button confirms an operation a key started (a loop cut's first click goes on to
+      // its slide): the page sends it, and the tools hear neither the press nor its release.
+      if (event.button === 0 && !event.altKey && modal.operates) {
+        event.preventDefault()
+        event.stopPropagation()
+        swallowed = event.pointerId
+        modal.confirm()
         return
       }
       const orbit = event.button === 1 || (event.button === 0 && event.altKey)
@@ -292,6 +309,11 @@ export function SceneViewport({
       schedule()
     }
     const up = (event: PointerEvent) => {
+      if (swallowed === event.pointerId) {
+        swallowed = null
+        event.stopPropagation()
+        return
+      }
       if (event.button === 0) {
         toolGesture.held = false
         toolGesture.transform = false
@@ -398,6 +420,7 @@ export function SceneViewport({
     await tool('pointer', [JSON.stringify(point)]).catch(() => null)
     await tool('toolKey', ['ContextMenu', '{}', 1 / dpr], true).catch(() => null)
   }
+  const modalActive = useModalActive()
   const { phrase: p, enabled, run } = editor
   const command = (id: string, label: string) => <MenuItem key={id} label={p(label)} disabled={!enabled(id)} onSelect={() => void run(id, {})} testId={`scene-context-${id}`} />
   const nav = (id: string, label: string, short: string) => (
@@ -432,6 +455,7 @@ export function SceneViewport({
         </div>
       ) : null}
       <ModalHeader />
+      {t ? <AdjustLast operation={info?.operation ?? null} hidden={modalActive} t={t} /> : null}
       <RenderedViewport active={info?.shading === 'rendered'} />
       {info ? <WeightPaintControls info={info} /> : null}
       {info ? <SculptControls info={info} /> : null}

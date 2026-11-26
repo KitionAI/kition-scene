@@ -325,7 +325,7 @@ impl SceneDocument {
     }
 
     /// The edge under the pointer in edit mode: the nearest on screen within a few pixels.
-    fn edge_at(&self, x: f32, y: f32) -> Option<(u32, u32)> {
+    pub(crate) fn edge_at(&self, x: f32, y: f32) -> Option<(u32, u32)> {
         let Mode::Edit(id) = self.session.mode else { return None };
         let world = self.scene.world_matrix(id).ok()?;
         let mesh = self.scene.object(id).ok()?.mesh()?;
@@ -353,34 +353,57 @@ impl SceneDocument {
         best.map(|(_, edge)| edge)
     }
 
-    fn loop_overlays(&self) -> Vec<ToolOverlay> {
-        let (Some(edge), Mode::Edit(id)) = (self.tool.hover_edge, self.session.mode) else { return Vec::new() };
+    /// The loops a loop cut of `cuts` across `edge` would make, evenly spaced across the ring of
+    /// edges it crosses: world-space segments.
+    pub(crate) fn loop_segments(&self, edge: (u32, u32), cuts: u32) -> Vec<(Vec3, Vec3)> {
+        let Mode::Edit(id) = self.session.mode else { return Vec::new() };
         let (Ok(world), Some(mesh)) = (self.scene.world_matrix(id), self.scene.object(id).ok().and_then(|object| object.mesh())) else {
             return Vec::new();
         };
         let Ok((ring, closed)) = kition_scene_model::ops::edge_ring(mesh, edge) else { return Vec::new() };
+        let cuts = cuts.clamp(1, 64);
+        let mut segments = Vec::new();
+        for cut in 1..=cuts {
+            let t = cut as f32 / (cuts + 1) as f32;
+            let across = |(a, b): (u32, u32)| -> Option<Vec3> {
+                let (low, high) = (a.min(b), a.max(b));
+                Some(world.transform_point3(mesh.positions.get(low as usize)?.lerp(*mesh.positions.get(high as usize)?, t)))
+            };
+            let points: Vec<Vec3> = ring.iter().filter_map(|edge| across(*edge)).collect();
+            segments.extend(points.windows(2).filter_map(|pair| if let [a, b] = pair { Some((*a, *b)) } else { None }));
+            if closed && let (Some(first), Some(last)) = (points.first(), points.last()) {
+                segments.push((*last, *first));
+            }
+        }
+        segments
+    }
+
+    /// The yellow loops of [`Self::loop_segments`] on the screen.
+    pub(crate) fn loop_lines(&self, edge: (u32, u32), cuts: u32) -> Vec<ToolOverlay> {
         let projector = self.projector();
-        let matrix = projector.view_projection() * world;
-        let middle = |(a, b): (u32, u32)| -> Option<(f64, f64)> {
-            let point = (mesh.positions.get(a as usize)? + *mesh.positions.get(b as usize)?) * 0.5;
+        let matrix = projector.view_projection();
+        let screen = |point: Vec3| -> Option<(f64, f64)> {
             let clip = matrix * point.extend(1.0);
             if clip.w <= 0.0 {
                 return None;
             }
-            let screen = projector.to_screen(clip);
-            Some((f64::from(screen.x), f64::from(screen.y)))
+            let at = projector.to_screen(clip);
+            Some((f64::from(at.x), f64::from(at.y)))
         };
-        let points: Vec<(f64, f64)> = ring.iter().filter_map(|edge| middle(*edge)).collect();
-        let mut overlays: Vec<ToolOverlay> = points
-            .windows(2)
-            .filter_map(|pair| {
-                if let [a, b] = pair { Some(ToolOverlay::Line { ax: a.0, ay: a.1, bx: b.0, by: b.1, color: YELLOW, dashed: false }) } else { None }
+        self.loop_segments(edge, cuts)
+            .into_iter()
+            .filter_map(|(a, b)| {
+                let (a, b) = (screen(a)?, screen(b)?);
+                Some(ToolOverlay::Line { ax: a.0, ay: a.1, bx: b.0, by: b.1, color: YELLOW, dashed: false })
             })
-            .collect();
-        if closed && let (Some(first), Some(last)) = (points.first(), points.last()) {
-            overlays.push(ToolOverlay::Line { ax: last.0, ay: last.1, bx: first.0, by: first.1, color: YELLOW, dashed: false });
+            .collect()
+    }
+
+    fn loop_overlays(&self) -> Vec<ToolOverlay> {
+        match self.tool.hover_edge {
+            Some(edge) if self.modal_started().is_none() => self.loop_lines(edge, 1),
+            _ => Vec::new(),
         }
-        overlays
     }
 
     /// Cuts along the knife's points (and forgets them).
@@ -469,6 +492,12 @@ impl SceneDocument {
             }
             (PointerAction::Down, Some(Started::Key)) => {
                 self.modal_pointer(at, event.mods.shift, event.mods.command);
+                // An operation confirms where it is (a loop cut goes on to its slide).
+                if self.modal_operates() {
+                    self.modal_confirm()?;
+                    self.tool.ignore_release = true;
+                    return Ok(self.respond());
+                }
                 if self.modal_click(at) || !self.modal_changes() {
                     // Nothing done yet (pressed where the key was, or the value is none): the key
                     // only picked the tool, whose press this is.
@@ -481,7 +510,11 @@ impl SceneDocument {
             (PointerAction::Up, Some(Started::Press { select })) => {
                 // The release's place counts: the page's last pointer step may still be on its way.
                 self.modal_pointer(at, event.mods.shift, event.mods.command);
-                if self.modal_click(at) {
+                // The Loop Cut tool's press slides the loop it cut; the release ends the slide
+                // (where it was pressed: in the middle).
+                if self.modal_operates() {
+                    self.modal_confirm()?;
+                } else if self.modal_click(at) {
                     self.modal_cancel()?;
                     if select {
                         self.select_at(at, at, event.mods);
@@ -630,9 +663,11 @@ impl KitTools for SceneDocument {
             ("loopCut", PointerAction::Move | PointerAction::Drag) => {
                 self.tool.hover_edge = self.edge_at(at.0 as f32, at.1 as f32);
             }
+            // The press cuts the loop under the pointer and slides it until the release, the same
+            // modal as Ctrl+R's after its click.
             ("loopCut", PointerAction::Down) => {
-                if let Some((a, b)) = self.edge_at(at.0 as f32, at.1 as f32) {
-                    self.execute("mesh.loopCut", json!({ "edge": [a, b], "cuts": 1 }))?;
+                if self.edge_at(at.0 as f32, at.1 as f32).is_some() && self.modal_begin_operation("loopCut", Some(at), Started::Press { select: false }).is_ok() {
+                    self.modal_confirm()?;
                     self.tool.hover_edge = None;
                 }
             }

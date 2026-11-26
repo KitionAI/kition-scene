@@ -15,14 +15,30 @@ export type Vec3 = [number, number, number]
 
 export type ModalKind = 'move' | 'rotate' | 'scale'
 
+/** Edit mode's operations the modal runs: E, I, Ctrl+B and Ctrl+R. */
+export type ModalOperation = 'extrude' | 'inset' | 'bevel' | 'loopCut'
+
+/** What a modal under way does (a loop cut's slide after its click is `slide`). */
+export type ModalAnswerKind = ModalKind | 'inset' | 'bevel' | 'loopCut' | 'slide'
+
 /** What the engine answers about the transform under way. */
 export type ModalAnswer = {
   active: boolean
-  kind?: ModalKind
+  kind?: ModalAnswerKind
   started?: 'key' | 'press'
   header?: string
   changed?: boolean
-  constraint?: { axis: 'x' | 'y' | 'z'; plane: boolean; orientation: 'global' | 'local' } | null
+  /** The value: a move's offset, a rotation's degrees, a scale's factors, or an operation's amounts by name. */
+  values?: unknown
+  /** The wheel is the modal's (a bevel's segments, a loop cut's cuts). */
+  wheel?: boolean
+  /** An extrusion's move. */
+  extrude?: boolean
+  /** A loop cut's loops before its click: world segments [ax, ay, az, bx, by, bz]. */
+  loops?: number[][]
+  /** The same loops on the engine's picture, in document pixels [ax, ay, bx, by]. */
+  loopScreen?: number[][]
+  constraint?: { axis: 'x' | 'y' | 'z'; plane: boolean; orientation: 'global' | 'local' | 'normal' } | null
   numeric?: { index: number; texts: string[] } | null
   precision?: boolean
   step?: boolean
@@ -93,6 +109,12 @@ export class ModalTransform {
     return this.answer.active || this.starting
   }
 
+  /** One of edit mode's operations a key started (or an extrusion's move): the left button confirms it wherever it is. */
+  get operates() {
+    const answer = this.answer
+    return answer.active && answer.started === 'key' && (answer.extrude === true || ['inset', 'bevel', 'loopCut', 'slide'].includes(answer.kind ?? ''))
+  }
+
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
     return () => {
@@ -133,8 +155,8 @@ export class ModalTransform {
     }
   }
 
-  /** Starts a transform of the selection where the pointer is. */
-  begin(kind: ModalKind, options: { duplicate?: boolean } = {}) {
+  /** Starts a transform of the selection, or one of edit mode's operations, where the pointer is. */
+  begin(kind: ModalKind | ModalOperation, options: { duplicate?: boolean } = {}) {
     const hooks = this.hooks
     if (!hooks || this.active) return
     this.starting = true
@@ -143,7 +165,9 @@ export class ModalTransform {
     void this.enqueue(async () => {
       try {
         const params: Record<string, unknown> = { kind, ...(at ? { at } : {}), ...(options.duplicate ? { duplicate: true } : {}) }
-        this.take(parse(await hooks.run('modal.begin', params, options.duplicate ? 'all' : 'none')))
+        // Copies and an operation's geometry show at once: the editor reads the document again.
+        const refresh = options.duplicate || !['move', 'rotate', 'scale'].includes(kind) ? 'all' : 'none'
+        this.take(parse(await hooks.run('modal.begin', params, refresh)))
       } catch {
         // Nothing to transform: the key did nothing.
         this.take(INACTIVE)
@@ -176,12 +200,13 @@ export class ModalTransform {
     void this.enqueue(() => this.step('modal.key', { key, shift, ctrl }).catch(() => undefined))
   }
 
+  /** Confirms the modal; a loop cut's first confirmation goes on to its slide, still under way. */
   confirm() {
     const hooks = this.hooks
     if (!hooks) return
     void this.enqueue(async () => {
-      await hooks.run('modal.confirm', {}, 'all').catch(() => undefined)
-      this.take(INACTIVE)
+      const answer = await hooks.run('modal.confirm', {}, 'all').catch(() => null)
+      this.take(answer ? parse(answer) : INACTIVE)
     })
   }
 
@@ -194,10 +219,10 @@ export class ModalTransform {
     })
   }
 
-  /** The wheel, when the transform takes it (proportional editing's radius); answers whether. */
+  /** The wheel, when the modal takes it (a bevel's segments, a loop cut's cuts, proportional editing's radius); answers whether. */
   wheel(delta: number) {
     const hooks = this.hooks
-    if (!hooks || this.answer.proportional == null) return false
+    if (!hooks || (this.answer.proportional == null && !this.answer.wheel)) return false
     void this.enqueue(async () => {
       this.take(parse(await hooks.run('modal.wheel', { delta }, 'all').catch(() => null)))
     })

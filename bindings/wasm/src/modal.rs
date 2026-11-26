@@ -45,15 +45,25 @@ const AXIS_COLORS: [[u8; 4]; 3] = [[255, 51, 82, 255], [139, 220, 0, 255], [40, 
 const DASH: [u8; 4] = [20, 20, 20, 220];
 const AXIS_NAMES: [&str; 3] = ["X", "Y", "Z"];
 
-/// What the transform does.
+/// What the modal does: a transform (move, rotate, scale), or one of edit mode's operations
+/// that the pointer sizes (inset, bevel, a loop cut's choice of loop and then its slide).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Move,
     Rotate,
     Scale,
+    /// The pointer's distance to the selection's centre is the thickness; with Ctrl, the depth.
+    Inset,
+    /// The pointer's distance from where it began is the width; the wheel adds segments.
+    Bevel,
+    /// The loop under the pointer is shown; the wheel and typed digits set the number of cuts.
+    LoopCut,
+    /// The cut loop slides along the edges it crosses.
+    Slide,
 }
 
 impl Kind {
+    /// One of the transforms (move, rotate, scale).
     pub fn parse(name: &str) -> Option<Self> {
         match name {
             "move" => Some(Kind::Move),
@@ -68,6 +78,10 @@ impl Kind {
             Kind::Move => "move",
             Kind::Rotate => "rotate",
             Kind::Scale => "scale",
+            Kind::Inset => "inset",
+            Kind::Bevel => "bevel",
+            Kind::LoopCut => "loopCut",
+            Kind::Slide => "slide",
         }
     }
 
@@ -76,14 +90,24 @@ impl Kind {
             Kind::Move => "Move",
             Kind::Rotate => "Rotate",
             Kind::Scale => "Scale",
+            Kind::Inset => "Inset Faces",
+            Kind::Bevel => "Bevel Edges",
+            Kind::LoopCut | Kind::Slide => "Loop Cut",
         }
     }
 
+    /// A transform of what is selected, as opposed to an operation run again from the mesh as it
+    /// was.
+    fn transform(self) -> bool {
+        matches!(self, Kind::Move | Kind::Rotate | Kind::Scale)
+    }
+
     /// The fields typed numbers go to: a move takes one per free axis, a rotation one angle, a
-    /// scale one per free axis.
+    /// scale one per free axis; an inset its thickness and depth; the others one.
     fn fields(self, constraint: Option<Constraint>) -> usize {
         match (self, constraint) {
-            (Kind::Rotate, _) => 1,
+            (Kind::Rotate | Kind::Bevel | Kind::LoopCut | Kind::Slide, _) => 1,
+            (Kind::Inset, _) => 2,
             (_, None) => 3,
             (_, Some(constraint)) => constraint.free().len(),
         }
@@ -96,6 +120,8 @@ pub enum Orientation {
     Global,
     /// Each object's own axes (in edit modes, the edited object's).
     Local,
+    /// The selected faces' mean normal as Z (an extrusion's move).
+    Normal,
 }
 
 impl Orientation {
@@ -103,14 +129,16 @@ impl Orientation {
         match name {
             "global" => Some(Orientation::Global),
             "local" => Some(Orientation::Local),
+            "normal" => Some(Orientation::Normal),
             _ => None,
         }
     }
 
-    fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Orientation::Global => "global",
             Orientation::Local => "local",
+            Orientation::Normal => "normal",
         }
     }
 }
@@ -129,8 +157,11 @@ impl Constraint {
         if self.plane { (0..3).filter(|axis| *axis != self.axis).collect() } else { vec![self.axis] }
     }
 
-    /// As the header ends: ` along global X`, ` locking local Z`.
+    /// As the header ends: ` along global X`, ` locking local Z`, ` normal` (along the normal).
     fn text(&self) -> String {
+        if self.orientation == Orientation::Normal && !self.plane && self.axis == 2 {
+            return " normal".into();
+        }
         format!(" {} {} {}", if self.plane { "locking" } else { "along" }, self.orientation.name(), AXIS_NAMES.get(self.axis).copied().unwrap_or("Z"))
     }
 }
@@ -167,6 +198,9 @@ enum Items {
     Curve { object: Id, original: ObjectData, selected: BTreeSet<u32> },
     /// A lattice's selected points.
     Lattice { object: Id, original: ObjectData, selected: BTreeSet<u32> },
+    /// The edited mesh as it was, and its selected vertices, for an operation that runs again
+    /// from them on every update (inset, bevel, a loop cut).
+    Rerun { object: Id, original: ObjectData, selected: BTreeSet<u32> },
 }
 
 impl Items {
@@ -174,16 +208,18 @@ impl Items {
     fn first_object(&self) -> Option<Id> {
         match self {
             Items::Objects(objects) => objects.first().map(|start| start.id),
-            Items::Vertices { object, .. } | Items::Bones { object, .. } | Items::Curve { object, .. } | Items::Lattice { object, .. } => {
-                Some(*object)
-            }
+            Items::Vertices { object, .. }
+            | Items::Bones { object, .. }
+            | Items::Curve { object, .. }
+            | Items::Lattice { object, .. }
+            | Items::Rerun { object, .. } => Some(*object),
         }
     }
 
     /// The undo step's name.
     fn label(&self, kind: Kind) -> &'static str {
         match self {
-            Items::Objects(_) | Items::Vertices { .. } => kind.title(),
+            Items::Objects(_) | Items::Vertices { .. } | Items::Rerun { .. } => kind.title(),
             Items::Bones { .. } => "Transform Bones",
             Items::Curve { .. } | Items::Lattice { .. } => "Transform Points",
         }
@@ -311,18 +347,43 @@ impl Default for Base {
 }
 
 /// The transform's value now: a move's offset (world, or along the constraint's axes in its
-/// frame), a rotation's angle (radians), a scale's factors (along the frame's axes).
-#[derive(Debug, Clone, Copy)]
-struct Values {
-    offset: Vec3,
-    angle: f32,
-    factors: Vec3,
+/// frame), a rotation's angle (radians), a scale's factors (along the frame's axes); an
+/// operation's amounts (an inset's thickness and depth, a bevel's width, a slide's factor) and
+/// count (a bevel's segments, a loop cut's cuts).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Values {
+    pub offset: Vec3,
+    pub angle: f32,
+    pub factors: Vec3,
+    pub amounts: [f32; 2],
+    pub count: u32,
 }
 
 impl Default for Values {
     fn default() -> Self {
-        Self { offset: Vec3::ZERO, angle: 0.0, factors: Vec3::ONE }
+        Self { offset: Vec3::ZERO, angle: 0.0, factors: Vec3::ONE, amounts: [0.0, 0.0], count: 1 }
     }
+}
+
+/// An extrusion under way: its geometry is made (at no distance) and the modal moves it. The
+/// scene before it, for the step; whether it extruded loose vertices and edges (then the move is
+/// free) or faces (then it keeps to their mean normal, `normal` in the object's own axes).
+#[derive(Debug, Clone)]
+struct Extrusion {
+    before: Box<Step>,
+    loose: bool,
+    normal: Vec3,
+}
+
+/// What a confirmed transform was, for Adjust Last Operation to run it again with other values.
+#[derive(Debug, Clone)]
+pub(crate) struct Replay {
+    pub kind: Kind,
+    pub duplicate: bool,
+    /// A free rotation's axis (the view's, when it was confirmed).
+    pub view_axis: Vec3,
+    /// The normal frame an extrusion's move kept to.
+    pub normal: Mat3,
 }
 
 /// A transform of world points: `pivot + linear (p - pivot) + offset`.
@@ -370,6 +431,23 @@ pub struct Modal {
     duplicate: Option<Box<Step>>,
     values: Values,
     ratio: f64,
+    /// E: the extrusion the move carries.
+    extrusion: Option<Extrusion>,
+    /// The frame of `Orientation::Normal` (the extruded faces' normal as Z), world space.
+    normal: Mat3,
+    /// Values given outright (Adjust Last Operation's replay), and a free rotation's axis.
+    fixed: Option<(Values, Option<Vec3>)>,
+    /// An inset's Ctrl: the pointer sizes the depth. The amounts the pointer starts from.
+    depth: bool,
+    base_amounts: [f32; 2],
+    /// A bevel's segments (the wheel) and a loop cut's cuts (the wheel), before typing.
+    count: u32,
+    /// The edge a loop cut crosses, and for its slide the edge's direction on the screen (from
+    /// its lower-numbered end).
+    edge: Option<(u32, u32)>,
+    edge_screen: (f64, f64),
+    /// The selection as it was before the modal (for Adjust Last Operation).
+    selected_before: crate::operation::Selected,
 }
 
 fn unit(axis: usize) -> Vec3 {
@@ -469,17 +547,21 @@ impl Modal {
     fn frame(&self, own: Mat3) -> Mat3 {
         match self.constraint {
             Some(Constraint { orientation: Orientation::Local, .. }) => own,
+            Some(Constraint { orientation: Orientation::Normal, .. }) => self.normal,
             _ => Mat3::IDENTITY,
         }
     }
 
-    /// Whether it would change anything now.
+    /// Whether it would change anything now (an operation always does, once it runs).
     fn changes(&self) -> bool {
         self.duplicate.is_some()
+            || self.extrusion.is_some()
             || match self.kind {
                 Kind::Move => self.values.offset != Vec3::ZERO,
                 Kind::Rotate => self.values.angle != 0.0,
                 Kind::Scale => self.values.factors != Vec3::ONE,
+                Kind::Inset | Kind::Bevel | Kind::Slide => true,
+                Kind::LoopCut => false,
             }
     }
 
@@ -489,8 +571,73 @@ impl Modal {
         !self.travelled && !self.numeric.on && self.constraint.is_none() && (at.0 - self.start.0).hypot(at.1 - self.start.1) <= CLICK_PIXELS
     }
 
+    /// The pointer's distance to the pivot on the screen now and where its input started, in
+    /// world units at the pivot (per object scale `scale`).
+    fn pivot_distances(&self, projector: &Projector, scale: f32) -> (f32, f32) {
+        let (px, py) = self.pivot_screen;
+        let size = projector.pixel_size_at(self.pivot) / scale.max(1e-6);
+        let now = (self.virtual_at.0 - px).hypot(self.virtual_at.1 - py) as f32 * size;
+        let start = (self.start.0 - px).hypot(self.start.1 - py) as f32 * size;
+        (now, start)
+    }
+
+    /// An operation's value from the typed numbers or the pointer (`scale`: the edited object's
+    /// largest scale, which the amounts are measured in).
+    fn solve_operation(&self, projector: &Projector, scale: f32) -> Values {
+        let mut values = Values { count: self.count, amounts: self.base_amounts, ..Values::default() };
+        let typed = |index: usize| self.numeric.fields.get(index).and_then(Field::value);
+        if self.numeric.on {
+            match self.kind {
+                Kind::Inset => values.amounts = [typed(0).unwrap_or(0.0).max(0.0), typed(1).unwrap_or(0.0)],
+                Kind::Bevel => values.amounts[0] = typed(0).unwrap_or(0.0).max(0.0),
+                // Cuts are whole, from 1 to 64; nothing typed yet keeps the wheel's.
+                Kind::LoopCut => values.count = typed(0).map_or(self.count, |cuts| cuts.round().clamp(1.0, 64.0) as u32),
+                // Typed as Blender reads a slide: -1 to 1 across the edges, 0 the middle.
+                Kind::Slide => values.amounts[0] = (0.5 + typed(0).unwrap_or(0.0) * 0.5).clamp(0.0, 1.0),
+                Kind::Move | Kind::Rotate | Kind::Scale => {}
+            }
+            return values;
+        }
+        let step = self.step.then_some(self.precision);
+        match self.kind {
+            Kind::Inset => {
+                let (now, start) = self.pivot_distances(projector, scale);
+                if self.depth {
+                    values.amounts[1] = self.base_amounts[1] + (now - start);
+                } else {
+                    // Towards the centre is thicker.
+                    values.amounts[0] = (self.base_amounts[0] - (now - start)).max(0.0);
+                }
+            }
+            Kind::Bevel => {
+                let (now, start) = self.pivot_distances(projector, scale);
+                let width = (self.base_amounts[0] + (now - start)).max(0.0);
+                values.amounts[0] = match step {
+                    Some(fine) => snapped(width, if fine { 0.01 } else { 0.1 }),
+                    None => width,
+                };
+            }
+            Kind::Slide => {
+                let (ex, ey) = self.edge_screen;
+                let length = ex * ex + ey * ey;
+                let (dx, dy) = (self.virtual_at.0 - self.start.0, self.virtual_at.1 - self.start.1);
+                let along = if length > 1e-6 { (dx * ex + dy * ey) / length } else { 0.0 };
+                let factor = (0.5 + along as f32).clamp(0.0, 1.0);
+                values.amounts[0] = match step {
+                    Some(fine) => snapped(factor, if fine { 0.01 } else { 0.1 }),
+                    None => factor,
+                };
+            }
+            Kind::LoopCut | Kind::Move | Kind::Rotate | Kind::Scale => {}
+        }
+        values
+    }
+
     /// The value from the typed numbers or the pointer.
     fn solve(&self, projector: &Projector) -> (Values, f64) {
+        if let Some((values, _)) = self.fixed {
+            return (values, self.ratio);
+        }
         let mut values = Values::default();
         let free = self.constraint.map(|constraint| constraint.free());
         let frame = self.frame(self.local);
@@ -515,6 +662,7 @@ impl Modal {
                             .fold(Vec3::ONE, |factors, (index, axis)| with_component(factors, *axis, self.numeric.value(index, true, 1.0))),
                     };
                 }
+                Kind::Inset | Kind::Bevel | Kind::LoopCut | Kind::Slide => {}
             }
             return (values, self.ratio);
         }
@@ -595,6 +743,7 @@ impl Modal {
                     Some(free) => free.iter().fold(Vec3::ONE, |factors, axis| with_component(factors, *axis, factor)),
                 };
             }
+            Kind::Inset | Kind::Bevel | Kind::LoopCut | Kind::Slide => {}
         }
         (values, ratio)
     }
@@ -607,12 +756,13 @@ impl Modal {
             Kind::Move => (Mat3::IDENTITY, if self.constraint.is_some() { frame * values.offset } else { values.offset }),
             Kind::Rotate => {
                 let axis = match self.constraint {
-                    None => into_screen(projector, self.pivot),
+                    None => self.fixed.and_then(|(_, axis)| axis).unwrap_or_else(|| into_screen(projector, self.pivot)),
                     Some(constraint) => (frame * unit(constraint.axis)).normalize_or(Vec3::Z),
                 };
                 (Mat3::from_axis_angle(axis, values.angle), Vec3::ZERO)
             }
             Kind::Scale => (frame * Mat3::from_diagonal(values.factors) * frame.transpose(), Vec3::ZERO),
+            Kind::Inset | Kind::Bevel | Kind::LoopCut | Kind::Slide => (Mat3::IDENTITY, Vec3::ZERO),
         };
         Change { kind: self.kind, linear, offset, pivot: self.pivot }
     }
@@ -624,6 +774,8 @@ impl Modal {
             Some(current) if current.axis == axis && current.plane == plane => match current.orientation {
                 Orientation::Global => Some(Constraint { orientation: Orientation::Local, ..current }),
                 Orientation::Local => None,
+                // An extrusion's normal, pressed: the global axis.
+                Orientation::Normal => Some(Constraint { orientation: Orientation::Global, ..current }),
             },
             _ => Some(Constraint { axis, plane, orientation: Orientation::Global }),
         };
@@ -714,6 +866,23 @@ impl Modal {
                     }
                 }
             }
+            Kind::Inset => {
+                let [thickness, depth] = self.values.amounts;
+                text.push_str(&format!("Thickness: {}, Depth: {}", self.field_text(0, thickness, " m"), self.field_text(1, depth, " m")));
+            }
+            Kind::Bevel => {
+                text.push_str(&format!("Offset: {}, Segments: {}", self.field_text(0, self.values.amounts[0], " m"), self.values.count));
+            }
+            Kind::LoopCut => {
+                let cuts = match self.numeric.fields.first() {
+                    Some(field) if self.numeric.on && field.edited => field.shown(&self.values.count.to_string()),
+                    _ => self.values.count.to_string(),
+                };
+                text.push_str(&format!("Cuts: {cuts}"));
+            }
+            Kind::Slide => {
+                text.push_str(&format!("Edge Slide: {}", self.field_text(0, self.values.amounts[0] * 2.0 - 1.0, "")));
+            }
         }
         text
     }
@@ -733,6 +902,10 @@ impl SceneDocument {
             Kind::Move => json!(modal.values.offset.to_array()),
             Kind::Rotate => json!(modal.values.angle.to_degrees()),
             Kind::Scale => json!(modal.values.factors.to_array()),
+            Kind::Inset => json!({ "thickness": modal.values.amounts[0], "depth": modal.values.amounts[1] }),
+            Kind::Bevel => json!({ "width": modal.values.amounts[0], "segments": modal.values.count }),
+            Kind::LoopCut => json!({ "cuts": modal.values.count }),
+            Kind::Slide => json!({ "factor": modal.values.amounts[0], "cuts": modal.values.count }),
         };
         let pivot_screen = screen_of(&projector, modal.pivot);
         json!({
@@ -757,7 +930,26 @@ impl SceneDocument {
             "pivotScreen": [pivot_screen.0, pivot_screen.1],
             "pointer": [modal.last.0, modal.last.1],
             "lines": lines,
-            "dashed": modal.kind != Kind::Move,
+            "dashed": matches!(modal.kind, Kind::Rotate | Kind::Scale | Kind::Inset | Kind::Bevel),
+            "wheel": matches!(modal.kind, Kind::Bevel | Kind::LoopCut),
+            "extrude": modal.extrusion.is_some(),
+            "edge": modal.edge.map(|(a, b)| [a, b]),
+            // A loop cut's loops before its click: world segments, and the same on the screen.
+            "loops": match (modal.kind, modal.edge) {
+                (Kind::LoopCut, Some(edge)) => self.loop_segments(edge, modal.values.count).into_iter().map(|(a, b)| [a.x, a.y, a.z, b.x, b.y, b.z]).collect::<Vec<_>>(),
+                _ => Vec::new(),
+            },
+            "loopScreen": match (modal.kind, modal.edge) {
+                (Kind::LoopCut, Some(edge)) => self
+                    .loop_lines(edge, modal.values.count)
+                    .into_iter()
+                    .filter_map(|line| match line {
+                        ToolOverlay::Line { ax, ay, bx, by, .. } => Some([ax, ay, bx, by]),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>(),
+                _ => Vec::new(),
+            },
             "proportional": self.modal_radius(modal),
             "proportionalPixels": self.modal_radius(modal).map(|radius| f64::from(radius / projector.pixel_size_at(modal.pivot).max(1e-9))).filter(|pixels| pixels.is_finite()),
             "duplicate": modal.duplicate.is_some(),
@@ -859,10 +1051,8 @@ impl SceneDocument {
         if let Some(before) = self.field_preview.take() {
             self.scene = before.scene;
         }
-        let at = at
-            .or(self.tool.pointer_at())
-            .filter(|(x, y)| x.is_finite() && y.is_finite())
-            .unwrap_or((f64::from(self.session.width) / 2.0, f64::from(self.session.height) / 2.0));
+        let at = self.modal_at(at);
+        let selected_before = crate::operation::Selected::of(self);
         let copied = if duplicate { Some(Box::new(self.duplicate_for_modal()?)) } else { None };
         let Some((items, pivot)) = self.modal_items() else {
             if let Some(before) = copied {
@@ -871,10 +1061,39 @@ impl SceneDocument {
             }
             return Err("not-allowed: select something to transform first".into());
         };
+        let mut modal = self.new_modal(kind, items, pivot, at, started, selected_before);
+        modal.constraint = constraint;
+        modal.duplicate = copied;
+        modal.fit_fields();
+        self.modal = Some(modal);
+        if duplicate {
+            // The copies show at once (they are new objects or vertices).
+            self.touched();
+        }
+        Ok(())
+    }
+
+    /// Where a modal begins: `at`, else the pointer's last place, else the viewport's middle.
+    fn modal_at(&self, at: Option<(f64, f64)>) -> (f64, f64) {
+        at.or(self.tool.pointer_at())
+            .filter(|(x, y)| x.is_finite() && y.is_finite())
+            .unwrap_or((f64::from(self.session.width) / 2.0, f64::from(self.session.height) / 2.0))
+    }
+
+    /// A modal of `kind` over `items` about `pivot`, begun at `at`, with nothing done yet.
+    fn new_modal(
+        &self,
+        kind: Kind,
+        items: Items,
+        pivot: Vec3,
+        at: (f64, f64),
+        started: Started,
+        selected_before: crate::operation::Selected,
+    ) -> Modal {
         let projector = self.projector();
         let local =
             items.first_object().and_then(|id| self.scene.world_matrix(id).ok()).map_or(Mat3::IDENTITY, |world| orthonormal(Mat3::from_mat4(world)));
-        let mut modal = Modal {
+        Modal {
             kind,
             items,
             pivot,
@@ -887,21 +1106,116 @@ impl SceneDocument {
             base: Base::default(),
             view: (self.session.editor.view.clone(), self.session.width, self.session.height),
             pivot_screen: screen_of(&projector, pivot),
-            constraint,
+            constraint: None,
             numeric: Numeric::default(),
             precision: false,
             step: false,
             travelled: false,
-            duplicate: copied,
+            duplicate: None,
             values: Values::default(),
             ratio: 1.0,
-        };
-        modal.fit_fields();
-        self.modal = Some(modal);
-        if duplicate {
-            // The copies show at once (they are new objects or vertices).
-            self.touched();
+            extrusion: None,
+            normal: Mat3::IDENTITY,
+            fixed: None,
+            depth: false,
+            base_amounts: [0.0, 0.0],
+            count: 1,
+            edge: None,
+            edge_screen: (0.0, 0.0),
+            selected_before,
         }
+    }
+
+    /// Starts one of edit mode's operations where the pointer is (`at`; its last place when
+    /// `None`): `extrude` makes the extrusion and moves it (along the faces' normal, or freely
+    /// for loose vertices and edges), `inset` and `bevel` size it by the pointer, `loopCut` shows
+    /// the loop under the pointer until a click cuts it and slides it. A modal under way is
+    /// cancelled first.
+    pub(crate) fn modal_begin_operation(&mut self, name: &str, at: Option<(f64, f64)>, started: Started) -> Result<(), String> {
+        if self.modal.is_some() {
+            self.modal_cancel()?;
+        }
+        if let Some(before) = self.field_preview.take() {
+            self.scene = before.scene;
+        }
+        let Mode::Edit(object) = self.session.mode else {
+            return Err("not-allowed: the edit mode's operations work on the mesh being edited".into());
+        };
+        if self.session.rig.is_some() || self.session.shape.is_some() {
+            return Err("not-allowed: the edit mode's operations work on a mesh".into());
+        }
+        let at = self.modal_at(at);
+        let selected_before = crate::operation::Selected::of(self);
+        let original = self.scene.object(object).map_err(|error| error.to_string())?.data.clone();
+        let ObjectData::Mesh(mesh) = &original else { return Err("unsupported: the edited object is not a mesh".into()) };
+        let faces = crate::commands::faces_selected(&self.session, mesh);
+        let has_edges = mesh.edges().into_iter().any(|[a, b]| self.session.vertices.contains(&a) && self.session.vertices.contains(&b));
+        match name {
+            "extrude" => {
+                if self.session.vertices.is_empty() {
+                    return Err("not-allowed: select something to extrude".into());
+                }
+                let loose = faces.is_empty();
+                let normal_local = mesh
+                    .faces
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| faces.contains(&(*index as u32)))
+                    .map(|(_, face)| mesh.face_normal(face))
+                    .sum::<Vec3>()
+                    .normalize_or_zero();
+                let before = self.step("Extrude");
+                let made = crate::commands::run_change(self, "mesh.extrude", &json!({ "distance": 0.0 })).and_then(|_| {
+                    self.tidy_session();
+                    self.scene.validate().map_err(|error| format!("failed: the extrusion would break the scene ({error})"))
+                });
+                if let Err(error) = made {
+                    self.restore(before);
+                    self.touched();
+                    return Err(error);
+                }
+                let Some((mut items, pivot)) = self.modal_items() else {
+                    self.restore(before);
+                    self.touched();
+                    return Err("not-allowed: nothing was extruded".into());
+                };
+                if let Items::Vertices { followers, .. } = &mut items {
+                    followers.clear();
+                }
+                let mut modal = self.new_modal(Kind::Move, items, pivot, at, started, selected_before);
+                if !loose && normal_local != Vec3::ZERO {
+                    let world = self.scene.world_matrix(object).map_err(|error| error.to_string())?;
+                    let direction = world.transform_vector3(normal_local).normalize_or(Vec3::Z);
+                    let x = direction.any_orthonormal_vector();
+                    modal.normal = Mat3::from_cols(x, direction.cross(x), direction);
+                    modal.constraint = Some(Constraint { axis: 2, plane: false, orientation: Orientation::Normal });
+                }
+                modal.extrusion = Some(Extrusion { before: Box::new(before), loose, normal: normal_local });
+                modal.fit_fields();
+                self.modal = Some(modal);
+                // The new geometry shows at once.
+                self.touched();
+                return Ok(());
+            }
+            "inset" if faces.is_empty() => return Err("not-allowed: select faces to inset".into()),
+            "bevel" if !has_edges => return Err("not-allowed: select edges to bevel".into()),
+            "inset" | "bevel" | "loopCut" => {}
+            other => return Err(bad(format!("`kind` {other} is not an operation of edit mode"))),
+        }
+        let kind = match name {
+            "inset" => Kind::Inset,
+            "bevel" => Kind::Bevel,
+            _ => Kind::LoopCut,
+        };
+        let pivot = if kind == Kind::LoopCut { Vec3::ZERO } else { self.pivot().ok_or("not-allowed: select something first")? };
+        let items = Items::Rerun { object, original, selected: self.session.vertices.clone() };
+        let mut modal = self.new_modal(kind, items, pivot, at, started, selected_before);
+        if kind == Kind::LoopCut {
+            modal.edge = self.edge_at(at.0 as f32, at.1 as f32);
+        }
+        self.modal_apply(&mut modal);
+        self.modal = Some(modal);
+        self.touched();
         Ok(())
     }
 
@@ -953,12 +1267,75 @@ impl SceneDocument {
                     object.data = original.clone();
                 }
             }
+            Items::Rerun { object, original, selected } => {
+                if let Ok(object) = self.scene.object_mut(*object) {
+                    object.data = original.clone();
+                }
+                self.session.vertices = selected.clone();
+                self.session.faces = None;
+            }
+        }
+    }
+
+    /// The command and parameters an operation's modal runs now (`None` for a transform, and
+    /// for a loop cut before it has its loop).
+    fn modal_operation(modal: &Modal) -> Option<(&'static str, Value)> {
+        let values = modal.values;
+        match modal.kind {
+            Kind::Inset => Some(("mesh.inset", json!({ "thickness": values.amounts[0], "depth": values.amounts[1] }))),
+            Kind::Bevel => Some(("mesh.bevel", json!({ "width": values.amounts[0], "segments": values.count }))),
+            Kind::Slide => {
+                let (a, b) = modal.edge?;
+                Some(("mesh.loopCut", json!({ "edge": [a, b], "cuts": values.count, "factor": values.amounts[0] })))
+            }
+            Kind::LoopCut | Kind::Move | Kind::Rotate | Kind::Scale => None,
+        }
+    }
+
+    /// The extrusion's command: along the normal when the move kept to it, else the move's offset
+    /// in the object's own axes.
+    fn extrusion_params(&self, modal: &Modal, extrusion: &Extrusion) -> Value {
+        let Some(object) = modal.items.first_object() else { return json!({ "distance": 0.0 }) };
+        let world = self.scene.world_matrix(object).unwrap_or(glam::Mat4::IDENTITY);
+        let projector = self.projector();
+        let offset = world.inverse().transform_vector3(modal.change(orthonormal(Mat3::from_mat4(world)), &projector).offset);
+        let offset = if offset.is_finite() { offset } else { Vec3::ZERO };
+        let along_normal = !extrusion.loose
+            && modal.constraint.is_some_and(|constraint| constraint.orientation == Orientation::Normal && !constraint.plane && constraint.axis == 2);
+        if along_normal {
+            json!({ "distance": plain(offset.dot(extrusion.normal)) })
+        } else {
+            json!({ "distance": 0.0, "offset": offset.to_array().map(plain) })
         }
     }
 
     /// Works the value out again and applies it to what the transform moves, from where it was.
     fn modal_apply(&mut self, modal: &mut Modal) {
         let projector = self.projector();
+        if !modal.kind.transform() {
+            let scale = modal
+                .items
+                .first_object()
+                .and_then(|id| self.scene.world_matrix(id).ok())
+                .map_or(1.0, |world| world.to_scale_rotation_translation().0.abs().max_element());
+            modal.values = match modal.fixed {
+                Some((values, _)) => values,
+                None => modal.solve_operation(&projector, scale),
+            };
+            self.modal_restore(&modal.items);
+            if let Some((command, params)) = Self::modal_operation(modal) {
+                let ran = crate::commands::run_change(self, command, &params).and_then(|_| {
+                    self.tidy_session();
+                    self.scene.validate().map_err(|error| error.to_string())
+                });
+                // An amount the operation cannot take (a bevel wider than its faces) shows the mesh
+                // as it was.
+                if ran.is_err() {
+                    self.modal_restore(&modal.items);
+                }
+            }
+            return;
+        }
         let (values, ratio) = modal.solve(&projector);
         modal.values = values;
         modal.ratio = ratio;
@@ -973,7 +1350,7 @@ impl SceneDocument {
                     let moved = parent.inverse().transform_vector3(change.point(origin) - origin);
                     let parent_axes = orthonormal(Mat3::from_mat4(parent));
                     let (rotation, scale) = match modal.kind {
-                        Kind::Move => (start.rotation, start.scale),
+                        Kind::Move | Kind::Inset | Kind::Bevel | Kind::LoopCut | Kind::Slide => (start.rotation, start.scale),
                         Kind::Rotate => {
                             let turned = parent_axes.transpose() * change.linear * parent_axes * euler_matrix(start.rotation);
                             (matrix_euler(orthonormal(turned)), start.scale)
@@ -1057,6 +1434,7 @@ impl SceneDocument {
                     object.data = ObjectData::Lattice(lattice);
                 }
             }
+            Items::Rerun { .. } => {}
         }
     }
 
@@ -1070,6 +1448,7 @@ impl SceneDocument {
         let offset = modal.change(self.modal_local_frame(modal), &self.projector()).offset;
         let (ratio, turned) = (modal.ratio, modal.turned);
         modal.restart_input();
+        modal.base_amounts = modal.values.amounts;
         modal.base = Base { offset, ratio };
         modal.turned = turned;
         modal.view = now;
@@ -1101,7 +1480,20 @@ impl SceneDocument {
                 modal.travelled = true;
             }
             modal.precision = precision;
-            modal.step = step;
+            match modal.kind {
+                // An inset's Ctrl sizes the depth instead, from where the pointer is when it changes.
+                Kind::Inset => {
+                    if step != modal.depth {
+                        modal.depth = step;
+                        modal.base_amounts = modal.values.amounts;
+                        modal.start = at;
+                        modal.virtual_at = at;
+                    }
+                }
+                // A loop cut shows the loop across the edge under the pointer.
+                Kind::LoopCut => modal.edge = self.edge_at(at.0 as f32, at.1 as f32),
+                _ => modal.step = step,
+            }
             self.modal_apply(&mut modal);
         }
         self.modal = Some(modal);
@@ -1115,7 +1507,12 @@ impl SceneDocument {
         let Some(mut modal) = self.modal.take() else { return false };
         let lower = key.to_ascii_lowercase();
         let count = modal.kind.fields(modal.constraint);
+        let transform = modal.kind.transform();
+        // An extrusion's move stays a move.
+        let switches = transform && modal.extrusion.is_none();
         let taken = match lower.as_str() {
+            "x" | "y" | "z" | "c" if !transform => false,
+            "g" | "r" | "s" if !switches => false,
             "x" => {
                 modal.press_axis(0, shift);
                 true
@@ -1172,6 +1569,24 @@ impl SceneDocument {
     /// The wheel during the transform (`delta` in pixels, down positive): with proportional
     /// editing it resizes the radius. Answers whether it was taken (otherwise the view zooms).
     pub(crate) fn modal_wheel(&mut self, delta: f64) -> bool {
+        // A bevel's segments and a loop cut's cuts: one a notch, up the wheel more.
+        if let Some(mut modal) = self.modal.take() {
+            if matches!(modal.kind, Kind::Bevel | Kind::LoopCut) && delta.is_finite() {
+                if delta != 0.0 {
+                    let up = delta < 0.0;
+                    let limit = if modal.kind == Kind::Bevel { 100 } else { 64 };
+                    modal.count = if up { (modal.count + 1).min(limit) } else { modal.count.saturating_sub(1).max(1) };
+                    // A typed number of cuts gives way to the wheel.
+                    if modal.kind == Kind::LoopCut {
+                        modal.numeric = Numeric::default();
+                    }
+                    self.modal_apply(&mut modal);
+                }
+                self.modal = Some(modal);
+                return true;
+            }
+            self.modal = Some(modal);
+        }
         let Some(modal) = &self.modal else { return false };
         let (Items::Vertices { .. }, Some(mut settings)) = (&modal.items, self.session.proportional) else { return false };
         if !delta.is_finite() {
@@ -1202,6 +1617,36 @@ impl SceneDocument {
     /// changes nothing. Answers whether there was one.
     pub(crate) fn modal_confirm(&mut self) -> Result<bool, String> {
         let Some(mut modal) = self.modal.take() else { return Ok(false) };
+        // An extrusion: the scene before it, and the extrude command as the move left it.
+        if let Some(extrusion) = modal.extrusion.take() {
+            let params = self.extrusion_params(&modal, &extrusion);
+            self.restore(*extrusion.before);
+            self.touched();
+            crate::commands::execute(self, "mesh.extrude", &params)?;
+            return Ok(true);
+        }
+        match modal.kind {
+            // The loop is chosen: it is cut, and slides with the pointer until a click.
+            Kind::LoopCut => {
+                match modal.edge {
+                    Some(edge) => self.modal_start_slide(modal, edge),
+                    None => {
+                        self.modal_restore(&modal.items);
+                        self.touched();
+                    }
+                }
+                return Ok(true);
+            }
+            Kind::Inset | Kind::Bevel | Kind::Slide => {
+                self.modal_restore(&modal.items);
+                self.touched();
+                if let Some((command, params)) = Self::modal_operation(&modal) {
+                    crate::commands::execute(self, command, &params)?;
+                }
+                return Ok(true);
+            }
+            Kind::Move | Kind::Rotate | Kind::Scale => {}
+        }
         if !modal.changes() {
             self.modal_restore(&modal.items);
             self.touched();
@@ -1209,6 +1654,7 @@ impl SceneDocument {
         }
         // The scene before the transform, for the step (taken now, not when it began).
         self.modal_restore(&modal.items);
+        let duplicated = modal.duplicate.is_some();
         let before = match modal.duplicate.take() {
             Some(before) => *before,
             None => self.step(modal.items.label(modal.kind)),
@@ -1219,20 +1665,78 @@ impl SceneDocument {
             self.touched();
             return Err(format!("failed: the transform would break the scene ({error})"));
         }
+        let content = self.content;
         self.committed(before)?;
+        if self.content != content {
+            let projector = self.projector();
+            let view_axis = modal.fixed.and_then(|(_, axis)| axis).unwrap_or_else(|| into_screen(&projector, modal.pivot));
+            let replay = Replay { kind: modal.kind, duplicate: duplicated, view_axis, normal: modal.normal };
+            crate::operation::record_transform(self, replay, transform_params(&modal), modal.selected_before.clone());
+        }
         Ok(true)
+    }
+
+    /// A loop cut's loop is chosen: it is cut in the middle, and the modal slides it.
+    fn modal_start_slide(&mut self, mut modal: Modal, edge: (u32, u32)) {
+        let edge = (edge.0.min(edge.1), edge.0.max(edge.1));
+        let projector = self.projector();
+        let ends = match &modal.items {
+            Items::Rerun { object, original: ObjectData::Mesh(mesh), .. } => self.scene.world_matrix(*object).ok().and_then(|world| {
+                let (a, b) = (mesh.positions.get(edge.0 as usize)?, mesh.positions.get(edge.1 as usize)?);
+                Some((screen_of(&projector, world.transform_point3(*a)), screen_of(&projector, world.transform_point3(*b))))
+            }),
+            _ => None,
+        };
+        modal.edge_screen = ends.map_or((0.0, 0.0), |(a, b)| (b.0 - a.0, b.1 - a.1));
+        modal.count = modal.values.count;
+        modal.kind = Kind::Slide;
+        modal.edge = Some(edge);
+        modal.numeric = Numeric::default();
+        modal.base_amounts = [0.5, 0.0];
+        modal.start = modal.last;
+        modal.virtual_at = modal.last;
+        modal.travelled = false;
+        self.modal_apply(&mut modal);
+        self.modal = Some(modal);
+        self.touched();
     }
 
     /// Ends the transform, putting everything back; Shift+D's copies stay, where they were made,
     /// as their own step. Answers whether there was one.
     pub(crate) fn modal_cancel(&mut self) -> Result<bool, String> {
         let Some(mut modal) = self.modal.take() else { return Ok(false) };
+        // An extrusion's geometry stays where it was made, as Blender leaves it (one Ctrl+Z more
+        // takes it back).
+        if let Some(extrusion) = modal.extrusion.take() {
+            let params = if extrusion.loose { json!({ "distance": 0.0, "offset": [0.0, 0.0, 0.0] }) } else { json!({ "distance": 0.0 }) };
+            self.restore(*extrusion.before);
+            self.touched();
+            crate::commands::execute(self, "mesh.extrude", &params)?;
+            return Ok(true);
+        }
+        // A loop already cut stays, in the middle.
+        if modal.kind == Kind::Slide {
+            modal.fixed = None;
+            modal.values.amounts[0] = 0.5;
+            self.modal_restore(&modal.items);
+            self.touched();
+            if let Some((command, params)) = Self::modal_operation(&modal) {
+                crate::commands::execute(self, command, &params)?;
+            }
+            return Ok(true);
+        }
         self.modal_restore(&modal.items);
         match modal.duplicate.take() {
             Some(before) => self.committed(*before)?,
             None => self.touched(),
         }
         Ok(true)
+    }
+
+    /// Whether the modal under way is one of edit mode's operations (or an extrusion's move):
+    /// a click confirms it wherever it is.
+    pub(crate) fn modal_operates(&self) -> bool {
+        self.modal.as_ref().is_some_and(|modal| !modal.kind.transform() || modal.extrusion.is_some())
     }
 
     /// How the transform began, when one is under way.
@@ -1265,8 +1769,13 @@ impl SceneDocument {
             let color = AXIS_COLORS.get(axis).copied().unwrap_or([255, 255, 255, 255]);
             overlays.push(ToolOverlay::Line { ax, ay, bx, by, color, dashed: false });
         }
-        if modal.kind != Kind::Move {
+        if matches!(modal.kind, Kind::Rotate | Kind::Scale | Kind::Inset | Kind::Bevel) {
             overlays.push(ToolOverlay::Line { ax: px, ay: py, bx: modal.last.0, by: modal.last.1, color: DASH, dashed: true });
+        }
+        if modal.kind == Kind::LoopCut
+            && let Some(edge) = modal.edge
+        {
+            overlays.extend(self.loop_lines(edge, modal.values.count));
         }
         overlays.push(ToolOverlay::Measure { x: modal.last.0, y: modal.last.1, text: modal.header(self.modal_radius(modal)) });
         overlays
@@ -1307,6 +1816,7 @@ impl SceneDocument {
             }
             Items::Vertices { object, .. } => self.session.mode == Mode::Edit(*object),
             Items::Bones { object, .. } => self.session.rig.as_ref().is_some_and(|rig| rig.object == *object),
+            Items::Rerun { object, .. } => self.session.mode == Mode::Edit(*object),
             Items::Curve { object, .. } | Items::Lattice { object, .. } => self.session.shape.as_ref().is_some_and(|shape| match shape {
                 crate::commands_curve::ShapeSession::Curve(edit) => edit.object == *object,
                 crate::commands_curve::ShapeSession::Lattice(edit) => edit.object == *object,
@@ -1341,6 +1851,114 @@ impl SceneDocument {
     }
 }
 
+/// The axis a transform's parameters name (`none`, or for a rotation `view`: free).
+fn axis_index(params: &Value) -> Result<Option<usize>, String> {
+    match params::string(params, "axis")? {
+        None | Some("none") | Some("view") => Ok(None),
+        Some("x") => Ok(Some(0)),
+        Some("y") => Ok(Some(1)),
+        Some("z") => Ok(Some(2)),
+        Some(_) => Err(bad("`axis` must be none, x, y or z")),
+    }
+}
+
+/// A confirmed transform's values as Adjust Last Operation shows them: the move (in the axes of
+/// the orientation when an axis is kept to), the angle in degrees, the scale; the axis, the plane
+/// and the orientation.
+fn transform_params(modal: &Modal) -> Value {
+    let axis = modal.constraint.and_then(|constraint| AXIS_NAMES.get(constraint.axis)).map(|name| name.to_ascii_lowercase());
+    let free = if modal.kind == Kind::Rotate { "view" } else { "none" };
+    let mut params = json!({
+        "axis": axis.unwrap_or_else(|| free.into()),
+        "orientation": modal.constraint.map_or("global", |constraint| constraint.orientation.name()),
+    });
+    if let Some(fields) = params.as_object_mut() {
+        let round = |value: f32| plain((value * 1e5).round() / 1e5);
+        match modal.kind {
+            Kind::Move => {
+                fields.insert("move".into(), json!(modal.values.offset.to_array().map(round)));
+            }
+            Kind::Rotate => {
+                fields.insert("angle".into(), json!(round(modal.values.angle.to_degrees())));
+            }
+            _ => {
+                fields.insert("scale".into(), json!(modal.values.factors.to_array().map(round)));
+            }
+        }
+        if modal.kind != Kind::Rotate {
+            fields.insert("plane".into(), json!(modal.constraint.is_some_and(|constraint| constraint.plane)));
+        }
+    }
+    params
+}
+
+/// The parameters of a confirmed transform's replay (Adjust Last Operation's fields).
+pub(crate) fn replay_schema(kind: Kind) -> Value {
+    let orientation = ("orientation", s::choice("Whose axes the axis is (global)", &["global", "local", "normal"]));
+    match kind {
+        Kind::Rotate => s::of(vec![
+            ("angle", s::number("Degrees, counter-clockwise looking down the axis (0)")),
+            ("axis", s::choice("The axis to turn about; view: the line of sight (view)", &["view", "x", "y", "z"])),
+            orientation,
+        ]),
+        Kind::Scale => s::of(vec![
+            ("scale", s::vec3("Scale along X, Y and Z (1)")),
+            ("axis", s::choice("The axis it keeps to (none)", &["none", "x", "y", "z"])),
+            ("plane", s::boolean("Keep to the plane across the axis instead (false)")),
+            orientation,
+        ]),
+        _ => s::of(vec![
+            ("move", s::vec3("How far along X, Y and Z, in metres; along the orientation's axes when it keeps to an axis")),
+            ("axis", s::choice("The axis it keeps to (none)", &["none", "x", "y", "z"])),
+            ("plane", s::boolean("Keep to the plane across the axis instead (false)")),
+            orientation,
+        ]),
+    }
+}
+
+impl SceneDocument {
+    /// Runs a confirmed transform again with `params` (its replay's fields), from the selection as
+    /// it is now, as one undo step (Adjust Last Operation).
+    pub(crate) fn modal_replay(&mut self, replay: &Replay, params: &Value) -> Result<(), String> {
+        let axis = axis_index(params)?;
+        let orientation = match params::string(params, "orientation")? {
+            None => Orientation::Global,
+            Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global, local or normal"))?,
+        };
+        let plane = replay.kind != Kind::Rotate && params::boolean(params, "plane")?.unwrap_or(false);
+        let constraint = axis.map(|axis| Constraint { axis, plane, orientation });
+        let mut values = Values::default();
+        match replay.kind {
+            Kind::Move => {
+                let offset = params::vec3(params, "move")?.unwrap_or(Vec3::ZERO);
+                values.offset = match constraint {
+                    Some(constraint) => constraint.free().iter().fold(Vec3::ZERO, |kept, axis| with_component(kept, *axis, component(offset, *axis))),
+                    None => offset,
+                };
+            }
+            Kind::Rotate => values.angle = params::number(params, "angle")?.unwrap_or(0.0).to_radians(),
+            _ => {
+                let factors = params::vec3(params, "scale")?.unwrap_or(Vec3::ONE);
+                values.factors = match constraint {
+                    Some(constraint) => constraint.free().iter().fold(Vec3::ONE, |kept, axis| with_component(kept, *axis, component(factors, *axis))),
+                    None => factors,
+                };
+            }
+        }
+        if !(values.offset.is_finite() && values.angle.is_finite() && values.factors.is_finite()) {
+            return Err(bad("the values must be numbers"));
+        }
+        self.modal_begin(replay.kind, None, Started::Key, constraint, replay.duplicate)?;
+        let Some(mut modal) = self.modal.take() else { return Err("not-allowed: nothing to transform".into()) };
+        modal.normal = replay.normal;
+        modal.fixed = Some((values, Some(replay.view_axis)));
+        self.modal_apply(&mut modal);
+        self.modal = Some(modal);
+        self.modal_confirm()?;
+        Ok(())
+    }
+}
+
 /// The screen point `[x, y]` of parameter `name`, if given.
 fn point(params: &Value, name: &str) -> Result<Option<(f64, f64)>, String> {
     let Some(value) = params.get(name).filter(|value| !value.is_null()) else { return Ok(None) };
@@ -1372,7 +1990,13 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
             "modal.begin",
             "Begin Transform",
             s::of(vec![
-                ("kind", s::required(s::choice("What the transform does", &["move", "rotate", "scale"]))),
+                (
+                    "kind",
+                    s::required(s::choice(
+                        "What the modal does: a transform, or (in a mesh's edit mode) an extrusion that moves, an inset or bevel the pointer sizes, a loop cut",
+                        &["move", "rotate", "scale", "extrude", "inset", "bevel", "loopCut"],
+                    )),
+                ),
                 (
                     "at",
                     json!({ "type": "array", "items": { "type": "number" }, "description": "Where the pointer is, [x, y] in viewport pixels; its last place when left out" }),
@@ -1407,7 +2031,14 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
                 ("ctrl", s::boolean("Ctrl held: Tab goes back a field")),
             ]),
         ),
-        command("modal.wheel", "Transform Wheel", s::of(vec![("delta", s::required(s::number("The wheel's turn in pixels, down positive")))])),
+        command(
+            "modal.wheel",
+            "Transform Wheel",
+            s::of(vec![(
+                "delta",
+                s::required(s::number("The wheel's turn in pixels, down positive (a bevel's segments, a loop cut's cuts: one less)")),
+            )]),
+        ),
         command("modal.confirm", "Confirm Transform", s::of(vec![])),
         command("modal.cancel", "Cancel Transform", s::of(vec![])),
         command("modal.state", "Transform State", s::of(vec![])),
@@ -1430,7 +2061,14 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
         "modal.pointer" => pointer(doc, params, true),
         "modal.key" => key(doc, params, true),
         "modal.wheel" => wheel(doc, params),
-        "modal.confirm" => doc.modal_confirm().map(|ended| json!({ "confirmed": ended, "active": false })),
+        // A loop cut's first click goes on to its slide: the answer is the modal still under way.
+        "modal.confirm" => doc.modal_confirm().map(|ended| {
+            let mut answer = doc.modal_answer();
+            if let Some(fields) = answer.as_object_mut() {
+                fields.insert("confirmed".into(), json!(ended));
+            }
+            answer
+        }),
         "modal.cancel" => doc.modal_cancel().map(|ended| json!({ "cancelled": ended, "active": false })),
         "modal.state" => Ok(doc.modal_answer()),
         other => Err(format!("unknown-command: {other}")),
@@ -1438,9 +2076,14 @@ pub fn execute(doc: &mut SceneDocument, command: &str, params: &Value) -> Option
 }
 
 fn begin(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
-    let kind = params::string(params, "kind")?.ok_or_else(|| bad("`kind` is required"))?;
-    let kind = Kind::parse(kind).ok_or_else(|| bad("`kind` must be move, rotate or scale"))?;
+    let name = params::string(params, "kind")?.ok_or_else(|| bad("`kind` is required"))?;
     let at = point(params, "at")?;
+    if matches!(name, "extrude" | "inset" | "bevel" | "loopCut") {
+        let started = if params::boolean(params, "press")?.unwrap_or(false) { Started::Press { select: false } } else { Started::Key };
+        doc.modal_begin_operation(name, at, started)?;
+        return Ok(doc.modal_answer());
+    }
+    let kind = Kind::parse(name).ok_or_else(|| bad("`kind` must be move, rotate, scale, extrude, inset, bevel or loopCut"))?;
     let axis = match params::string(params, "axis")? {
         None => None,
         Some("x") => Some(0),
@@ -1450,6 +2093,7 @@ fn begin(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
     };
     let orientation = match params::string(params, "orientation")? {
         None => Orientation::Global,
+        Some("normal") => return Err(bad("`orientation` must be global or local")),
         Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global or local"))?,
     };
     let plane = params::boolean(params, "plane")?.unwrap_or(false);
@@ -1542,6 +2186,7 @@ mod tests {
             Some(c) if c.axis == axis && c.plane == plane => match c.orientation {
                 Orientation::Global => Some(Constraint { orientation: Orientation::Local, ..c }),
                 Orientation::Local => None,
+                Orientation::Normal => Some(Constraint { orientation: Orientation::Global, ..c }),
             },
             _ => Some(Constraint { axis, plane, orientation: Orientation::Global }),
         };

@@ -234,6 +234,10 @@ try {
   const readout = await frame.evaluate(() => window.sceneToolOverlay ?? null)
   if (rotating.gpu) assert.ok(rotating.count > 100 && readout?.drawn, `the rotate readout and its line show over the GPU picture (${rotating.count} pixels)`)
   await page.keyboard.press('Escape')
+  // The button is let go once the editor shows the rotation taken back (a slow machine may still
+  // be answering the drag's last moves when Escape comes).
+  const liveZ = () => frame.evaluate(() => window.kitScene.state().objects.find((item) => item.name === 'Cube').rotation[2])
+  await until(async () => Math.abs((await liveZ()) - 33.33) < 1e-3, 'Escape takes the rotation back')
   await page.mouse.up()
   await settle()
   assert.deepEqual((await named('Cube')).rotation.map((value) => Math.round(value * 100) / 100), [0, 0, 33.33], 'Escape cancelled the rotation')

@@ -114,14 +114,19 @@ impl Kind {
     }
 }
 
-/// Whose axes a constraint follows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Whose axes a constraint follows (the transform orientation the person picks, kept in the view
+/// state, is the first an axis key takes).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Orientation {
+    #[default]
     Global,
     /// Each object's own axes (in edit modes, the edited object's).
     Local,
-    /// The selected faces' mean normal as Z (an extrusion's move).
+    /// The selected faces' mean normal as Z (an extrusion's move; in edit mode the selection's).
     Normal,
+    /// The view's: X right, Y up, Z towards the eye, as the view was when the transform began.
+    View,
 }
 
 impl Orientation {
@@ -130,6 +135,7 @@ impl Orientation {
             "global" => Some(Orientation::Global),
             "local" => Some(Orientation::Local),
             "normal" => Some(Orientation::Normal),
+            "view" => Some(Orientation::View),
             _ => None,
         }
     }
@@ -139,6 +145,7 @@ impl Orientation {
             Orientation::Global => "global",
             Orientation::Local => "local",
             Orientation::Normal => "normal",
+            Orientation::View => "view",
         }
     }
 }
@@ -384,6 +391,8 @@ pub(crate) struct Replay {
     pub view_axis: Vec3,
     /// The normal frame an extrusion's move kept to.
     pub normal: Mat3,
+    /// The view's frame when it was confirmed (the view orientation).
+    pub view_frame: Mat3,
 }
 
 /// A transform of world points: `pivot + linear (p - pivot) + offset`.
@@ -448,6 +457,23 @@ pub struct Modal {
     edge_screen: (f64, f64),
     /// The selection as it was before the modal (for Adjust Last Operation).
     selected_before: crate::operation::Selected,
+    /// The orientation an axis key takes first (the person's transform orientation), and the
+    /// view's axes when the transform began (the view orientation's).
+    preferred: Orientation,
+    view_frame: Mat3,
+    /// Individual origins: each object turns and scales about its own origin; each selected
+    /// vertex about the middle of its connected part of the selection (`origins`, world space, in
+    /// the order of the selected vertices).
+    individual: bool,
+    origins: Vec<Vec3>,
+    /// Snapping as the person set it (Shift+Tab during the transform toggles it; Ctrl inverts it
+    /// while held), and what to.
+    snap_on: bool,
+    snap_target: crate::cursor::SnapTarget,
+    /// What snapping to elements looks at, made the first time it snaps; and the point it
+    /// snapped to last (none when it did not).
+    snap_index: Option<std::sync::Arc<crate::snap::SnapIndex>>,
+    snapped: Option<Vec3>,
 }
 
 fn unit(axis: usize) -> Vec3 {
@@ -476,7 +502,7 @@ fn with_component(mut value: Vec3, axis: usize, to: f32) -> Vec3 {
 }
 
 /// A rotation matrix from any matrix with its axes (scale and shear taken out).
-fn orthonormal(matrix: Mat3) -> Mat3 {
+pub(crate) fn orthonormal(matrix: Mat3) -> Mat3 {
     let x = matrix.x_axis.normalize_or(Vec3::X);
     let y = (matrix.y_axis - x * x.dot(matrix.y_axis)).normalize_or(x.any_orthonormal_vector());
     Mat3::from_cols(x, y, x.cross(y))
@@ -498,7 +524,7 @@ fn screen_of(projector: &Projector, point: Vec3) -> (f64, f64) {
 }
 
 /// The direction into the screen at `point`.
-fn into_screen(projector: &Projector, point: Vec3) -> Vec3 {
+pub(crate) fn into_screen(projector: &Projector, point: Vec3) -> Vec3 {
     if projector.perspective {
         (point - projector.eye()).normalize_or(Vec3::NEG_Z)
     } else {
@@ -542,14 +568,75 @@ fn on_plane(projector: &Projector, pivot: Vec3, normal: Vec3, at: (f64, f64)) ->
     (s > 0.0 && hit.is_finite()).then_some(hit)
 }
 
+/// What a move snaps from: the objects it moves, or the edited mesh's selected vertices.
+pub(crate) enum SnapItems {
+    Objects(Vec<Id>),
+    Vertices(Id, Vec<u32>),
+    Other,
+}
+
 impl Modal {
+    /// What snapping snaps to.
+    pub(crate) fn snap_target(&self) -> crate::cursor::SnapTarget {
+        self.snap_target
+    }
+
+    /// The point it turns about.
+    pub(crate) fn pivot_point(&self) -> Vec3 {
+        self.pivot
+    }
+
+    /// What it moves, which snapping leaves out: the objects whose data or place it changes, the
+    /// edited mesh, and that mesh's vertices that move (the selected ones and those that follow).
+    pub(crate) fn moved_parts(&self) -> (BTreeSet<Id>, Option<Id>, BTreeSet<u32>) {
+        match &self.items {
+            Items::Objects(objects) => (objects.iter().map(|start| start.id).collect(), None, BTreeSet::new()),
+            Items::Vertices { object, selected, followers, .. } => {
+                (BTreeSet::new(), Some(*object), selected.iter().copied().chain(followers.iter().map(|(vertex, _)| *vertex)).collect())
+            }
+            Items::Bones { object, .. } | Items::Curve { object, .. } | Items::Lattice { object, .. } | Items::Rerun { object, .. } => {
+                (std::iter::once(*object).collect(), None, BTreeSet::new())
+            }
+        }
+    }
+
+    /// What snaps onto the target.
+    pub(crate) fn snap_items(&self) -> SnapItems {
+        match &self.items {
+            Items::Objects(objects) => SnapItems::Objects(objects.iter().map(|start| start.id).collect()),
+            Items::Vertices { object, selected, .. } => SnapItems::Vertices(*object, selected.clone()),
+            _ => SnapItems::Other,
+        }
+    }
+
     /// The frame a constraint follows for an item whose own axes are `own`.
     fn frame(&self, own: Mat3) -> Mat3 {
         match self.constraint {
             Some(Constraint { orientation: Orientation::Local, .. }) => own,
             Some(Constraint { orientation: Orientation::Normal, .. }) => self.normal,
+            Some(Constraint { orientation: Orientation::View, .. }) => self.view_frame,
             _ => Mat3::IDENTITY,
         }
+    }
+
+    /// Whether the transform snaps now: the person's setting, inverted while Ctrl is held.
+    fn snapping(&self) -> bool {
+        self.step != self.snap_on
+    }
+
+    /// Whether it steps now (snapping to increments; a rotation or a scale steps when it snaps
+    /// to elements too, which only a move does).
+    fn stepping(&self) -> bool {
+        self.snapping() && (self.snap_target == crate::cursor::SnapTarget::Increment || self.kind != Kind::Move)
+    }
+
+    /// Whether it snaps to the scene's elements now (a move, the pointer giving the value).
+    fn snapping_to_elements(&self) -> bool {
+        self.kind == Kind::Move
+            && self.snapping()
+            && self.snap_target != crate::cursor::SnapTarget::Increment
+            && !self.numeric.on
+            && self.fixed.is_none()
     }
 
     /// Whether it would change anything now (an operation always does, once it runs).
@@ -666,7 +753,7 @@ impl Modal {
             }
             return (values, self.ratio);
         }
-        let step = self.step.then_some(self.precision);
+        let step = self.stepping().then_some(self.precision);
         let pick = |steps: (f32, f32)| step.map(|fine| if fine { steps.1 } else { steps.0 });
         let mut ratio = self.ratio;
         match self.kind {
@@ -770,15 +857,7 @@ impl Modal {
     /// Takes an axis key: the axis (or with `plane` the plane across it) in the global frame,
     /// pressed again the local one, a third time free again.
     fn press_axis(&mut self, axis: usize, plane: bool) {
-        self.constraint = match self.constraint {
-            Some(current) if current.axis == axis && current.plane == plane => match current.orientation {
-                Orientation::Global => Some(Constraint { orientation: Orientation::Local, ..current }),
-                Orientation::Local => None,
-                // An extrusion's normal, pressed: the global axis.
-                Orientation::Normal => Some(Constraint { orientation: Orientation::Global, ..current }),
-            },
-            _ => Some(Constraint { axis, plane, orientation: Orientation::Global }),
-        };
+        self.constraint = next_constraint(self.constraint, self.preferred, axis, plane);
         self.fit_fields();
     }
 
@@ -953,6 +1032,13 @@ impl SceneDocument {
             "proportional": self.modal_radius(modal),
             "proportionalPixels": self.modal_radius(modal).map(|radius| f64::from(radius / projector.pixel_size_at(modal.pivot).max(1e-9))).filter(|pixels| pixels.is_finite()),
             "duplicate": modal.duplicate.is_some(),
+            "snap": {
+                "on": modal.snapping(),
+                "target": modal.snap_target.name(),
+                "point": modal.snapped.map(|point| point.to_array()),
+                "screen": modal.snapped.map(|point| { let (x, y) = screen_of(&projector, point); [x, y] }),
+            },
+            "orientation": modal.preferred.name(),
         })
     }
 
@@ -981,7 +1067,7 @@ impl SceneDocument {
                 return None;
             }
             let original = self.scene.object(rig.object).ok()?.data.clone();
-            let pivot = crate::commands_rig::pivot(self, rig)?;
+            let pivot = self.transform_pivot(crate::commands_rig::pivot(self, rig))?;
             return Some((Items::Bones { object: rig.object, original, pose: rig.pose, selected: rig.selected.clone() }, pivot));
         }
         match &session.shape {
@@ -990,7 +1076,7 @@ impl SceneDocument {
                     return None;
                 }
                 let original = self.scene.object(edit.object).ok()?.data.clone();
-                let pivot = crate::commands_curve::pivot(self, edit)?;
+                let pivot = self.transform_pivot(crate::commands_curve::pivot(self, edit))?;
                 return Some((Items::Curve { object: edit.object, original, selected: edit.selected.clone() }, pivot));
             }
             Some(crate::commands_curve::ShapeSession::Lattice(edit)) => {
@@ -998,13 +1084,13 @@ impl SceneDocument {
                     return None;
                 }
                 let original = self.scene.object(edit.object).ok()?.data.clone();
-                let pivot = crate::commands_lattice::pivot(self, edit)?;
+                let pivot = self.transform_pivot(crate::commands_lattice::pivot(self, edit))?;
                 return Some((Items::Lattice { object: edit.object, original, selected: edit.selected.clone() }, pivot));
             }
             Some(crate::commands_curve::ShapeSession::Text(_)) => return None,
             None => {}
         }
-        let pivot = self.pivot()?;
+        let pivot = self.transform_pivot(None)?;
         match session.mode {
             Mode::Object => {
                 let visible: Vec<Id> =
@@ -1064,6 +1150,7 @@ impl SceneDocument {
         let mut modal = self.new_modal(kind, items, pivot, at, started, selected_before);
         modal.constraint = constraint;
         modal.duplicate = copied;
+        self.modal_settle(&mut modal);
         modal.fit_fields();
         self.modal = Some(modal);
         if duplicate {
@@ -1123,6 +1210,42 @@ impl SceneDocument {
             edge: None,
             edge_screen: (0.0, 0.0),
             selected_before,
+            preferred: self.session.editor.orientation,
+            view_frame: orthonormal(Mat3::from_mat4(projector.view.inverse())),
+            individual: false,
+            origins: Vec::new(),
+            snap_on: self.session.editor.snap,
+            snap_target: self.session.editor.snap_target,
+            snap_index: None,
+            snapped: None,
+        }
+    }
+
+    /// The pivot point's per-item parts and the orientation's frames for a transform about to
+    /// begin: individual origins (each object's own, each connected part of the vertices'), and
+    /// the selection's normal for the normal orientation.
+    fn modal_settle(&self, modal: &mut Modal) {
+        if self.session.editor.pivot == crate::cursor::PivotPoint::Individual && modal.kind.transform() {
+            match &modal.items {
+                Items::Objects(_) => modal.individual = true,
+                Items::Vertices { object, original, selected, .. } => {
+                    if let (Ok(world), Some(mesh)) =
+                        (self.scene.world_matrix(*object), self.scene.object(*object).ok().and_then(|object| object.mesh()))
+                    {
+                        let mut kept = mesh.clone();
+                        kept.positions.clone_from(original);
+                        modal.origins =
+                            crate::cursor::island_middles(&kept, selected).into_iter().map(|point| world.transform_point3(point)).collect();
+                        modal.individual = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if modal.extrusion.is_none()
+            && (modal.preferred == Orientation::Normal || modal.constraint.is_some_and(|constraint| constraint.orientation == Orientation::Normal))
+        {
+            modal.normal = self.orientation_frame(Orientation::Normal);
         }
     }
 
@@ -1336,17 +1459,41 @@ impl SceneDocument {
             }
             return;
         }
-        let (values, ratio) = modal.solve(&projector);
+        let (mut values, ratio) = modal.solve(&projector);
+        // What it moves as it began, which snapping measures from.
+        self.modal_restore(&modal.items);
+        modal.snapped = None;
+        if modal.snapping_to_elements() {
+            let view = (self.session.editor.view.clone(), self.session.width, self.session.height);
+            if !modal.snap_index.as_ref().is_some_and(|index| index.fits(&view)) {
+                modal.snap_index = Some(std::sync::Arc::new(self.snap_index(modal)));
+            }
+            let frame = modal.frame(modal.local);
+            let raw = if modal.constraint.is_some() { frame * values.offset } else { values.offset };
+            if let Some((target, source)) = modal.snap_index.as_ref().and_then(|index| index.find(&projector, modal.last, raw)) {
+                let world = target - source;
+                values.offset = match modal.constraint.map(|constraint| constraint.free()) {
+                    None => world,
+                    Some(free) => {
+                        let local = frame.transpose() * world;
+                        free.iter().fold(Vec3::ZERO, |offset, axis| with_component(offset, *axis, component(local, *axis)))
+                    }
+                };
+                modal.snapped = Some(target);
+            }
+        }
         modal.values = values;
         modal.ratio = ratio;
-        self.modal_restore(&modal.items);
         match &modal.items {
             Items::Objects(objects) => {
                 for start in objects {
                     let (Ok(world), Ok(parent)) = (self.scene.world_matrix(start.id), self.scene.parent_frame(start.id)) else { continue };
                     let own = orthonormal(Mat3::from_mat4(world));
-                    let change = modal.change(own, &projector);
                     let origin = world.transform_point3(Vec3::ZERO);
+                    let mut change = modal.change(own, &projector);
+                    if modal.individual {
+                        change.pivot = origin;
+                    }
                     let moved = parent.inverse().transform_vector3(change.point(origin) - origin);
                     let parent_axes = orthonormal(Mat3::from_mat4(parent));
                     let (rotation, scale) = match modal.kind {
@@ -1390,9 +1537,13 @@ impl SceneDocument {
                 let inverse = world.inverse();
                 let change = modal.change(orthonormal(Mat3::from_mat4(world)), &projector);
                 if let Some(mesh) = self.scene.object_mut(*object).ok().and_then(|object| object.mesh_mut()) {
-                    for vertex in selected {
+                    for (index, vertex) in selected.iter().enumerate() {
+                        let own = match modal.origins.get(index) {
+                            Some(origin) if modal.individual => Change { pivot: *origin, ..change },
+                            _ => change,
+                        };
                         if let (Some(point), Some(was)) = (mesh.positions.get_mut(*vertex as usize), original.get(*vertex as usize)) {
-                            *point = inverse.transform_point3(change.point(world.transform_point3(*was)));
+                            *point = inverse.transform_point3(own.point(world.transform_point3(*was)));
                         }
                     }
                     for (vertex, weight) in followers {
@@ -1545,6 +1696,12 @@ impl SceneDocument {
                 true
             }
             "backspace" => modal.numeric.backspace(),
+            // Shift+Tab turns snapping on or off, for this transform and the next.
+            "tab" if shift => {
+                modal.snap_on = !modal.snap_on;
+                self.session.editor.snap = modal.snap_on;
+                true
+            }
             "tab" => modal.numeric.tab(ctrl, count),
             "-" | "minus" | "subtract" => {
                 modal.numeric.negate();
@@ -1670,7 +1827,7 @@ impl SceneDocument {
         if self.content != content {
             let projector = self.projector();
             let view_axis = modal.fixed.and_then(|(_, axis)| axis).unwrap_or_else(|| into_screen(&projector, modal.pivot));
-            let replay = Replay { kind: modal.kind, duplicate: duplicated, view_axis, normal: modal.normal };
+            let replay = Replay { kind: modal.kind, duplicate: duplicated, view_axis, normal: modal.normal, view_frame: modal.view_frame };
             crate::operation::record_transform(self, replay, transform_params(&modal), modal.selected_before.clone());
         }
         Ok(true)
@@ -1851,6 +2008,26 @@ impl SceneDocument {
     }
 }
 
+/// The constraint an axis key (`axis`, with `plane` the plane across it) leaves after `current`:
+/// first along the person's orientation `preferred`; pressed again, the other of global and local
+/// (local after global, global after any other); a third time, free. A constraint along another
+/// orientation (an extrusion's normal) pressed goes to `preferred`.
+fn next_constraint(current: Option<Constraint>, preferred: Orientation, axis: usize, plane: bool) -> Option<Constraint> {
+    let second = if preferred == Orientation::Global { Orientation::Local } else { Orientation::Global };
+    match current {
+        Some(current) if current.axis == axis && current.plane == plane => {
+            if current.orientation == preferred {
+                Some(Constraint { orientation: second, ..current })
+            } else if current.orientation == second {
+                None
+            } else {
+                Some(Constraint { orientation: preferred, ..current })
+            }
+        }
+        _ => Some(Constraint { axis, plane, orientation: preferred }),
+    }
+}
+
 /// The axis a transform's parameters name (`none`, or for a rotation `view`: free).
 fn axis_index(params: &Value) -> Result<Option<usize>, String> {
     match params::string(params, "axis")? {
@@ -1894,7 +2071,7 @@ fn transform_params(modal: &Modal) -> Value {
 
 /// The parameters of a confirmed transform's replay (Adjust Last Operation's fields).
 pub(crate) fn replay_schema(kind: Kind) -> Value {
-    let orientation = ("orientation", s::choice("Whose axes the axis is (global)", &["global", "local", "normal"]));
+    let orientation = ("orientation", s::choice("Whose axes the axis is (global)", &["global", "local", "normal", "view"]));
     match kind {
         Kind::Rotate => s::of(vec![
             ("angle", s::number("Degrees, counter-clockwise looking down the axis (0)")),
@@ -1923,7 +2100,7 @@ impl SceneDocument {
         let axis = axis_index(params)?;
         let orientation = match params::string(params, "orientation")? {
             None => Orientation::Global,
-            Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global, local or normal"))?,
+            Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global, local, normal or view"))?,
         };
         let plane = replay.kind != Kind::Rotate && params::boolean(params, "plane")?.unwrap_or(false);
         let constraint = axis.map(|axis| Constraint { axis, plane, orientation });
@@ -1951,6 +2128,7 @@ impl SceneDocument {
         self.modal_begin(replay.kind, None, Started::Key, constraint, replay.duplicate)?;
         let Some(mut modal) = self.modal.take() else { return Err("not-allowed: nothing to transform".into()) };
         modal.normal = replay.normal;
+        modal.view_frame = replay.view_frame;
         modal.fixed = Some((values, Some(replay.view_axis)));
         self.modal_apply(&mut modal);
         self.modal = Some(modal);
@@ -2003,7 +2181,7 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
                 ),
                 ("axis", s::choice("An axis to keep to from the start (a handle, a normal); free when left out", &["x", "y", "z"])),
                 ("plane", s::boolean("Keep to the plane across `axis` instead (false)")),
-                ("orientation", s::choice("Whose axes `axis` is (global)", &["global", "local"])),
+                ("orientation", s::choice("Whose axes `axis` is (the person's transform orientation)", &["global", "local", "normal", "view"])),
                 ("duplicate", s::boolean("Copy the selection first and move the copies (Shift+D; false)")),
                 ("press", s::boolean("A press started it: the release confirms it, and a release where it began is a click (false)")),
             ]),
@@ -2019,7 +2197,12 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
                     ),
                 ),
                 ("precision", s::boolean("Shift held: the pointer's motion counts for a tenth")),
-                ("step", s::boolean("Ctrl or Cmd held: the value goes in steps (1 m, 5°, 0.1; with precision 0.1 m, 1°, 0.01)")),
+                (
+                    "step",
+                    s::boolean(
+                        "Ctrl or Cmd held: snapping is inverted (with increments the value goes in steps of 1 m, 5°, 0.1; with precision 0.1 m, 1°, 0.01)",
+                    ),
+                ),
             ]),
         ),
         command(
@@ -2027,7 +2210,7 @@ pub fn catalogue(_doc: &SceneDocument) -> Vec<KitCommand> {
             "Transform Key",
             s::of(vec![
                 ("key", s::required(s::string("x, y, z, c, g, r, s, a digit, ., -, /, Backspace or Tab"))),
-                ("shift", s::boolean("Shift held: X, Y and Z lock the plane across the axis")),
+                ("shift", s::boolean("Shift held: X, Y and Z lock the plane across the axis; Shift+Tab turns snapping on or off")),
                 ("ctrl", s::boolean("Ctrl held: Tab goes back a field")),
             ]),
         ),
@@ -2092,9 +2275,8 @@ fn begin(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
         Some(_) => return Err(bad("`axis` must be x, y or z")),
     };
     let orientation = match params::string(params, "orientation")? {
-        None => Orientation::Global,
-        Some("normal") => return Err(bad("`orientation` must be global or local")),
-        Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global or local"))?,
+        None => doc.session.editor.orientation,
+        Some(name) => Orientation::parse(name).ok_or_else(|| bad("`orientation` must be global, local, normal or view"))?,
     };
     let plane = params::boolean(params, "plane")?.unwrap_or(false);
     let constraint = axis.map(|axis| Constraint { axis, plane, orientation });
@@ -2186,7 +2368,7 @@ mod tests {
             Some(c) if c.axis == axis && c.plane == plane => match c.orientation {
                 Orientation::Global => Some(Constraint { orientation: Orientation::Local, ..c }),
                 Orientation::Local => None,
-                Orientation::Normal => Some(Constraint { orientation: Orientation::Global, ..c }),
+                Orientation::Normal | Orientation::View => Some(Constraint { orientation: Orientation::Global, ..c }),
             },
             _ => Some(Constraint { axis, plane, orientation: Orientation::Global }),
         };
@@ -2200,6 +2382,26 @@ mod tests {
         assert_eq!(constraint.map(|c| (c.text(), c.free())), Some((" locking global Z".to_owned(), vec![0, 1])));
         constraint = press(constraint, 1, false);
         assert_eq!(constraint.map(|c| c.free()), Some(vec![1]), "another axis starts global again");
+    }
+
+    #[test]
+    fn axis_keys_start_with_the_persons_orientation() {
+        let view = next_constraint(None, Orientation::View, 0, false);
+        assert_eq!(view.map(|c| c.orientation), Some(Orientation::View));
+        let again = next_constraint(view, Orientation::View, 0, false);
+        assert_eq!(again.map(|c| c.orientation), Some(Orientation::Global), "again: global");
+        assert_eq!(next_constraint(again, Orientation::View, 0, false), None, "a third time: free");
+        let global = next_constraint(None, Orientation::Global, 2, false);
+        let local = next_constraint(global, Orientation::Global, 2, false);
+        assert_eq!(local.map(|c| c.orientation), Some(Orientation::Local));
+        assert_eq!(next_constraint(local, Orientation::Global, 2, false), None);
+        let normal = Some(Constraint { axis: 2, plane: false, orientation: Orientation::Normal });
+        assert_eq!(
+            next_constraint(normal, Orientation::Global, 2, false).map(|c| c.orientation),
+            Some(Orientation::Global),
+            "an extrusion's normal pressed: global"
+        );
+        assert_eq!(view.map(|c| c.text()), Some(" along view X".to_owned()));
     }
 
     #[test]

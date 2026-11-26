@@ -760,6 +760,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
         .chain(crate::commands_render::catalogue(doc))
         .chain(crate::commands_uvedit::catalogue(doc))
         .chain(crate::modal::catalogue(doc))
+        .chain(crate::cursor::catalogue(doc))
         .chain(crate::operation::catalogue(doc))
         .chain(std::iter::once(crate::render::command()))
         .collect();
@@ -801,6 +802,7 @@ pub fn disabled(doc: &SceneDocument) -> Vec<String> {
         .chain(crate::commands_render::disabled(doc))
         .chain(crate::commands_uvedit::disabled(doc))
         .chain(crate::modal::disabled(doc))
+        .chain(crate::cursor::disabled(doc))
         .collect();
     ids.extend(crate::commands_anim::disabled(doc));
     ids.extend(crate::commands_anim2::disabled(doc));
@@ -928,6 +930,9 @@ fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<
     if let Some(result) = crate::modal::execute(doc, command, params) {
         return Some(result);
     }
+    if let Some(result) = crate::cursor::execute(doc, command, params) {
+        return Some(result);
+    }
     if let Some(result) = crate::operation::execute(doc, command, params) {
         return Some(result);
     }
@@ -994,7 +999,7 @@ fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<
 /// Whether `command` leaves a transform under way running: its own commands, the view's,
 /// presence, proportional editing's settings, and the agent's preview.
 fn keeps_modal(command: &str) -> bool {
-    ["modal.", "view.", "presence."].iter().any(|prefix| command.starts_with(prefix))
+    ["modal.", "view.", "presence.", "cursor.", "transform."].iter().any(|prefix| command.starts_with(prefix))
         || command == "operation.get"
         || command == "mesh.proportional"
         || command == crate::render::RENDER

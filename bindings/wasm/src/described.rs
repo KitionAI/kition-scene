@@ -468,6 +468,15 @@ fn describe(id: &str) -> &'static str {
             "Ends the modal under way and puts everything back as it was, leaving no undo step; Shift+D's copies and an extrusion's geometry stay (one step), a loop cut already cut stays in the middle."
         }
         "modal.state" => "Answers the transform under way: what it does, its header text, its axis, typed numbers and the pivot.",
+        "cursor.set" => {
+            "Puts the 3D cursor at `location`, or with `at` (a viewport pixel) onto the surface there (where there is none, onto the plane through the cursor facing the view). The person's view state: no undo step."
+        }
+        "cursor.reset" => "Puts the 3D cursor back at the world origin.",
+        "cursor.moveToSelected" => "Puts the 3D cursor at the middle of the selection (the selected objects' origins, or the selected vertices).",
+        "cursor.moveToActive" => "Puts the 3D cursor at the active object's origin.",
+        "transform.set" => {
+            "Sets the person's transform settings: the pivot point rotations and scales turn about, the orientation axis keys and the gizmo follow, snapping on or off and what it snaps to. View state: no undo step."
+        }
         "operation.get" => {
             "Answers the person's last operation (an added object, an edit-mode operation, a confirmed transform) with the values it ran with and its adjustable fields, or null once anything else happened."
         }
@@ -654,6 +663,12 @@ fn output(id: &str) -> Option<Value> {
         }
         "modal.cancel" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"active":{"type":"boolean"},"cancelled":{"type":"boolean"}}}"#
+        }
+        "cursor.set" | "cursor.reset" | "cursor.moveToSelected" | "cursor.moveToActive" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"cursor":{"type":"array","items":{"type":"number"},"description":"the cursor's place, metres"}}}"#
+        }
+        "transform.set" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"pivot":{"type":"string"},"orientation":{"type":"string"},"snap":{"type":"boolean"},"snapTarget":{"type":"string"}}}"#
         }
         "presence.local" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"selection":{"type":"array","items":{"type":"string"}},"viewport":{"type":"object","additionalProperties":true,"properties":{}}}}"#

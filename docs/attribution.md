@@ -31,3 +31,4 @@ code is in this kit.
 | What | Made by | Notes |
 |---|---|---|
 | The navigation gizmo (`web/src/NavGizmo.tsx`: axis balls, rings, arms and the hover disc) | Kition, drawn as SVG in the editor | Its layout and axis colours (#ff3352, #8bdc00, #2890ff) follow what Blender's default theme shows, recorded by running the application; its buttons use Tessera's icons |
+| The transform gizmos, the 3D cursor and the snap mark (`web/src/TransformGizmo.ts`: Move's arrows, squares and middle ring, Rotate's axis rings and view ring, Scale's box-ended axes; the red and white cursor ring with its cross) | Kition, drawn on a 2D canvas over the viewport | Their layout, the 75 px size and the axis colours follow what Blender's default theme and preferences show, recorded by running the application; the snapping toggle uses Tessera's magnet icon |

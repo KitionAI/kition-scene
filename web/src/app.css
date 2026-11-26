@@ -1211,3 +1211,25 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+/* The transform orientation, pivot point and snapping, at the viewport's top left until the
+   viewport has a header of its own. */
+.scene-transform-strip {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: var(--kit-radius-control, 8px);
+  background: color-mix(in srgb, var(--kit-surface) 82%, transparent);
+  font-size: 12px;
+}
+
+.scene-snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}

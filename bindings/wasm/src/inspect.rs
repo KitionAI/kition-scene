@@ -279,7 +279,11 @@ pub fn inspect(doc: &SceneDocument) -> Value {
             "overlays": doc.session.editor.overlays,
             "width": doc.session.width,
             "height": doc.session.height,
+            // The view's projection (column-major, world to clip space), for drawing over the picture.
+            "matrix": doc.projector().view_projection().to_cols_array(),
         },
+        // The 3D cursor, the pivot point, the orientation, snapping and the gizmo's place.
+        "transform": doc.transform_json(),
         "tool": doc.tool_json(),
         // Adjust Last Operation: the person's last operation and its fields, while it lasts.
         "operation": doc.operation_json(),

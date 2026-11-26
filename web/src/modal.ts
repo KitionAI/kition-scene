@@ -38,7 +38,9 @@ export type ModalAnswer = {
   loops?: number[][]
   /** The same loops on the engine's picture, in document pixels [ax, ay, bx, by]. */
   loopScreen?: number[][]
-  constraint?: { axis: 'x' | 'y' | 'z'; plane: boolean; orientation: 'global' | 'local' | 'normal' } | null
+  constraint?: { axis: 'x' | 'y' | 'z'; plane: boolean; orientation: 'global' | 'local' | 'normal' | 'view' } | null
+  /** Snapping now (the setting, inverted while Ctrl is held), what to, and the point it snapped to. */
+  snap?: { on: boolean; target: string; point: Vec3 | null; screen: [number, number] | null }
   numeric?: { index: number; texts: string[] } | null
   precision?: boolean
   step?: boolean
@@ -156,15 +158,17 @@ export class ModalTransform {
   }
 
   /** Starts a transform of the selection, or one of edit mode's operations, where the pointer is. */
-  begin(kind: ModalKind | ModalOperation, options: { duplicate?: boolean } = {}) {
+  begin(kind: ModalKind | ModalOperation, options: { duplicate?: boolean; handle?: { axis: 'x' | 'y' | 'z'; plane: boolean; orientation: string }; at?: [number, number] } = {}) {
     const hooks = this.hooks
     if (!hooks || this.active) return
     this.starting = true
     this.emit()
-    const at = this.pointer
+    const at = options.at ?? this.pointer
+    // A gizmo handle's drag keeps to its axis or plane, and its release confirms it.
+    const handle = options.handle ? { axis: options.handle.axis, plane: options.handle.plane, orientation: options.handle.orientation, press: true } : {}
     void this.enqueue(async () => {
       try {
-        const params: Record<string, unknown> = { kind, ...(at ? { at } : {}), ...(options.duplicate ? { duplicate: true } : {}) }
+        const params: Record<string, unknown> = { kind, ...(at ? { at } : {}), ...(options.duplicate ? { duplicate: true } : {}), ...handle }
         // Copies and an operation's geometry show at once: the editor reads the document again.
         const refresh = options.duplicate || !['move', 'rotate', 'scale'].includes(kind) ? 'all' : 'none'
         this.take(parse(await hooks.run('modal.begin', params, refresh)))

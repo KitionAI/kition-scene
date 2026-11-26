@@ -134,8 +134,8 @@ class Navigator {
         if (camera) hooks.resetCameraFrame()
         else hooks.command('view.frameAll', true)
         return true
+      // The keypad's point (the main keyboard's is the pivot point menu).
       case 'NumpadDecimal':
-      case 'Period':
         if (event.shiftKey || command || event.altKey) return false
         hooks.command('view.frameSelected', true)
         return true

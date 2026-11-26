@@ -34,6 +34,7 @@ mod commands_uv;
 mod commands_uvedit;
 mod commands_world;
 mod context;
+mod cursor;
 pub mod described;
 mod files;
 mod formats;
@@ -43,8 +44,10 @@ mod modal;
 mod operation;
 pub mod params;
 mod place;
+mod ray;
 mod render;
 mod rests;
+mod snap;
 mod tools;
 mod viewport_trace;
 
@@ -68,14 +71,16 @@ pub const SANDBOXED: &[&str] = &["compositor.setImage", "file.import", "material
 /// The places in [`KitDocument::inspect`] that are the editor's state, not the scene's, as JSON
 /// Pointers: the viewport (`/view`), the mode and what it edits (`/mode`), the selection
 /// (`/selection`: objects, the active one, the edited mesh's vertices and faces), the active tool,
-/// the current frame (`/animation/frame`) and the selected objects' key frames; and by name, each
+/// the 3D cursor and the transform's settings (`/transform`), the current frame
+/// (`/animation/frame`) and the selected objects' key frames; and by name, each
 /// animated object's `keyedNow` (which properties have a key on the current frame), the one
 /// name in an object's entry that is editor state. They are no part of what `view.describe`
 /// answers an agent (`scene_inspect`'s details), so orbiting, selecting, entering edit mode or
 /// going to another frame changes nothing the agent reads of the scene, while the scene's own
 /// fields of the same names (the render's colour `view`, a modifier's `mode`, a key's `frame`)
 /// stay. `kition-scene` passes them to kition-headless as its volatile keys.
-pub const EDITOR_STATE: &[&str] = &["/selection", "/view", "/mode", "/tool", "/animation/frame", "/animation/selectedKeyFrames", "keyedNow"];
+pub const EDITOR_STATE: &[&str] =
+    &["/selection", "/view", "/mode", "/transform", "/tool", "/animation/frame", "/animation/selectedKeyFrames", "keyedNow"];
 
 /// The viewport size a document opens with when it is made without one, or opened, until the
 /// editor says how large its canvas is.
@@ -145,6 +150,20 @@ pub struct Editor {
     /// The current frame: each person's own, never part of the replica.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frame: Option<i32>,
+    /// The 3D cursor's place: where new objects go and a pivot point (the world origin at first).
+    #[serde(default)]
+    pub cursor: glam::Vec3,
+    /// The point transforms turn and scale about.
+    #[serde(default)]
+    pub pivot: cursor::PivotPoint,
+    /// Whose axes the axis keys and the gizmo follow first.
+    #[serde(default)]
+    pub orientation: modal::Orientation,
+    /// Whether transforms snap (Ctrl inverts it while held), and to what.
+    #[serde(default)]
+    pub snap: bool,
+    #[serde(default)]
+    pub snap_target: cursor::SnapTarget,
 }
 
 /// The version of the view state `view.state` answers (its `v`): `view.restore` ignores another.
@@ -171,6 +190,11 @@ impl Default for Editor {
             selected: Vec::new(),
             active: None,
             frame: None,
+            cursor: glam::Vec3::ZERO,
+            pivot: cursor::PivotPoint::default(),
+            orientation: modal::Orientation::default(),
+            snap: false,
+            snap_target: cursor::SnapTarget::default(),
         }
     }
 }
@@ -252,6 +276,8 @@ pub struct SceneDocument {
     cache: RefCell<Option<Cached>>,
     /// Evaluated meshes and shadow maps kept between pictures (orbiting reuses them).
     meshes: RefCell<kition_scene_raster::MeshCache>,
+    /// The drawn meshes' ray hierarchies kept between rays (the cursor, snapping; never saved).
+    rays: RefCell<ray::Rays>,
     tool: ToolState,
     /// A number field's drag under way (`object.previewTransform`): the scene and selection as
     /// they were before it, put back when it ends or before any other change (never saved).
@@ -380,6 +406,7 @@ impl SceneDocument {
             saved: 0,
             cache: RefCell::new(None),
             meshes: RefCell::new(kition_scene_raster::MeshCache::new()),
+            rays: RefCell::default(),
             tool: ToolState::default(),
             field_preview: None,
             modal: None,

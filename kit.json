@@ -13,7 +13,7 @@
     "class": "SceneDocument",
     "contract": 2,
     "crate": "kition-scene-kit",
-    "editorState": ["/selection", "/view", "/mode", "/tool", "/animation/frame", "/animation/selectedKeyFrames", "keyedNow"]
+    "editorState": ["/selection", "/view", "/mode", "/transform", "/tool", "/animation/frame", "/animation/selectedKeyFrames", "keyedNow"]
   },
   "formats": [
     {

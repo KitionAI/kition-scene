@@ -329,6 +329,46 @@ export type SceneInfo = {
   animation: AnimationData
   /** Adjust Last Operation: the last operation while nothing else has happened since. */
   operation: LastOperation | null
+  /** The view's projection as the engine draws it (column-major, world to clip space), or null. */
+  viewMatrix: number[] | null
+  /** The 3D cursor, the transform settings and the gizmo's place. */
+  transform: TransformInfo
+}
+
+export type PivotPoint = 'median' | 'boundingBox' | 'individual' | 'cursor' | 'active'
+export type TransformOrientation = 'global' | 'local' | 'normal' | 'view'
+export type SnapTarget = 'increment' | 'vertex' | 'edge' | 'face'
+export const PIVOT_POINTS: readonly PivotPoint[] = ['boundingBox', 'cursor', 'individual', 'median', 'active']
+export const ORIENTATIONS: readonly TransformOrientation[] = ['global', 'local', 'normal', 'view']
+export const SNAP_TARGETS: readonly SnapTarget[] = ['increment', 'vertex', 'edge', 'face']
+
+/** The person's transform settings and the 3D cursor (view state), as inspect shows them. */
+export type TransformInfo = {
+  cursor: Vec3
+  pivot: PivotPoint
+  orientation: TransformOrientation
+  snap: boolean
+  snapTarget: SnapTarget
+  /** Where the gizmo stands and its axes (the orientation's, world space); null with nothing to transform. */
+  gizmo: { centre: Vec3; axes: [Vec3, Vec3, Vec3] } | null
+  /** The selection's middle (world), and in edit mode the cursor in the edited object's own space. */
+  median: Vec3 | null
+  cursorLocal: Vec3 | null
+}
+
+function transformOf(raw: Raw | undefined): TransformInfo {
+  const pick = <T extends string>(value: unknown, values: readonly T[], fallback: T): T => (values.includes(value as T) ? (value as T) : fallback)
+  const gizmo = raw?.gizmo && Array.isArray(raw.gizmo.axes) ? { centre: vec(raw.gizmo.centre), axes: [vec(raw.gizmo.axes[0]), vec(raw.gizmo.axes[1]), vec(raw.gizmo.axes[2])] as [Vec3, Vec3, Vec3] } : null
+  return {
+    cursor: vec(raw?.cursor),
+    pivot: pick(raw?.pivot, PIVOT_POINTS, 'median'),
+    orientation: pick(raw?.orientation, ORIENTATIONS, 'global'),
+    snap: raw?.snap === true,
+    snapTarget: pick(raw?.snapTarget, SNAP_TARGETS, 'increment'),
+    gizmo,
+    median: Array.isArray(raw?.median) ? vec(raw.median) : null,
+    cursorLocal: Array.isArray(raw?.cursorLocal) ? vec(raw.cursorLocal) : null,
+  }
 }
 
 type Raw = Record<string, any>
@@ -483,6 +523,8 @@ export function describe(info: KitEngineInfo): SceneInfo {
     physics: physicsOf(raw.physics),
     animation: animationDataOf(raw.animation),
     operation: raw.operation && typeof raw.operation === 'object' && Array.isArray(raw.operation.fields) ? (raw.operation as LastOperation) : null,
+    viewMatrix: Array.isArray(view.matrix) && view.matrix.length === 16 ? view.matrix.map(Number) : null,
+    transform: transformOf(raw.transform as Raw | undefined),
   }
 }
 

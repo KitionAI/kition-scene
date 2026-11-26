@@ -17,6 +17,8 @@ import { useToolOverlay } from './ToolOverlay'
 import { modalTransform } from './modal'
 import { ModalHeader, useModalActive } from './ModalUi'
 import { AdjustLast } from './AdjustLast'
+import { useTransformLayer } from './TransformGizmo'
+import { TransformStrip } from './TransformControls'
 
 type Pending = {
   orbit: [number, number]
@@ -55,6 +57,7 @@ export function SceneViewport({
   onRender,
   presence,
   t,
+  readOnly = false,
 }: {
   canvas: RefObject<KitCanvasHandle | null>
   info: SceneInfo | null
@@ -62,6 +65,8 @@ export function SceneViewport({
   presence?: { available: boolean; peers: readonly PlacedPeer[]; movePointer: (at: [number, number] | null) => void }
   /** The editor's strings (Adjust Last Operation's, the navigation's). */
   t?: (key: string) => string
+  /** The document cannot be changed: no gizmo, no transform settings. */
+  readOnly?: boolean
 }) {
   const editor = useKitEditor()
   const { doc } = editor.session
@@ -93,6 +98,10 @@ export function SceneViewport({
   }
   // The tools' overlays and the transform's lines over the picture.
   useToolOverlay(region, gpu, modal)
+  // The 3D cursor, the transform tools' gizmos and the snapped point over the picture.
+  const layer = useTransformLayer(region, gpu, info, modal, readOnly)
+  const layerRef = useRef(layer)
+  layerRef.current = layer
   // A change of the document may be the end of the transform (the tools confirm and cancel too).
   const { change } = editor.session
   useEffect(() => modal.sync(), [change, modal])
@@ -478,6 +487,26 @@ export function SceneViewport({
       }
     }
     let drag: { x: number; y: number; mode: NavDrag; id: number } | null = null
+    // Shift+right button: the 3D cursor goes under the pointer, and follows it while held (one
+    // placement in flight, the latest point waiting).
+    let cursorDrag: number | null = null
+    let cursorBusy = false
+    let cursorNext: [number, number] | null = null
+    const placeCursor = (at: [number, number]) => {
+      cursorNext = at
+      if (cursorBusy) return
+      cursorBusy = true
+      void (async () => {
+        while (cursorNext) {
+          const point = cursorNext
+          cursorNext = null
+          await latest.current.editor.session.run('cursor.set', { at: point }).catch(() => undefined)
+        }
+        cursorBusy = false
+      })()
+    }
+    // A gizmo handle's drag: the page started the transform, and its release confirms it.
+    let handleDrag: number | null = null
     // The right button cancelled a transform: the context menu it brings stays closed.
     let cancelledMenu = false
     // The press that confirmed an operation: its release is the page's too.
@@ -485,6 +514,29 @@ export function SceneViewport({
     const down = (event: PointerEvent) => {
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       modal.pointer = documentPoint(event)
+      if (event.button === 2 && event.shiftKey && !transforming()) {
+        event.preventDefault()
+        event.stopPropagation()
+        cancelledMenu = true
+        cursorDrag = event.pointerId
+        element.setPointerCapture(event.pointerId)
+        placeCursor(documentPoint(event))
+        return
+      }
+      // A gizmo handle (not its middle, which is the tool's own press) starts the transform kept
+      // to the handle's axis or plane.
+      const handle = event.button === 0 && !event.altKey && !transforming() ? layerRef.current.handleAt(documentPoint(event)) : null
+      if (handle && latest.current.info) {
+        event.preventDefault()
+        event.stopPropagation()
+        handleDrag = event.pointerId
+        toolGesture.held = true
+        toolGesture.transform = true
+        element.setPointerCapture(event.pointerId)
+        modal.begin(handle.kind, { at: documentPoint(event), handle: { axis: handle.axis, plane: handle.plane, orientation: latest.current.info.transform.orientation } })
+        layerRef.current.hover(null)
+        return
+      }
       if (event.button === 2 && transforming()) {
         // The right button cancels the transform (the canvas never gives it to the tools).
         event.preventDefault()
@@ -521,6 +573,20 @@ export function SceneViewport({
     }
     const move = (event: PointerEvent) => {
       if (!drag && unready(event)) return
+      if (cursorDrag === event.pointerId) {
+        event.stopPropagation()
+        placeCursor(documentPoint(event))
+        return
+      }
+      // The right button pressed while the left holds a handle's drag (a chord comes as a move):
+      // it cancels the transform.
+      if (event.button === 2 && transforming()) {
+        event.preventDefault()
+        event.stopPropagation()
+        cancelledMenu = true
+        modal.cancel()
+        return
+      }
       if (!drag) {
         if (!(event.target instanceof HTMLCanvasElement) && !element.contains(event.target as Node)) return
         const at = documentPoint(event)
@@ -529,6 +595,8 @@ export function SceneViewport({
         if (transforming()) {
           event.stopPropagation()
           modal.move(at, event.shiftKey, event.ctrlKey || event.metaKey)
+        } else if (event.buttons === 0) {
+          layerRef.current.hover(at)
         }
         return
       }
@@ -542,6 +610,23 @@ export function SceneViewport({
       nav.current.drag(drag.mode === 'orbit' && event.shiftKey ? 'pan' : drag.mode, dx, dy)
     }
     const up = (event: PointerEvent) => {
+      if (cursorDrag === event.pointerId) {
+        cursorDrag = null
+        event.stopPropagation()
+        if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+        return
+      }
+      if (handleDrag === event.pointerId) {
+        handleDrag = null
+        event.stopPropagation()
+        toolGesture.held = false
+        toolGesture.transform = false
+        if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+        // The release's place counts, then it confirms (a cancel meanwhile leaves nothing to confirm).
+        modal.move(documentPoint(event), event.shiftKey, event.ctrlKey || event.metaKey)
+        if (modal.active) modal.confirm()
+        return
+      }
       if (swallowed === event.pointerId) {
         swallowed = null
         event.stopPropagation()
@@ -666,6 +751,8 @@ export function SceneViewport({
       onContextMenu={(event) => {
         if (!(event.target instanceof HTMLCanvasElement)) return
         event.preventDefault()
+        // Shift+right button places the 3D cursor: no menu.
+        if (event.shiftKey) return
         const at = { x: event.clientX, y: event.clientY }
         void selectForMenu(event.target, at).finally(() => setMenu(at))
       }}
@@ -684,6 +771,7 @@ export function SceneViewport({
           }}
         />
       ) : null}
+      {info && !readOnly && TRANSFORM_MODES.includes(info.mode) ? <TransformStrip info={info} /> : null}
       <ModalHeader />
       {t ? <AdjustLast operation={info?.operation ?? null} hidden={modalActive} t={t} /> : null}
       <RenderedViewport active={info?.shading === 'rendered'} />

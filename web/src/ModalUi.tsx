@@ -59,6 +59,7 @@ export function ModalKeys({ t }: { t: (key: string) => string }) {
       {type}
       {typed ? <span><kbd>Tab</kbd>{t('modalNextField')}</span> : null}
       <span><kbd>Ctrl</kbd>{t('modalSnap')}</span>
+      <span><kbd>⇧Tab</kbd>{t('modalSnapToggle')}</span>
       {precision}
       {kind !== 'move' && !extrude ? <span><kbd>G</kbd>{t('modalMove')}</span> : null}
       {kind !== 'rotate' && !extrude ? <span><kbd>R</kbd>{t('modalRotate')}</span> : null}

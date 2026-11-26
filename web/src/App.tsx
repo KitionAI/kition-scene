@@ -49,6 +49,7 @@ import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
 import { focusEditor } from './NumberBox'
 import { viewMenuRows, viewNavigator } from './navigator'
+import { orientationMenuRows, pivotMenuRows, snapMenuRows } from './TransformControls'
 
 const EXPORT_FORMATS = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'usda', 'usdc', 'usdz', 'png'] as const
 type ExportFormat = (typeof EXPORT_FORMATS)[number]
@@ -125,12 +126,16 @@ function pick(event: Pick<NavKey, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altK
   return { code: event.code, key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey, target: event.target }
 }
 
+/** The commands that add an object: the editor puts what they add at the 3D cursor. */
+const addsObject = (id: string) => id.startsWith('object.add')
+
 function keyMatches(shortcut: string, event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>) {
   if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return false
   if (/^[A-Za-z]$/.test(shortcut)) return event.code === `Key${shortcut.toUpperCase()}`
   // The number row only: the numeric keypad is Blender's views, not the edit mode's select modes.
   if (/^[0-9]$/.test(shortcut)) return event.code === `Digit${shortcut}`
-  if (shortcut === '.') return event.code === 'Period' || event.code === 'NumpadDecimal'
+  // The keypad's point frames the selection; the main keyboard's opens the pivot point menu.
+  if (shortcut === '.') return event.code === 'NumpadDecimal'
   return event.key === shortcut
 }
 
@@ -240,7 +245,10 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       if (id === 'render.image' || id === 'render.trace.start') void renderImage()
       else if (id === 'file.export') setExporting({ format: 'glb', selectedOnly: false })
       else if (id === 'file.import') void importFile()
-      else void latest.current.editor.run(id)
+      else if (addsObject(id) && latest.current.editor.session.state?.mode === 'object') {
+        // A new object goes where the 3D cursor is (world aligned), as in Blender.
+        void latest.current.editor.run(id, { location: latest.current.editor.session.state.transform.cursor })
+      } else void latest.current.editor.run(id)
     },
     [importFile, renderImage],
   )
@@ -385,6 +393,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
     if (!typing && navigationKey(event)) return
+    if (!typing && transformKey(event)) return
     if (!typing && startKey(event)) return
     if (!typing && editKey(event)) return
     if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
@@ -493,6 +502,45 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }
   const latestNavigation = useRef(navigationKey)
   latestNavigation.current = navigationKey
+
+  /**
+   * The 3D cursor's and the transform settings' keys: `.` the pivot point menu, `,` the
+   * orientation menu, Shift+Tab snapping on or off, Shift+S the Snap menu (the cursor to the
+   * origin, the selection or the active object; the selection to the cursor), Shift+C the cursor
+   * back at the origin and everything framed. Answers whether the key was taken.
+   */
+  const transformKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'preventDefault' | 'stopPropagation' | 'target'>) => {
+    if (!state || event.metaKey || event.ctrlKey || event.altKey) return false
+    if (event.target instanceof Element && event.target.closest('.scene-nodes')) return false
+    const take = () => {
+      event.preventDefault()
+      event.stopPropagation()
+      return true
+    }
+    const run = (id: string, params: Record<string, unknown>) => editor.run(id, params)
+    const transforms = TRANSFORM_MODES.includes(state.mode)
+    if (!event.shiftKey && event.code === 'Period' && transforms) {
+      openMenu(t('pivotPoint'), 'scene-pivot-menu', pivotMenuRows(state, t, run))
+      return take()
+    }
+    if (!event.shiftKey && event.code === 'Comma' && transforms) {
+      openMenu(t('orientation'), 'scene-orientation-menu', orientationMenuRows(state, t, run))
+      return take()
+    }
+    if (event.shiftKey && event.code === 'Tab') {
+      void run('transform.set', { snap: !state.transform.snap })
+      return take()
+    }
+    if (event.shiftKey && event.code === 'KeyS' && transforms) {
+      openMenu(t('menuSnap'), 'scene-snap-menu', snapMenuRows(state, t, run))
+      return take()
+    }
+    if (event.shiftKey && event.code === 'KeyC') {
+      void run('cursor.reset', {}).then(() => viewNavigator.hooks?.command('view.frameAll', true))
+      return take()
+    }
+    return false
+  }
 
   // A menu at the pointer (X, Delete, M, P in a mesh's edit mode).
   const [popup, setPopup] = useState<PointerMenuState | null>(null)
@@ -689,7 +737,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <div className="scene-stage">
             <div className="scene-split">
-              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} />
+              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} readOnly={host.readOnly} />
               {state && uvOpen && mode === 'edit' ? (
                 <FrameChrome>
                   <UvEditor info={state} onClose={() => setUvOpen(false)} />

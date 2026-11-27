@@ -64,6 +64,8 @@ export type GlFrame = {
    * in the picture (x0, y0, x1, y1 from the top left). */
   camera: { viewMatrix: number[]; projection: number[]; eye: Vec3; perspective: boolean; near: number; frame: [number, number, number, number] } | null
   shading: 'solid' | 'wireframe' | 'material' | 'rendered'
+  /** X-ray: the surfaces see-through, edit mode's marks over them. */
+  xray?: boolean
   grid: boolean
   world: { color: Vec3; strength: number }
   /** The world image (material view): its irradiance coefficients and turn; `glWorld` has its

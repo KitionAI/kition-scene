@@ -277,6 +277,7 @@ pub fn inspect(doc: &SceneDocument) -> Value {
             "shading": match doc.session.editor.shading { Shading::Wireframe => "wireframe", Shading::Solid => "solid", Shading::Material => "material", Shading::Rendered => "rendered" },
             "grid": doc.session.editor.grid,
             "overlays": doc.session.editor.overlays,
+            "xray": doc.session.editor.xray,
             "width": doc.session.width,
             "height": doc.session.height,
             // The view's projection (column-major, world to clip space), for drawing over the picture.

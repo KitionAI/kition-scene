@@ -82,21 +82,33 @@ impl Rays {
     }
 }
 
+/// One mesh a ray looks at: its object, the drawn mesh, its hierarchy, its world matrix and that
+/// matrix's inverse.
+type RayMesh = (Id, Arc<Prepared>, Arc<Bvh>, Mat4, Mat4);
+
 /// The drawn meshes a ray looks at, taken once (finding them hashes each mesh): a query of many
 /// rays (a snap's steps, a hover) takes one and asks it again.
 #[derive(Default)]
 pub(crate) struct RayScene {
-    meshes: Vec<(Id, Arc<Prepared>, Arc<Bvh>, Mat4)>,
+    meshes: Vec<RayMesh>,
 }
 
 impl RayScene {
     /// The first surface the ray from `origin` along `direction` meets in (`near`, `far`).
     pub(crate) fn hit(&self, origin: Vec3, direction: Vec3, near: f32, far: f32) -> Option<RayHit> {
+        self.hit_except(origin, direction, near, far, &|_| false)
+    }
+
+    /// As [`Self::hit`], passing over the meshes of the objects `skip` names.
+    pub(crate) fn hit_except(&self, origin: Vec3, direction: Vec3, near: f32, far: f32, skip: &dyn Fn(Id) -> bool) -> Option<RayHit> {
         if !(origin.is_finite() && direction.is_finite()) || direction.length_squared() < 1e-20 {
             return None;
         }
         let mut best: Option<RayHit> = None;
-        for (id, prepared, bvh, inverse) in &self.meshes {
+        for (id, prepared, bvh, _, inverse) in &self.meshes {
+            if skip(*id) {
+                continue;
+            }
             // The same line in the object's space: distances along it stay the same.
             let (local_origin, local_direction) = (inverse.transform_point3(origin), inverse.transform_vector3(direction));
             let limit = best.map_or(far, |hit| hit.distance);
@@ -114,11 +126,21 @@ impl RayScene {
 
     /// The surface under the pixel (`x`, `y`) of `projector`'s view.
     pub(crate) fn at(&self, projector: &kition_scene_raster::Projector, x: f32, y: f32) -> Option<RayHit> {
+        self.at_except(projector, x, y, &|_| false)
+    }
+
+    /// As [`Self::at`], passing over the meshes of the objects `skip` names.
+    pub(crate) fn at_except(&self, projector: &kition_scene_raster::Projector, x: f32, y: f32, skip: &dyn Fn(Id) -> bool) -> Option<RayHit> {
         if !(x.is_finite() && y.is_finite()) {
             return None;
         }
         let (origin, direction) = projector.ray(x, y);
-        self.hit(origin, direction, 0.0, f32::INFINITY)
+        self.hit_except(origin, direction, 0.0, f32::INFINITY, skip)
+    }
+
+    /// The meshes it looks at: each object with its drawn mesh and world matrix.
+    pub(crate) fn meshes(&self) -> impl Iterator<Item = (Id, &Prepared, Mat4)> + '_ {
+        self.meshes.iter().map(|(id, prepared, _, world, _)| (*id, prepared.as_ref(), *world))
     }
 
     /// Whether `point` shows in `projector`'s view: no surface lies between it and the eye.
@@ -150,7 +172,7 @@ impl RayScene {
 
 impl SceneDocument {
     /// The meshes the viewport draws, with their world matrices: edit mode's mesh as it is being
-    /// edited, the others after their modifiers.
+    /// edited, the others after their modifiers, and the particles drawn as meshes.
     pub(crate) fn ray_meshes(&self) -> Vec<(Id, Arc<Prepared>, Mat4)> {
         let overlays = match self.session.mode {
             Mode::Edit(object) => {
@@ -158,7 +180,10 @@ impl SceneDocument {
             }
             Mode::Object => Overlays::default(),
         };
-        kition_scene_raster::viewport_meshes(&self.scene, &overlays, &mut self.meshes.borrow_mut())
+        // Particles drawn as meshes (halos, instances, hair) are surfaces too: picking one picks
+        // its emitter (`commands_particles::owners`).
+        let shown = crate::commands_particles::viewport_scene(self);
+        kition_scene_raster::viewport_meshes(shown.as_ref().unwrap_or(&self.scene), &overlays, &mut self.meshes.borrow_mut())
     }
 
     /// The visible meshes as drawn now that `skip` does not pass over, ready for rays (each
@@ -177,7 +202,7 @@ impl SceneDocument {
                     return None;
                 }
                 let bvh = rays.of(id, &prepared)?;
-                Some((id, prepared, bvh, inverse))
+                Some((id, prepared, bvh, world, inverse))
             })
             .collect();
         RayScene { meshes }

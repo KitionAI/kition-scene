@@ -47,6 +47,7 @@ mod place;
 mod ray;
 mod render;
 mod rests;
+mod select;
 mod snap;
 mod tools;
 mod viewport_trace;
@@ -164,6 +165,9 @@ pub struct Editor {
     pub snap: bool,
     #[serde(default)]
     pub snap_target: cursor::SnapTarget,
+    /// X-ray: the surfaces see-through, and a region selects what is hidden too.
+    #[serde(default)]
+    pub xray: bool,
 }
 
 /// The version of the view state `view.state` answers (its `v`): `view.restore` ignores another.
@@ -195,6 +199,7 @@ impl Default for Editor {
             orientation: modal::Orientation::default(),
             snap: false,
             snap_target: cursor::SnapTarget::default(),
+            xray: false,
         }
     }
 }
@@ -278,6 +283,13 @@ pub struct SceneDocument {
     meshes: RefCell<kition_scene_raster::MeshCache>,
     /// The drawn meshes' ray hierarchies kept between rays (the cursor, snapping; never saved).
     rays: RefCell<ray::Rays>,
+    /// The drawn meshes for picking, as of a revision (never saved).
+    ray_cache: RefCell<Option<(u64, std::rc::Rc<ray::RayScene>)>>,
+    /// The editor's GPU viewport draws the picture: a tool's event then owes the software picture
+    /// nothing (it is drawn when asked for, as for the agent's screenshot).
+    gl_shown: bool,
+    /// How many software pictures were drawn (for tests: picking draws none).
+    frames_drawn: std::cell::Cell<u64>,
     tool: ToolState,
     /// A number field's drag under way (`object.previewTransform`): the scene and selection as
     /// they were before it, put back when it ends or before any other change (never saved).
@@ -407,6 +419,9 @@ impl SceneDocument {
             cache: RefCell::new(None),
             meshes: RefCell::new(kition_scene_raster::MeshCache::new()),
             rays: RefCell::default(),
+            ray_cache: RefCell::default(),
+            gl_shown: false,
+            frames_drawn: std::cell::Cell::new(0),
             tool: ToolState::default(),
             field_preview: None,
             modal: None,
@@ -491,8 +506,22 @@ impl SceneDocument {
 
     /// The replica changed under the view (an undo, a redo, a collaborator's changes, late
     /// blobs): the view follows.
+    ///
+    /// The selection stays: the objects that are still there (by id), and the edited mesh's
+    /// selected elements when its vertices and faces are as many as they were (by index; else none).
     fn replica_changed(&mut self) {
+        let counts =
+            |doc: &Self, id: Id| doc.scene.object(id).ok().and_then(|object| object.mesh()).map(|mesh| (mesh.vertex_count(), mesh.faces.len()));
+        let kept = match self.session.mode {
+            Mode::Edit(id) => counts(self, id).map(|before| (id, before, self.session.vertices.clone())),
+            Mode::Object => None,
+        };
         self.view_from_replica(None);
+        if let Some((id, before, vertices)) = kept
+            && self.session.mode == Mode::Edit(id)
+        {
+            self.session.vertices = if counts(self, id) == Some(before) { vertices } else { BTreeSet::new() };
+        }
         self.content += 1;
         self.revision += 1;
     }
@@ -690,6 +719,17 @@ impl SceneDocument {
         if undo { labels.undo.last() } else { labels.redo.last() }.map(|step| step.label.clone())
     }
 
+    /// Tells the document whether the editor's GPU viewport draws the picture now (the software
+    /// picture is then drawn only when asked for).
+    pub fn set_gl_shown(&mut self, on: bool) {
+        self.gl_shown = on;
+    }
+
+    /// How many software pictures the document has drawn.
+    pub fn software_frames(&self) -> u64 {
+        self.frames_drawn.get()
+    }
+
     /// Something only the picture depends on changed (view, selection, mode).
     fn touched(&mut self) {
         self.revision += 1;
@@ -783,6 +823,7 @@ impl SceneDocument {
                 picture,
             );
             let rgba = canvas.to_rgba8();
+            self.frames_drawn.set(self.frames_drawn.get().saturating_add(1));
             *cache = Some(Cached { revision: self.revision, width: self.session.width, height: self.session.height, canvas, rgba });
         }
         match cache.as_ref() {
@@ -1287,6 +1328,19 @@ mod web {
         #[wasm_bindgen(js_name = modalStep)]
         pub fn modal_step(&mut self, command: &str, params: &str, frame: bool) -> Result<String, JsError> {
             self.0.modal_step(command, params, frame).map_err(|error| JsError::new(&error))
+        }
+
+        /// Whether the editor's GPU viewport draws the picture now: a tool's event then repaints
+        /// no software picture (it is drawn when asked for).
+        #[wasm_bindgen(js_name = glShown)]
+        pub fn gl_shown(&mut self, on: bool) {
+            self.0.set_gl_shown(on);
+        }
+
+        /// How many software pictures the document has drawn (for tests and measuring).
+        #[wasm_bindgen(js_name = softwareFrames)]
+        pub fn software_frames(&self) -> f64 {
+            self.0.software_frames() as f64
         }
 
         /// One object's geometry for the GPU viewport, as the viewport draws it.

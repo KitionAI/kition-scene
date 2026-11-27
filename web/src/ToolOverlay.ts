@@ -2,6 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react'
 import { useKitEditor, useKitTools } from '@kition/sdk/editor'
 import type { GpuViewport } from './GlViewport'
 import type { ModalTransform } from './modal'
+import { drawSelectionGestures, selectionGestures } from './selection'
 
 /** For tests: how often the layer drew and whether it showed anything the last time. */
 type OverlayProbe = { draws: number; drawn: boolean; modal: boolean }
@@ -66,6 +67,9 @@ export function useToolOverlay(region: RefObject<HTMLDivElement | null>, gpu: Gp
       probe.current.modal = true
       return
     }
+    // C's circle and the lasso (the page's gestures), in both viewports.
+    context.setTransform(1, 0, 0, 1, 0, 0)
+    if (drawSelectionGestures(context)) probe.current.drawn = true
     if (!on || !paint) return
     // The document is the viewport at one document pixel per device pixel: a CSS pixel is `dpr`
     // document pixels.
@@ -102,6 +106,7 @@ export function useToolOverlay(region: RefObject<HTMLDivElement | null>, gpu: Gp
   useEffect(() => draw.current(), [decorate, active])
   // The transform's answers, and every frame the GPU draws (the view moves under the lines).
   useEffect(() => modal.subscribe(() => draw.current()), [modal])
+  useEffect(() => selectionGestures.subscribe(() => draw.current()), [])
   const onDraw = gpu.onDraw
   useEffect(() => onDraw(() => {
     if (modal.answer.active) draw.current()

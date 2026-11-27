@@ -1,25 +1,30 @@
-//! The viewport's tools, driven by the host's pointer: Select (click, Shift to toggle, Cmd/Ctrl
-//! to pick by the origin; drag for a box, Shift to add to the selection, Cmd/Ctrl to take from it,
-//! both to keep what is in both), Move, Rotate, and Scale (a press starts the modal transform,
+//! The viewport's tools, driven by the host's pointer: Select Box (click, Shift to toggle, Cmd/Ctrl
+//! to pick by the origin, in edit mode to add the shortest path from the element clicked before;
+//! drag for a box, Shift to add to the selection, Cmd/Ctrl to take from it, both to keep what is
+//! in both), Select Circle (a press and a drag paint the selection with a circle; Shift adds,
+//! Cmd/Ctrl takes out), Select Lasso (drag round what to take, as the box), Move, Rotate, and Scale (a press starts the modal transform,
 //! `modal.rs`, and the release confirms it; a click selects as the Select tool's does), and Loop
 //! Cut in edit mode (hover to see the loop, click to cut). A drag is one undo step; Escape cancels
 //! it. While a transform runs, the pointer and the keys go to it. The context-menu key selects
 //! the object under the pointer when it is not selected, before the editor opens its menu.
-
-use std::collections::BTreeSet;
+//! Picking uses rays (`select.rs`), never the software picture; while the editor's GPU viewport
+//! draws, an event owes the software picture no repaint (`take_damage`).
 
 use glam::Vec3;
 use kition_kit::KitDocument;
-use kition_kit::tools::{KitTools, PointerAction, ToolInfo, ToolMods, ToolOverlay, ToolPointer, ToolResponse};
+use kition_kit::tools::{KitTools, PointerAction, ToolDamage, ToolInfo, ToolMods, ToolOverlay, ToolPointer, ToolResponse};
 use kition_scene_model::Id;
 use serde_json::{Value, json};
 
 use crate::modal::{Kind, Started};
-use crate::{Mode, SceneDocument, SelectMode, Step};
+use crate::select::{Anchor, CIRCLE_PIXELS, MAX_LASSO_POINTS, Pick, Region};
+use crate::{Mode, SceneDocument, Step};
 
 /// The tools, in rail order.
 const TOOLS: &[(&str, &str, &str, &str, usize)] = &[
-    ("select", "Select", "W", "tool-selection", 0),
+    ("select", "Select Box", "W", "tool-selection", 0),
+    ("selectCircle", "Select Circle", "W", "tool-ellipse", 0),
+    ("selectLasso", "Select Lasso", "W", "tool-lasso", 0),
     ("move", "Move", "G", "tool-move", 1),
     ("rotate", "Rotate", "R", "tool-rotate", 2),
     ("scale", "Scale", "S", "tool-scale", 3),
@@ -35,8 +40,9 @@ const EDIT_TOOLS: &[&str] = &["loopCut", "knife", "slide"];
 /// Screen pixels of drag for a full slide (factor 1).
 const SLIDE_PIXELS: f64 = 200.0;
 
-/// Screen pixels from an object's origin within which a Cmd/Ctrl+click picks it by the origin.
-const ORIGIN_PIXELS: f32 = 75.0;
+/// An area of no document pixel: the software picture owes nothing for an event (the GPU
+/// viewport shows it; the picture is drawn when asked for).
+const NO_PIXELS: ToolDamage = ToolDamage { x0: -2.0, y0: -2.0, x1: -1.0, y1: -1.0 };
 
 const ORANGE: [u8; 4] = [241, 88, 0, 255];
 const YELLOW: [u8; 4] = [255, 214, 0, 255];
@@ -58,34 +64,6 @@ impl Drag {
     }
 }
 
-/// How a click or a box changes the selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Pick {
-    /// What is found becomes the selection.
-    Set,
-    /// A click with Shift: the object becomes active and selected, or, already active, unselected.
-    Toggle,
-    /// A box with Shift: what is found is added.
-    Extend,
-    /// A box with Cmd/Ctrl: what is found is taken out.
-    Subtract,
-    /// A box with Shift and Cmd/Ctrl: only what is both selected and found stays.
-    Intersect,
-}
-
-impl Pick {
-    fn of(mods: ToolMods, boxed: bool) -> Self {
-        match (boxed, mods.shift, mods.command) {
-            (false, true, _) => Pick::Toggle,
-            (false, false, _) => Pick::Set,
-            (true, true, true) => Pick::Intersect,
-            (true, true, false) => Pick::Extend,
-            (true, false, true) => Pick::Subtract,
-            (true, false, false) => Pick::Set,
-        }
-    }
-}
-
 /// The active tool and what it is doing.
 #[derive(Debug, Clone)]
 pub struct ToolState {
@@ -102,11 +80,32 @@ pub struct ToolState {
     /// The press under way already ended (a key's transform it confirmed, a transform cancelled
     /// while the button was held): its release does nothing.
     ignore_release: bool,
+    /// The lasso's outline so far (Select Lasso's drag).
+    lasso: Vec<(f64, f64)>,
+    /// How Select Circle's drag under way takes what it paints.
+    circle: Option<Pick>,
+    /// The element the last click in edit mode took, for a Cmd/Ctrl+click's shortest path.
+    anchor: Option<Anchor>,
+    /// The zoom the pointer last came with (screen pixels per document pixel): Select Circle's
+    /// circle keeps its size on the screen.
+    zoom: f64,
 }
 
 impl Default for ToolState {
     fn default() -> Self {
-        Self { tool: "select", drag: None, hover_edge: None, knife: Vec::new(), hover: None, pointer: None, ignore_release: false }
+        Self {
+            tool: "select",
+            drag: None,
+            hover_edge: None,
+            knife: Vec::new(),
+            hover: None,
+            pointer: None,
+            ignore_release: false,
+            lasso: Vec::new(),
+            circle: None,
+            anchor: None,
+            zoom: 1.0,
+        }
     }
 }
 
@@ -120,7 +119,7 @@ impl ToolState {
 fn cursor(tool: &str) -> String {
     match tool {
         "move" => "move",
-        "loopCut" | "knife" => "crosshair",
+        "loopCut" | "knife" | "selectCircle" | "selectLasso" => "crosshair",
         "slide" => "ew-resize",
         "rotate" | "scale" => "crosshair",
         _ => "default",
@@ -184,144 +183,50 @@ impl SceneDocument {
 
     /// Selects what is under the pointer (or in the box from `start`) as `mods` say: a click sets
     /// the selection, with Shift toggles the object, with Cmd/Ctrl in object mode picks by the
-    /// origin; a box sets it, with Shift adds to it, with Cmd/Ctrl takes from it, with both keeps
-    /// what is in both.
+    /// origin and in edit mode adds the shortest path from the element clicked before; a box sets
+    /// it, with Shift adds to it, with Cmd/Ctrl takes from it, with both keeps what is in both.
     fn select_at(&mut self, start: (f64, f64), end: (f64, f64), mods: ToolMods) {
-        let projector = self.projector();
         let boxed = (end.0 - start.0).abs() > 4.0 || (end.1 - start.1).abs() > 4.0;
-        let pick = Pick::of(mods, boxed);
-        let through = self.session.editor.view.camera;
-        let rect = [start.0 as f32, start.1 as f32, end.0 as f32, end.1 as f32];
+        if boxed {
+            self.select_region(&Region::rect(start, end), Pick::of(mods, true));
+            return;
+        }
+        let pick = Pick::of(mods, false);
+        let (x, y) = (end.0 as f32, end.1 as f32);
         match self.session.mode {
             Mode::Object => {
-                let found: Vec<Id> = self.with_frame(|cached| {
-                    if boxed {
-                        let mut ids = BTreeSet::new();
-                        let [x0, y0, x1, y1] = rect;
-                        let (left, right, top, bottom) =
-                            (x0.min(x1).max(0.0) as u32, x0.max(x1).max(0.0) as u32, y0.min(y1).max(0.0) as u32, y0.max(y1).max(0.0) as u32);
-                        for y in top..bottom.min(cached.height) {
-                            for x in left..right.min(cached.width) {
-                                if let Some(hit) = kition_scene_raster::hit(&cached.canvas, x, y) {
-                                    ids.insert(hit.object);
-                                }
-                            }
-                        }
-                        for object in self.scene.objects.iter().filter(|object| !object.hidden && object.mesh().is_none()) {
-                            if let Ok(world) = self.scene.world_matrix(object.id) {
-                                let screen = projector.to_screen(projector.view_projection() * world.transform_point3(Vec3::ZERO).extend(1.0));
-                                if screen.x >= x0.min(x1)
-                                    && screen.x <= x0.max(x1)
-                                    && screen.y >= y0.min(y1)
-                                    && screen.y <= y0.max(y1)
-                                    && screen.z >= 0.0
-                                {
-                                    ids.insert(object.id);
-                                }
-                            }
-                        }
-                        ids.into_iter().collect()
-                    } else if mods.command {
-                        kition_scene_raster::pick_origin(&self.scene, &projector, end.0 as f32, end.1 as f32, ORIGIN_PIXELS).into_iter().collect()
-                    } else {
-                        kition_scene_raster::pick_object(&self.scene, &cached.canvas, &projector, end.0 as f32, end.1 as f32, through)
-                            .into_iter()
-                            .collect()
-                    }
-                });
+                let found: Vec<Id> = self.object_by_ray(x, y, mods.command).into_iter().collect();
                 let found = crate::commands_particles::owners(self, found);
-                let editor = &mut self.session.editor;
-                match pick {
-                    Pick::Set => {
-                        editor.active = found.last().copied();
-                        editor.selected = found;
-                    }
-                    Pick::Toggle => {
-                        for id in found {
-                            if editor.selected.contains(&id) && editor.active == Some(id) {
-                                editor.selected.retain(|other| *other != id);
-                                editor.active = editor.selected.last().copied();
-                            } else {
-                                editor.selected.retain(|other| *other != id);
-                                editor.selected.push(id);
-                                editor.active = Some(id);
-                            }
-                        }
-                    }
-                    Pick::Extend => {
-                        for id in found {
-                            if !editor.selected.contains(&id) {
-                                editor.selected.push(id);
-                            }
-                        }
-                        if editor.active.is_none() {
-                            editor.active = editor.selected.last().copied();
-                        }
-                    }
-                    Pick::Subtract => {
-                        editor.selected.retain(|id| !found.contains(id));
-                        if editor.active.is_some_and(|id| !editor.selected.contains(&id)) {
-                            editor.active = editor.selected.last().copied();
-                        }
-                    }
-                    Pick::Intersect => {
-                        editor.selected.retain(|id| found.contains(id));
-                        if editor.active.is_some_and(|id| !editor.selected.contains(&id)) {
-                            editor.active = editor.selected.last().copied();
-                        }
-                    }
-                }
+                self.take_objects(found, pick);
             }
-            Mode::Edit(id) => {
-                let (Ok(world), Some(mesh)) = (self.scene.world_matrix(id), self.scene.object(id).ok().and_then(|object| object.mesh()).cloned())
-                else {
-                    return;
-                };
-                let found: BTreeSet<u32> = self.with_frame(|cached| {
-                    if boxed {
-                        let vertices = kition_scene_raster::vertices_in_rect(&cached.canvas, &projector, &mesh, world, rect);
-                        match self.session.select_mode {
-                            // Edges whose two ends are in the box are selected with their ends.
-                            SelectMode::Vertex | SelectMode::Edge => vertices.into_iter().collect(),
-                            // Faces whose every corner is in the box.
-                            SelectMode::Face => {
-                                let inside: BTreeSet<u32> = vertices.into_iter().collect();
-                                kition_scene_model::ops::face_vertices(&mesh, &kition_scene_model::ops::faces_within(&mesh, &inside))
-                            }
-                        }
-                    } else {
-                        match self.session.select_mode {
-                            SelectMode::Vertex => {
-                                kition_scene_raster::pick_vertex(&cached.canvas, &projector, &mesh, world, end.0 as f32, end.1 as f32, 12.0)
-                                    .into_iter()
-                                    .collect()
-                            }
-                            SelectMode::Edge => self.edge_at(end.0 as f32, end.1 as f32).map(|(a, b)| BTreeSet::from([a, b])).unwrap_or_default(),
-                            SelectMode::Face => kition_scene_raster::hit(&cached.canvas, end.0.max(0.0) as u32, end.1.max(0.0) as u32)
-                                .filter(|hit| hit.object == id)
-                                .and_then(|hit| mesh.faces.get(hit.face as usize))
-                                .map(|face| face.iter().copied().collect())
-                                .unwrap_or_default(),
-                        }
-                    }
-                });
-                match pick {
-                    Pick::Set => self.session.vertices = found,
-                    Pick::Toggle => {
-                        let all_in = !found.is_empty() && found.iter().all(|vertex| self.session.vertices.contains(vertex));
-                        if all_in {
-                            self.session.vertices.retain(|vertex| !found.contains(vertex));
-                        } else {
-                            self.session.vertices.extend(found);
-                        }
-                    }
-                    Pick::Extend => self.session.vertices.extend(found),
-                    Pick::Subtract => self.session.vertices.retain(|vertex| !found.contains(vertex)),
-                    Pick::Intersect => self.session.vertices.retain(|vertex| found.contains(vertex)),
+            Mode::Edit(_) => {
+                let (found, anchor) = if mods.command && !mods.shift { self.path_by_ray(self.tool.anchor, x, y) } else { self.element_by_ray(x, y) };
+                if anchor.is_some() || pick == Pick::Set {
+                    self.tool.anchor = anchor;
                 }
+                let pick = if mods.command && !mods.shift { Pick::Extend } else { pick };
+                pick.vertices(&mut self.session.vertices, found);
             }
         }
         self.touched();
+    }
+
+    /// Select Circle at the pointer: what the circle covers, taken as the drag's `pick`.
+    fn circle_at(&mut self, at: (f64, f64), zoom: f64, pick: Pick) {
+        let radius = (CIRCLE_PIXELS / if zoom.is_finite() && zoom > 0.0 { zoom } else { 1.0 }).clamp(1.0, 1000.0) as f32;
+        self.select_region(&Region::Circle { x: at.0 as f32, y: at.1 as f32, radius }, pick);
+    }
+
+    /// The circle Select Circle paints with, at the pointer.
+    fn circle_overlay(&self, at: (f64, f64), zoom: f64) -> ToolOverlay {
+        let radius = (CIRCLE_PIXELS / if zoom.is_finite() && zoom > 0.0 { zoom } else { 1.0 }).clamp(1.0, 1000.0);
+        let (x, y) = at;
+        ToolOverlay::Path {
+            d: format!("M {} {} A {radius} {radius} 0 1 0 {} {} A {radius} {radius} 0 1 0 {} {} Z", x - radius, y, x + radius, y, x - radius, y),
+            color: [255, 255, 255, 220],
+            width: 1.0,
+            dashed: true,
+        }
     }
 
     /// The edge under the pointer in edit mode: the nearest on screen within a few pixels.
@@ -443,10 +348,7 @@ impl SceneDocument {
         if self.tool.drag.is_some() || self.modal_started().is_some() || self.session.mode != Mode::Object || self.special_session() {
             return;
         }
-        let projector = self.projector();
-        let through = self.session.editor.view.camera;
-        let found =
-            self.with_frame(|cached| kition_scene_raster::pick_object(&self.scene, &cached.canvas, &projector, at.0 as f32, at.1 as f32, through));
+        let found = self.object_by_ray(at.0 as f32, at.1 as f32, false);
         let Some(found) = crate::commands_particles::owners(self, found.into_iter().collect()).last().copied() else { return };
         if !self.session.editor.selected.contains(&found) {
             self.session.editor.selected = vec![found];
@@ -473,8 +375,26 @@ impl SceneDocument {
         if let Some(drag) = &self.tool.drag {
             overlays.extend(drag.overlays.iter().cloned());
         }
+        if self.tool.tool == "selectCircle"
+            && let Some(at) = self.tool.hover
+            && self.modal_started().is_none()
+        {
+            overlays.push(self.circle_overlay(at, self.tool.zoom));
+        }
+        if self.tool.lasso.len() >= 2 {
+            let mut d = String::new();
+            for (index, (x, y)) in self.tool.lasso.iter().enumerate() {
+                d.push_str(&format!("{}{x} {y} ", if index == 0 { "M " } else { "L " }));
+            }
+            d.push('Z');
+            overlays.push(ToolOverlay::Path { d, color: [255, 255, 255, 220], width: 1.0, dashed: true });
+        }
         overlays.extend(self.modal_overlays());
-        let busy = self.tool.drag.is_some() || !self.tool.knife.is_empty() || self.modal_started().is_some();
+        let busy = self.tool.drag.is_some()
+            || !self.tool.knife.is_empty()
+            || !self.tool.lasso.is_empty()
+            || self.tool.circle.is_some()
+            || self.modal_started().is_some();
         // Text edit mode takes typed text.
         let wants_text = crate::commands_curve::typing(self);
         ToolResponse { overlays, cursor: if wants_text { "text".into() } else { cursor(self.tool.tool) }, busy, wants_text, ..Default::default() }
@@ -570,7 +490,7 @@ impl KitTools for SceneDocument {
         if matches!(self.modal_started(), Some(Started::Press { .. })) {
             self.modal_cancel()?;
         }
-        self.tool = ToolState { tool: found, pointer: self.tool.pointer, ..ToolState::default() };
+        self.tool = ToolState { tool: found, pointer: self.tool.pointer, anchor: self.tool.anchor, zoom: self.tool.zoom, ..ToolState::default() };
         Ok(self.respond())
     }
 
@@ -671,6 +591,48 @@ impl KitTools for SceneDocument {
                     self.tool.hover_edge = None;
                 }
             }
+            ("selectCircle", PointerAction::Move) => {
+                self.tool.hover = Some(at);
+                self.tool.zoom = event.zoom;
+            }
+            // A press paints with the circle (Set clears first; Shift adds, Cmd/Ctrl takes out),
+            // and the drag goes on adding or taking out.
+            ("selectCircle", PointerAction::Down) => {
+                self.tool.hover = Some(at);
+                self.tool.zoom = event.zoom;
+                let pick = if mods.command { Pick::Subtract } else if mods.shift { Pick::Extend } else { Pick::Set };
+                self.circle_at(at, event.zoom, pick);
+                self.tool.circle = Some(if pick == Pick::Subtract { Pick::Subtract } else { Pick::Extend });
+            }
+            ("selectCircle", PointerAction::Drag) => {
+                self.tool.hover = Some(at);
+                if let Some(pick) = self.tool.circle {
+                    self.circle_at(at, event.zoom, pick);
+                }
+            }
+            ("selectCircle", PointerAction::Up) => {
+                self.tool.circle = None;
+            }
+            ("selectLasso", PointerAction::Down) => {
+                self.tool.lasso = vec![at];
+            }
+            ("selectLasso", PointerAction::Drag) => {
+                let far = self.tool.lasso.last().is_none_or(|last| (last.0 - at.0).hypot(last.1 - at.1) >= 2.0);
+                if !self.tool.lasso.is_empty() && far && self.tool.lasso.len() < MAX_LASSO_POINTS {
+                    self.tool.lasso.push(at);
+                }
+                return Ok(self.respond());
+            }
+            // A lasso of a few points is a click.
+            ("selectLasso", PointerAction::Up) => {
+                let outline = std::mem::take(&mut self.tool.lasso);
+                if outline.len() >= 3 {
+                    let points = outline.iter().map(|(x, y)| (*x as f32, *y as f32)).collect();
+                    self.select_region(&Region::Lasso(points), Pick::of(mods, true));
+                } else {
+                    self.select_at(at, at, mods);
+                }
+            }
             ("select", PointerAction::Down) => {
                 self.tool.drag = Some(Drag::new(at, None));
             }
@@ -751,6 +713,10 @@ impl KitTools for SceneDocument {
             "Escape" if crate::commands_particles::cancel(self) => {}
             "Escape" if crate::commands_rig2::cancel(self) => {}
             "Escape" if crate::commands_rig::cancel(self) => {}
+            "Escape" if !self.tool.lasso.is_empty() || self.tool.circle.is_some() => {
+                self.tool.lasso.clear();
+                self.tool.circle = None;
+            }
             "Escape" => {
                 if let Some(Drag { before: Some(before), moved: true, .. }) = self.tool.drag.take() {
                     self.restore(before);
@@ -771,11 +737,21 @@ impl KitTools for SceneDocument {
         Ok(self.respond())
     }
 
-    fn state(&mut self, x: f64, y: f64, _mods: ToolMods, _zoom: f64) -> ToolResponse {
+    fn state(&mut self, x: f64, y: f64, _mods: ToolMods, zoom: f64) -> ToolResponse {
         if self.tool.tool == "loopCut" && x.is_finite() && y.is_finite() {
             self.tool.hover_edge = self.edge_at(x as f32, y as f32);
         }
+        if self.tool.tool == "selectCircle" && x.is_finite() && y.is_finite() {
+            self.tool.hover = Some((x, y));
+            self.tool.zoom = zoom;
+        }
         self.respond()
+    }
+
+    /// While the editor's GPU viewport draws, an event owes the software picture nothing: it is
+    /// drawn when something asks for it (the agent's screenshot, the software viewport).
+    fn take_damage(&mut self) -> Option<ToolDamage> {
+        self.gl_shown.then_some(NO_PIXELS)
     }
 }
 

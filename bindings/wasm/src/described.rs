@@ -474,6 +474,26 @@ fn describe(id: &str) -> &'static str {
         "cursor.reset" => "Puts the 3D cursor back at the world origin.",
         "cursor.moveToSelected" => "Puts the 3D cursor at the middle of the selection (the selected objects' origins, or the selected vertices).",
         "cursor.moveToActive" => "Puts the 3D cursor at the active object's origin.",
+        "select.circle" => {
+            "Selects what a circle of viewport pixels round `position` covers (objects in object mode, the edited mesh's elements in edit mode), as the selection, added to it or taken out of it (`mode`); what is hidden behind a surface only with X-ray. Session state: no undo step."
+        }
+        "select.lasso" => {
+            "Selects what the outline `points` (viewport pixels) encloses (objects in object mode, the edited mesh's elements in edit mode), as the selection, added to it or taken out of it (`mode`); what is hidden behind a surface only with X-ray. Session state: no undo step."
+        }
+        "select.loop" => {
+            "In a mesh's edit mode, selects the edge loop through the edge nearest the viewport pixel `position` (in face select mode the loop of faces across it), replacing the selection or added to it with `extend`; without `position`, adds the loops through every selected edge."
+        }
+        "select.ring" => {
+            "In a mesh's edit mode, selects the ring of edges across the quads on both sides of the edge nearest the viewport pixel `position`, replacing the selection or added to it with `extend`; without `position`, adds the rings across every selected edge."
+        }
+        "select.linked" => {
+            "In a mesh's edit mode, adds the connected part of the mesh under the viewport pixel `position` to the selection (takes it out with `deselect`); without `position`, every part the selection touches."
+        }
+        "select.more" => "In a mesh's edit mode, grows the selection by one step: every vertex of a face that has a selected vertex.",
+        "select.less" => "In a mesh's edit mode, shrinks the selection by one step: only vertices whose faces are all selected whole stay.",
+        "view.toggleXray" => {
+            "Turns X-ray on or off (`value`; the other way when left out): the viewport's surfaces show see-through and region selects take what is hidden too. View state: no undo step."
+        }
         "transform.set" => {
             "Sets the person's transform settings: the pivot point rotations and scales turn about, the orientation axis keys and the gizmo follow, snapping on or off and what it snaps to. View state: no undo step."
         }
@@ -667,6 +687,10 @@ fn output(id: &str) -> Option<Value> {
         "cursor.set" | "cursor.reset" | "cursor.moveToSelected" | "cursor.moveToActive" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"cursor":{"type":"array","items":{"type":"number"},"description":"the cursor's place, metres"}}}"#
         }
+        "select.circle" | "select.lasso" | "select.loop" | "select.ring" | "select.linked" | "select.more" | "select.less" => {
+            r#"{"type":"object","additionalProperties":true,"properties":{"vertices":{"type":"integer","description":"the edited mesh's selected vertices"},"objects":{"type":"array","items":{"type":"integer"}},"active":{"type":["integer","null"]}}}"#
+        }
+        "view.toggleXray" => r#"{"type":"object","additionalProperties":true,"properties":{"xray":{"type":"boolean"}}}"#,
         "transform.set" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"pivot":{"type":"string"},"orientation":{"type":"string"},"snap":{"type":"boolean"},"snapTarget":{"type":"string"}}}"#
         }

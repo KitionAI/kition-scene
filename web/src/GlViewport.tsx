@@ -3,6 +3,7 @@ import { useKitEditor } from '@kition/sdk/editor'
 import { GlRenderer } from './gl/renderer'
 import { decodeGeometry, decodeWorld, type GlFrame } from './gl/protocol'
 import { multiply, projection, viewMatrix, type OrbitView, type Vec3 } from './gl/camera'
+import { gpuShown } from './selection'
 
 /**
  * `localStorage['kition.scene.gl']`: `'off'` keeps the software viewport (for comparing, and tests);
@@ -119,10 +120,18 @@ export function useGpuViewport(region: RefObject<HTMLDivElement | null>, enabled
   const probe = useRef<Probe>({ active: false, frames: 0, reason: null, lastFrameMs: 0 })
   const latest = useRef({ doc, editor, enabled })
   latest.current = { doc, editor, enabled }
+  /** The document last told whether this viewport shows. */
+  const shownTo = useRef<typeof doc>(null)
 
   const setOn = (on: boolean) => {
     probe.current.active = on
     window.sceneGl = probe.current
+    // The engine owes the software picture nothing for a tool's event while this one shows.
+    if (gpuShown.on !== on || shownTo.current !== latest.current.doc) {
+      gpuShown.on = on
+      shownTo.current = latest.current.doc
+      void latest.current.doc?.invoke('glShown', on).catch(() => undefined)
+    }
     const element = region.current
     if (element) {
       if (on) element.dataset.gpu = 'on'

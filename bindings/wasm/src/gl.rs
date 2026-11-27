@@ -533,6 +533,8 @@ impl SceneDocument {
             "orthographic": !projector.perspective,
             "camera": camera,
             "shading": shading,
+            // X-ray: the surfaces see-through, edit mode's marks over them.
+            "xray": editor.xray && editor.shading != Shading::Wireframe,
             "grid": editor.grid && editor.overlays,
             "world": { "color": triple(scene.world.color), "strength": scene.world.strength },
             "environment": environment,

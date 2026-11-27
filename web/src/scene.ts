@@ -314,6 +314,8 @@ export type SceneInfo = {
   vertices: number[]
   faces: number[]
   shading: 'wireframe' | 'solid' | 'material' | 'rendered'
+  /** X-ray: see-through surfaces, and region selects take what is hidden too. */
+  xray: boolean
   grid: boolean
   perspective: boolean
   throughCamera: boolean
@@ -505,6 +507,7 @@ export function describe(info: KitEngineInfo): SceneInfo {
     vertices: Array.isArray(selection.vertices) ? selection.vertices : [],
     faces: Array.isArray(selection.faces) ? selection.faces : [],
     shading: view.shading === 'wireframe' || view.shading === 'material' || view.shading === 'rendered' ? view.shading : 'solid',
+    xray: view.xray === true,
     grid: view.grid !== false,
     perspective: view.perspective !== false,
     throughCamera: typeof view.camera === 'number',

@@ -761,6 +761,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
         .chain(crate::commands_uvedit::catalogue(doc))
         .chain(crate::modal::catalogue(doc))
         .chain(crate::cursor::catalogue(doc))
+        .chain(crate::select::catalogue(doc))
         .chain(crate::operation::catalogue(doc))
         .chain(std::iter::once(crate::render::command()))
         .collect();
@@ -803,6 +804,7 @@ pub fn disabled(doc: &SceneDocument) -> Vec<String> {
         .chain(crate::commands_uvedit::disabled(doc))
         .chain(crate::modal::disabled(doc))
         .chain(crate::cursor::disabled(doc))
+        .chain(crate::select::disabled(doc))
         .collect();
     ids.extend(crate::commands_anim::disabled(doc));
     ids.extend(crate::commands_anim2::disabled(doc));
@@ -931,6 +933,9 @@ fn run_module(doc: &mut SceneDocument, command: &str, params: &Value) -> Option<
         return Some(result);
     }
     if let Some(result) = crate::cursor::execute(doc, command, params) {
+        return Some(result);
+    }
+    if let Some(result) = crate::select::execute(doc, command, params) {
         return Some(result);
     }
     if let Some(result) = crate::operation::execute(doc, command, params) {

@@ -172,6 +172,7 @@ uniform float uClass;
 uniform bool uEditFaces;
 uniform highp sampler2D uFaceSel;
 uniform vec3 uSelColor;
+uniform float uOpacity;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oClass;
 ${ENCODE}
@@ -298,7 +299,7 @@ void main() {
     int width = textureSize(uFaceSel, 0).x;
     if (texelFetch(uFaceSel, ivec2(vFace % width, vFace / width), 0).r > 0.5) lit = mix(lit, uSelColor, 0.35);
   }
-  oColor = vec4(encode(lit), alpha);
+  oColor = vec4(encode(lit), alpha * uOpacity);
   oClass = vec4(uClass, 0.0, 0.0, 1.0);
 }`
 
@@ -433,6 +434,8 @@ void outlined() {
 const AXIS_X = srgb(0xff3352)
 const AXIS_Y = srgb(0x8bdc00)
 const EDIT_VERTEX: [number, number, number] = [0, 0, 0]
+/** How opaque X-ray leaves the surfaces (Blender's default, 0.5). */
+const XRAY_OPACITY = 0.5
 
 function srgb(rgb: number): [number, number, number] {
   return [(rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255].map((byte) => {
@@ -496,6 +499,8 @@ export class GlRenderer {
   private clip: { eye: [number, number, number]; forward: [number, number, number]; near: number } | null = null
   /** The projection's depth terms for depth-tested lines' slack (see LINE_VS). */
   private slack: [number, number, number] = [0, 0, 0]
+  /** The surfaces' opacity (X-ray draws them see-through). */
+  private opacity = 1
   /** Asked for when a texture's image is not here yet. */
   onTextureNeeded: (hash: string, data: boolean) => void = () => undefined
 
@@ -1028,6 +1033,7 @@ export class GlRenderer {
     gl.uniform1i(this.uniform(p, 'uFaceSel'), 3)
     gl.uniform1i(this.uniform(p, 'uEditFaces'), editing ? 1 : 0)
     gl.uniform3fv(this.uniform(p, 'uSelColor'), frame.colors.selected)
+    gl.uniform1f(this.uniform(p, 'uOpacity'), this.opacity)
     // Closed meshes hide their back faces, as the software viewport does (a mirrored world
     // matrix turns the windings over).
     if (mesh.closed) {
@@ -1099,7 +1105,30 @@ export class GlRenderer {
     gl.drawArrays(gl.TRIANGLES, 0, 3)
 
     const edit = frame.edit != null
-    if (frame.shading !== 'wireframe') {
+    const xray = frame.xray === true && frame.shading !== 'wireframe'
+    if (xray) {
+      // X-ray: the surfaces' classes and depth first (the outlines and the grid read them), then
+      // their colours see-through, far to near, each over everything behind it.
+      gl.enable(gl.DEPTH_TEST)
+      gl.depthFunc(gl.LESS)
+      gl.depthMask(true)
+      gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1])
+      for (const { object, mesh } of drawn) if (mesh.corners) this.drawMesh(frame, object, mesh, view, viewProj, eyePoint, perspective, edit, shadowed)
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE])
+      gl.depthMask(false)
+      gl.disable(gl.DEPTH_TEST)
+      gl.enable(gl.BLEND)
+      gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+      this.opacity = XRAY_OPACITY
+      const far = drawn
+        .filter(({ mesh }) => mesh.corners)
+        .map((entry) => ({ entry, distance: Math.hypot(entry.object.world[12] - eyePoint[0], entry.object.world[13] - eyePoint[1], entry.object.world[14] - eyePoint[2]) }))
+        .sort((a, b) => b.distance - a.distance)
+      for (const { entry } of far) this.drawMesh(frame, entry.object, entry.mesh, view, viewProj, eyePoint, perspective, edit, shadowed)
+      this.opacity = 1
+      gl.disable(gl.BLEND)
+      gl.enable(gl.DEPTH_TEST)
+    } else if (frame.shading !== 'wireframe') {
       const blended = (object: GlObject) => frame.shading === 'material' && object.material != null && (object.material.alphaMode === 'blend' || object.material.transmission > 0)
       gl.enable(gl.DEPTH_TEST)
       gl.depthFunc(gl.LESS)
@@ -1177,7 +1206,7 @@ export class GlRenderer {
     if (frame.front.positions.length) this.drawLines(gl.LINES, viewProj, new Float32Array(frame.front.positions), opaque(frame.front.colors), null, 0, false)
     if (frame.edit) {
       const target = drawn.find(({ object }) => object.id === frame.edit?.object)
-      if (target) this.drawEditOverlay(frame, target.mesh, new Float32Array(target.object.world), viewProj)
+      if (target) this.drawEditOverlay(frame, target.mesh, new Float32Array(target.object.world), viewProj, !xray)
     }
     if (frame.dots.positions.length) this.drawLines(gl.POINTS, viewProj, new Float32Array(frame.dots.positions), opaque(frame.dots.colors), new Float32Array(frame.dots.sizes), 0, false)
     if (frame.origins.length) {
@@ -1215,7 +1244,7 @@ export class GlRenderer {
     this.drawLines(this.gl.LINES, viewProj, positions, colors, null, 0, depth)
   }
 
-  private drawEditOverlay(frame: GlFrame, mesh: DrawnMesh, world: Float32Array, viewProj: Mat4) {
+  private drawEditOverlay(frame: GlFrame, mesh: DrawnMesh, world: Float32Array, viewProj: Mat4, depth = true) {
     const selected = new Set(frame.edit?.vertices ?? [])
     const points = this.worldPositions(mesh, world)
     const [sel, wire] = [frame.colors.selected, frame.colors.wire]
@@ -1228,7 +1257,7 @@ export class GlRenderer {
       positions.set(points.subarray(b * 3, b * 3 + 3), slot * 3 + 3)
       colors.set([...color, 1, ...color, 1], slot * 4)
     }
-    this.drawLines(this.gl.LINES, viewProj, positions, colors, null, 2e-5, true)
+    this.drawLines(this.gl.LINES, viewProj, positions, colors, null, 2e-5, depth)
     const count = points.length / 3
     const vertexColors = new Float32Array(count * 4)
     const sizes = new Float32Array(count)
@@ -1237,7 +1266,7 @@ export class GlRenderer {
       vertexColors.set([...(on ? sel : EDIT_VERTEX), 1], index * 4)
       sizes[index] = on ? 5 : 4
     }
-    this.drawLines(this.gl.POINTS, viewProj, points, vertexColors, sizes, 4e-5, true)
+    this.drawLines(this.gl.POINTS, viewProj, points, vertexColors, sizes, 4e-5, depth)
   }
 
   dispose() {

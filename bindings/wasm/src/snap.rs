@@ -11,7 +11,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use glam::Vec3;
 use kition_scene_model::Id;
-use kition_scene_raster::{Projector, Shading, ViewState};
+use kition_scene_raster::{Projector, ViewState};
 
 use crate::SceneDocument;
 use crate::cursor::SnapTarget;
@@ -264,7 +264,7 @@ impl SceneDocument {
         let sources = self.snap_sources(modal, &meshes);
         let skip_edited = edited;
         let surfaces = self.ray_scene(&|id| moved.contains(&id) || Some(id) == skip_edited);
-        SnapIndex { target, view, points, screen, edges, grid, sources, surfaces, xray: self.session.editor.shading == Shading::Wireframe }
+        SnapIndex { target, view, points, screen, edges, grid, sources, surfaces, xray: self.xray_shown() }
     }
 
     /// The moved selection's points one of which snaps (see the module's description).

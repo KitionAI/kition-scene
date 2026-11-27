@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { SceneInfo } from './scene'
+import { selectionGestures } from './selection'
 
 type Held = 'none' | 'shift' | 'ctrl'
 
@@ -22,12 +23,14 @@ function useHeld(): Held {
 }
 
 /** The three buttons' meaning and a key or two, by mode, tool and modifier: strings keys, with their keys shown. */
-export function statusHints(info: SceneInfo, tool: string, held: Held): Array<[string, string]> {
+export function statusHints(info: SceneInfo, tool: string, held: Held, circle = false): Array<[string, string]> {
+  // C's circle: the buttons paint, the wheel sizes it, the right button ends it.
+  if (circle) return [['LMB', 'hintCircleSelect'], ['⇧ / MMB', 'hintCircleDeselect'], ['Wheel', 'hintCircleRadius'], ['RMB', 'hintCircleDone']]
   const paint = info.mode === 'sculpt' || info.mode === 'weightPaint' || info.mode === 'particleEdit'
   if (held === 'shift') return paint ? [['LMB', 'hintStrokeInvert'], ['MMB', 'hintPan'], ['RMB', 'hintCursor']] : [['LMB', 'hintSelectToggle'], ['MMB', 'hintPan'], ['RMB', 'hintCursor']]
   if (held === 'ctrl') return paint ? [['LMB', 'hintStrokeInvert'], ['MMB', 'hintZoom']] : [['LMB', 'hintDeselect'], ['MMB', 'hintZoom']]
   if (paint) return [['LMB', 'hintStroke'], ['MMB', 'hintRotate'], ['RMB', 'hintOptions'], ['F3', 'hintSearch']]
-  const left = tool === 'move' || tool === 'rotate' || tool === 'scale' ? 'hintHandle' : tool === 'loopCut' ? 'hintLoopCut' : tool === 'knife' ? 'hintKnife' : tool === 'slide' ? 'hintSlide' : 'hintSelect'
+  const left = tool === 'move' || tool === 'rotate' || tool === 'scale' ? 'hintHandle' : tool === 'loopCut' ? 'hintLoopCut' : tool === 'knife' ? 'hintKnife' : tool === 'slide' ? 'hintSlide' : tool === 'selectLasso' ? 'hintSelectLasso' : 'hintSelect'
   const keys: Array<[string, string]> = [['LMB', left], ['MMB', 'hintRotate'], ['RMB', 'hintOptions']]
   if (info.mode !== 'textEdit') keys.push(['G R S', 'hintTransform'])
   if (info.mode === 'object') keys.push(['⇧A', 'hintAdd'])
@@ -38,7 +41,8 @@ export function statusHints(info: SceneInfo, tool: string, held: Held): Array<[s
 /** The status bar's hints: what the mouse buttons and the main keys do now (Blender's left end of the status bar). */
 export function StatusHints({ info, tool, t }: { info: SceneInfo; tool: string; t: (key: string) => string }) {
   const held = useHeld()
-  const hints = statusHints(info, tool, held)
+  const circle = useSyncExternalStore(selectionGestures.subscribe, () => selectionGestures.circle != null)
+  const hints = statusHints(info, tool, held, circle)
   return (
     <span className="scene-hints" data-testid="scene-status-hints" data-held={held}>
       {hints.map(([key, hint]) => (

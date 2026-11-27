@@ -19,6 +19,7 @@ import { ModalHeader, useModalActive } from './ModalUi'
 import { AdjustLast } from './AdjustLast'
 import { useTransformLayer } from './TransformGizmo'
 import { MenuRows, type PointerMenuRow } from './PointerMenu'
+import { NO_PICTURE, gpuShown, selectionGestures } from './selection'
 
 type Pending = {
   orbit: [number, number]
@@ -92,7 +93,8 @@ export function SceneViewport({
   const modal = modalTransform
   modal.hooks = {
     run: async (command, params, refresh) => {
-      const result = await latest.current.editor.session.run(command, params, null, { refresh })
+      // While the GPU viewport shows the picture, a transform's end owes the software one nothing.
+      const result = await latest.current.editor.session.run(command, params, gpuShown.on && refresh === 'all' ? NO_PICTURE : null, { refresh })
       return typeof result === 'string' ? result : null
     },
     invoke: async (name, ...args) => {
@@ -111,7 +113,16 @@ export function SceneViewport({
   // A change of the document may be the end of the transform (the tools confirm and cancel too).
   const { change } = editor.session
   useEffect(() => modal.sync(), [change, modal])
+  // The software picture shows again (the GPU viewport stepped aside): it is drawn for the state
+  // now, which tools' events and selections did not draw while the GPU one showed.
+  const shownBefore = useRef(false)
+  useEffect(() => {
+    if (shownBefore.current && !gpu.active) void canvas.current?.retryRender().catch(() => false)
+    shownBefore.current = gpu.active
+  }, [gpu.active, canvas])
   const wheelCommit = useRef(0)
+  /** Gives the tool back after B's box (set below, where the tools are). */
+  const boxRestore = useRef<(tool: string) => void>(() => undefined)
   // The document that was the viewport's size once: until then, the viewport is not ready.
   const [readyDoc, setReadyDoc] = useState<typeof doc>(null)
   // The document the engine paints in the host's color scheme, both pictures drawn since: until
@@ -456,6 +467,11 @@ export function SceneViewport({
       event.stopPropagation()
       if (!readyRef.current) return
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height() : 1)
+      // C's circle takes the wheel: its size.
+      if (selectionGestures.circle) {
+        selectionGestures.resize(delta)
+        return
+      }
       // The transform takes the wheel when it has a use for it (proportional editing's radius).
       if (transforming()) {
         // A bevel's segments, a loop cut's cuts.
@@ -517,9 +533,65 @@ export function SceneViewport({
     let cancelledMenu = false
     // The press that confirmed an operation: its release is the page's too.
     let swallowed: number | null = null
+    // C's circle painting under way (the pointer it paints with), the lasso's pointer, and an
+    // Alt+left press that is a click unless it moves (edit mode's loop select).
+    let painting: number | null = null
+    let lassoing: number | null = null
+    let altClick: { id: number; x: number; y: number; at: [number, number]; ring: boolean; extend: boolean } | null = null
+    // One circle step in flight, the latest waiting.
+    let circleBusy = false
+    let circleNext: { at: [number, number]; mode: 'extend' | 'subtract' } | null = null
+    const quiet = (command: string, params: Record<string, unknown>) =>
+      latest.current.editor.session.run(command, params, gpuShown.on ? NO_PICTURE : null).catch((error) => {
+        const message = error instanceof Error ? error.message : String(error)
+        if (!/^not-found/.test(message)) latest.current.editor.report('Select', error)
+      })
+    const paintCircle = (at: [number, number], mode: 'extend' | 'subtract') => {
+      circleNext = { at, mode }
+      if (circleBusy) return
+      circleBusy = true
+      void (async () => {
+        while (circleNext) {
+          const step = circleNext
+          circleNext = null
+          const radius = selectionGestures.circle?.radius ?? 25
+          await quiet('select.circle', { position: step.at, radius, mode: step.mode })
+        }
+        circleBusy = false
+      })()
+    }
+    const selecting = () => ['object', 'edit'].includes(latest.current.info?.mode ?? '')
     const down = (event: PointerEvent) => {
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       modal.pointer = documentPoint(event)
+      // C's circle: the left button adds, Shift or the middle button takes out, the right ends it.
+      if (selectionGestures.circle && !transforming()) {
+        event.preventDefault()
+        event.stopPropagation()
+        if (event.button === 2) {
+          cancelledMenu = true
+          selectionGestures.endCircle()
+          return
+        }
+        const mode = event.button === 1 || event.shiftKey ? 'subtract' : 'extend'
+        painting = event.pointerId
+        selectionGestures.circle = { ...selectionGestures.circle, at: documentPoint(event), painting: mode }
+        selectionGestures.emit()
+        element.setPointerCapture(event.pointerId)
+        paintCircle(documentPoint(event), mode)
+        return
+      }
+      // Ctrl/Cmd with the right button draws a lasso (Shift takes out).
+      if (event.button === 2 && (event.ctrlKey || event.metaKey) && !transforming() && selecting()) {
+        event.preventDefault()
+        event.stopPropagation()
+        cancelledMenu = true
+        lassoing = event.pointerId
+        selectionGestures.lasso = { points: [documentPoint(event)], subtract: event.shiftKey }
+        selectionGestures.emit()
+        element.setPointerCapture(event.pointerId)
+        return
+      }
       if (event.button === 2 && event.shiftKey && !transforming()) {
         event.preventDefault()
         event.stopPropagation()
@@ -572,12 +644,39 @@ export function SceneViewport({
       event.preventDefault()
       event.stopPropagation()
       nav.current.finish()
+      // In edit mode an Alt+left click (no drag) selects a loop: Ctrl too a ring, Shift adds.
+      altClick = event.button === 0 && latest.current.info?.mode === 'edit' && !transforming()
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY, at: documentPoint(event), ring: event.ctrlKey || event.metaKey, extend: event.shiftKey }
+        : null
       // Shift pans, Ctrl/Cmd zooms (up: out, down: in), otherwise it orbits.
       drag = { x: event.clientX, y: event.clientY, mode: event.shiftKey ? 'pan' : event.ctrlKey || event.metaKey ? 'zoom' : 'orbit', id: event.pointerId }
       element.setPointerCapture(event.pointerId)
       element.dataset.navigating = drag.mode
     }
     const move = (event: PointerEvent) => {
+      if (lassoing === event.pointerId && selectionGestures.lasso) {
+        event.stopPropagation()
+        const at = documentPoint(event)
+        const points = selectionGestures.lasso.points
+        const last = points[points.length - 1]
+        if (!last || Math.hypot(at[0] - last[0], at[1] - last[1]) >= 2) {
+          if (points.length < 4096) points.push(at)
+          selectionGestures.emit()
+        }
+        return
+      }
+      if (selectionGestures.circle && !transforming() && !drag) {
+        const at = documentPoint(event)
+        modal.pointer = at
+        selectionGestures.circle = { ...selectionGestures.circle, at }
+        selectionGestures.emit()
+        if (painting === event.pointerId && selectionGestures.circle.painting) {
+          event.stopPropagation()
+          paintCircle(at, selectionGestures.circle.painting)
+        }
+        return
+      }
+      if (altClick && altClick.id === event.pointerId && Math.hypot(event.clientX - altClick.x, event.clientY - altClick.y) > 4) altClick = null
       if (!drag && unready(event)) return
       if (cursorDrag === event.pointerId) {
         event.stopPropagation()
@@ -616,6 +715,37 @@ export function SceneViewport({
       nav.current.drag(drag.mode === 'orbit' && event.shiftKey ? 'pan' : drag.mode, dx, dy)
     }
     const up = (event: PointerEvent) => {
+      if (lassoing === event.pointerId) {
+        lassoing = null
+        event.stopPropagation()
+        if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+        const lasso = selectionGestures.lasso
+        selectionGestures.lasso = null
+        selectionGestures.emit()
+        if (lasso && lasso.points.length >= 3) void quiet('select.lasso', { points: lasso.points, mode: lasso.subtract ? 'subtract' : 'extend' })
+        return
+      }
+      if (painting === event.pointerId) {
+        painting = null
+        event.stopPropagation()
+        if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+        if (selectionGestures.circle) {
+          selectionGestures.circle = { ...selectionGestures.circle, painting: null }
+          selectionGestures.emit()
+        }
+        return
+      }
+      if (altClick && altClick.id === event.pointerId) {
+        const click = altClick
+        altClick = null
+        void quiet(click.ring ? 'select.ring' : 'select.loop', { position: click.at, extend: click.extend })
+      }
+      // B's box is done: the tool it stood in for comes back.
+      if (event.button === 0 && selectionGestures.boxOnce && !drag) {
+        const { restore } = selectionGestures.boxOnce
+        selectionGestures.boxOnce = null
+        if (restore) window.setTimeout(() => boxRestore.current(restore), 0)
+      }
       if (cursorDrag === event.pointerId) {
         cursorDrag = null
         event.stopPropagation()
@@ -746,6 +876,7 @@ export function SceneViewport({
   }
   const modalActive = useModalActive()
   const { phrase: p, enabled } = editor
+  boxRestore.current = (tool) => tools?.select(tool)
   const shownMenu = menu && contextMenu ? contextMenu() : null
   return (
     <div

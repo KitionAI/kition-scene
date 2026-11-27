@@ -100,20 +100,9 @@ fn id_maps(doc: &SceneDocument) -> (BTreeMap<Id, String>, BTreeMap<String, Id>) 
 fn scene_point(doc: &SceneDocument, x: f32, y: f32) -> Option<Vec3> {
     let projector = doc.session.editor.view.projector(&doc.scene, doc.session.width, doc.session.height);
     let (origin, direction) = projector.ray(x, y);
-    let forward = (kition_scene_model::glam::Mat3::from_mat4(projector.view.inverse()) * Vec3::NEG_Z).normalize_or_zero();
-    let depth = doc.with_frame(|cached| {
-        let (px, py) = (x.floor(), y.floor());
-        if px < 0.0 || py < 0.0 || px >= cached.width as f32 || py >= cached.height as f32 {
-            return None;
-        }
-        cached.canvas.depth.get(py as usize * cached.width as usize + px as usize).copied().filter(|depth| depth.is_finite())
-    });
-    if let Some(depth) = depth {
-        let along = direction.dot(forward);
-        if along.abs() > 1e-6 {
-            let start = -(projector.view.transform_point3(origin)).z;
-            return Some(origin + direction * ((depth - start) / along));
-        }
+    // The surface under the pixel, found with a ray (no software picture is drawn for it).
+    if let Some(hit) = doc.pick_rays().at(&projector, x, y) {
+        return Some(hit.point);
     }
     (direction.z.abs() > 1e-6).then(|| -origin.z / direction.z).filter(|t| *t > 0.0).map(|t| origin + direction * t)
 }

@@ -1,11 +1,12 @@
 import { Checkbox, Choice, IconButton, MenuButton, Popover, PopoverContent, PopoverTrigger, useKitEditor, type IconComponent } from '@kition/sdk/editor'
-import { CircleDashedIcon, CircleIcon, GlobeIcon, LayersIcon, SunIcon } from '@kition/tessera/icons/react'
+import { BlendIcon, CircleDashedIcon, CircleIcon, GlobeIcon, LayersIcon, SunIcon } from '@kition/tessera/icons/react'
 import { MenuRows } from './PointerMenu'
 import { buildRows, headerMenus, MODE_LABELS, modesFor, type MenuContext, type SceneMode } from './menus'
 import { OrientationControl, PivotControl, SnapControl } from './TransformControls'
 import { TRANSFORM_MODES } from './gesture'
 import { focusEditor } from './NumberBox'
 import type { SceneInfo } from './scene'
+import { NO_PICTURE, gpuShown } from './selection'
 
 /** Edit mode's select-mode icons, drawn here: a square's corners, one bold side, the square filled. */
 function selectIcon(kind: 'vertex' | 'edge' | 'face'): IconComponent {
@@ -95,7 +96,16 @@ export function ViewportHeader({ info, context, onMode, readOnly }: { info: Scen
             <SnapControl info={info} />
           </>
         ) : null}
-        {/* Phase 6 puts the X-ray toggle here, before the overlays. */}
+        <IconButton
+          icon={BlendIcon}
+          label={t('xray')}
+          pressed={info.xray}
+          onClick={() => {
+            void editor.session.run('view.toggleXray', {}, gpuShown.on ? NO_PICTURE : null)
+            focusEditor()
+          }}
+          data-testid="scene-xray"
+        />
         <Popover>
           <PopoverTrigger asChild>
             <button type="button" className="kui-icon-button scene-header-icon" aria-label={t('overlays')} title={t('overlays')} data-testid="scene-overlays">

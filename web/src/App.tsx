@@ -44,6 +44,7 @@ import { UvEditor } from './UvEditor'
 import { useSceneViewState, type SceneViewState } from './viewState'
 import { TRANSFORM_MODES, toolGesture } from './gesture'
 import { modalTransform, type ModalKind, type ModalOperation } from './modal'
+import { NO_PICTURE, gpuShown, selectionGestures } from './selection'
 import { PointerMenu, pointerPoint, type PointerMenuRow, type PointerMenuState } from './PointerMenu'
 import { toggleAdjustLast } from './AdjustLast'
 import { ModalKeys, useModalActive } from './ModalUi'
@@ -444,6 +445,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       return
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    if (!typing && selectKey(event)) return
     if (!typing && navigationKey(event)) return
     if (!typing && transformKey(event)) return
     if (!typing && startKey(event)) return
@@ -590,6 +592,105 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     }
     if (event.shiftKey && event.code === 'KeyC') {
       void run('cursor.reset', {}).then(() => viewNavigator.hooks?.command('view.frameAll', true))
+      return take()
+    }
+    return false
+  }
+
+  /** When A was last pressed: a second A soon after deselects everything (Blender's double A). */
+  const lastA = useRef(0)
+  /**
+   * A selection command, which owes the software picture nothing while the GPU viewport shows
+   * (it is drawn when something asks for it).
+   */
+  const runSelect = (id: string, params: Record<string, unknown> = {}) =>
+    editor.session.run(id, params, gpuShown.on ? NO_PICTURE : null).catch((error) => editor.report(phrase('Select'), error))
+  /** The viewport's last pointer position (document pixels), for keys that act under it. */
+  const pointerNow = () => modalTransform.pointer
+  /** B: the next drag is a box whatever the tool, and the tool comes back after it. */
+  const boxOnce = () => {
+    const now = tools.active
+    selectionGestures.boxOnce = { restore: now !== 'select' ? now : null }
+    if (now !== 'select') tools.select('select')
+  }
+  /** C: paint the selection with a circle until the right button, Escape or Enter. */
+  const circleOnce = () => {
+    selectionGestures.startCircle(window.devicePixelRatio || 1)
+    const at = pointerNow()
+    if (at && selectionGestures.circle) {
+      selectionGestures.circle = { ...selectionGestures.circle, at }
+      selectionGestures.emit()
+    }
+  }
+  /** Shift+H: hides every visible object that is not selected (one Hide step). */
+  const hideUnselected = () => {
+    const shown = latest.current.editor.session.state
+    if (!shown || shown.mode !== 'object') return
+    const others = shown.objects.filter((object) => !object.hidden && !shown.selected.includes(object.id)).map((object) => object.id)
+    if (others.length) void editor.run('object.hide', { objects: others })
+  }
+  /**
+   * The selection's keys in object and edit mode: A (twice quickly: none), Ctrl/Cmd+I inverts,
+   * B a box, C a circle, Alt+Z X-ray, Shift+H hides the unselected; edit mode's L the part under
+   * the pointer (Shift+L takes it out), Ctrl/Cmd+L the parts the selection touches, Ctrl/Cmd+keypad
+   * + and − more and less. Escape and Enter end the circle. Answers whether the key was taken.
+   */
+  const selectKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'repeat' | 'preventDefault' | 'stopPropagation' | 'target'>) => {
+    const take = () => {
+      event.preventDefault()
+      event.stopPropagation()
+      return true
+    }
+    if (selectionGestures.circle && (event.key === 'Escape' || event.key === 'Enter')) {
+      selectionGestures.endCircle()
+      return take()
+    }
+    const mode = state?.mode
+    if (!state || (mode !== 'object' && mode !== 'edit')) return false
+    if (event.target instanceof Element && event.target.closest('.scene-nodes')) return false
+    const command = event.metaKey || event.ctrlKey
+    const plainKey = !command && !event.altKey && !event.shiftKey
+    if (event.code === 'KeyZ' && event.altKey && !command && !event.shiftKey) {
+      void runSelect('view.toggleXray')
+      return take()
+    }
+    if (event.code === 'KeyI' && command && !event.altKey && !event.shiftKey) {
+      void runSelect('edit.selectAll', { action: 'invert' })
+      return take()
+    }
+    if (event.code === 'KeyA' && plainKey) {
+      if (event.repeat) return take()
+      const now = performance.now()
+      const twice = now - lastA.current < 400
+      lastA.current = twice ? 0 : now
+      void runSelect('edit.selectAll', { action: twice ? 'deselect' : 'select' })
+      return take()
+    }
+    if (event.code === 'KeyB' && plainKey) {
+      boxOnce()
+      return take()
+    }
+    if (event.code === 'KeyC' && plainKey) {
+      circleOnce()
+      return take()
+    }
+    if (event.code === 'KeyH' && event.shiftKey && !command && !event.altKey && mode === 'object' && !host.readOnly) {
+      hideUnselected()
+      return take()
+    }
+    if (mode !== 'edit') return false
+    if (event.code === 'KeyL' && !event.altKey) {
+      if (command && !event.shiftKey) {
+        void runSelect('select.linked')
+        return take()
+      }
+      if (command) return false
+      const at = pointerNow()
+      if (at) void runSelect('select.linked', { position: at, ...(event.shiftKey ? { deselect: true } : {}) })
+      return take()
+    }
+    if (command && !event.altKey && (event.code === 'NumpadAdd' || event.code === 'NumpadSubtract')) {
+      void runSelect(event.code === 'NumpadAdd' ? 'select.more' : 'select.less')
       return take()
     }
     return false
@@ -745,6 +846,9 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     cursorOrigin: () => void editor.run('cursor.reset', {}),
     cursorSelected: () => void editor.run('cursor.moveToSelected', {}),
     cursorActive: () => void editor.run('cursor.moveToActive', {}),
+    selectBox: () => boxOnce(),
+    selectCircle: () => circleOnce(),
+    hideUnselected: () => hideUnselected(),
     selectionToCursor: () => {
       const shown = latest.current.editor.session.state
       const toCursor = shown ? selectionToCursor(shown) : null

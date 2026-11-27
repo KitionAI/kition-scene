@@ -136,6 +136,40 @@ const SELECT_MENU: MenuSpec[] = [
   { command: 'edit.selectAll', label: 'Invert', params: { action: 'invert' }, shortcut: 'Ctrl+I', id: 'select-invert' },
 ]
 
+/** The region selects of object and edit mode (B, C; the lasso is Ctrl+right drag). */
+const REGION_ROWS: MenuSpec[] = [
+  { action: 'selectBox', label: 'Box Select', shortcut: 'B' },
+  { action: 'selectCircle', label: 'Circle Select', shortcut: 'C' },
+]
+
+/** Object mode's Select menu. */
+const OBJECT_SELECT_MENU: MenuSpec[] = [...SELECT_MENU, '|', ...REGION_ROWS]
+
+/** Edit mode's Select menu: with more and less, linked parts and loops. */
+const EDIT_SELECT_MENU: MenuSpec[] = [
+  ...SELECT_MENU,
+  '|',
+  ...REGION_ROWS,
+  '|',
+  {
+    submenu: 'moreLess',
+    label: 'Select More/Less',
+    items: [
+      { command: 'select.more', label: 'More', shortcut: 'Ctrl+Numpad +' },
+      { command: 'select.less', label: 'Less', shortcut: 'Ctrl+Numpad −' },
+    ],
+  },
+  { submenu: 'linked', label: 'Select Linked', items: [{ command: 'select.linked', label: 'Linked', shortcut: 'Ctrl+L' }] },
+  {
+    submenu: 'loops',
+    label: 'Select Loops',
+    items: [
+      { command: 'select.loop', label: 'Edge Loops', shortcut: 'Alt+Click' },
+      { command: 'select.ring', label: 'Edge Rings', shortcut: 'Ctrl+Alt+Click' },
+    ],
+  },
+]
+
 const OBJECT_MENU: MenuSpec[] = [
   { submenu: 'transform', label: 'Transform', items: [{ command: 'object.translate', label: 'Move', shortcut: 'G' }, { command: 'object.rotate', label: 'Rotate', shortcut: 'R' }, { command: 'object.scale', label: 'Scale', shortcut: 'S' }] },
   { submenu: 'origin', label: 'Set Origin', items: [{ command: 'object.originToGeometry' }] },
@@ -171,7 +205,15 @@ const OBJECT_MENU: MenuSpec[] = [
   '|',
   { submenu: 'convert', label: 'Convert', items: [{ command: 'object.convertToMesh', label: 'Mesh' }] },
   '|',
-  { submenu: 'showHide', label: 'Show/Hide', items: [{ command: 'object.reveal', shortcut: 'Alt+H' }, { command: 'object.hide', label: 'Hide Selected', shortcut: 'H' }] },
+  {
+    submenu: 'showHide',
+    label: 'Show/Hide',
+    items: [
+      { command: 'object.reveal', shortcut: 'Alt+H' },
+      { command: 'object.hide', label: 'Hide Selected', shortcut: 'H' },
+      { action: 'hideUnselected', label: 'Hide Unselected', shortcut: 'Shift+H' },
+    ],
+  },
   '|',
   { action: 'rename', label: 'Rename Active Object', shortcut: 'F2' },
   { command: 'edit.delete', shortcut: 'X' },
@@ -287,7 +329,7 @@ export type HeaderMenu = { name: string; label: string; items: MenuSpec[] }
 /** The header's menus in `mode`, in Blender's order, those the engine has rows for. */
 export function headerMenus(mode: SceneMode): HeaderMenu[] {
   const view: HeaderMenu = { name: 'View', label: 'View', items: VIEW_MENU }
-  const select: HeaderMenu = { name: 'Select', label: 'Select', items: SELECT_MENU }
+  const select: HeaderMenu = { name: 'Select', label: 'Select', items: mode === 'edit' ? EDIT_SELECT_MENU : mode === 'object' ? OBJECT_SELECT_MENU : SELECT_MENU }
   const add: HeaderMenu = { name: 'Add', label: 'Add', items: ADD_MENU }
   switch (mode) {
     case 'edit':

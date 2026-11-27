@@ -527,14 +527,30 @@ try {
 
   // 20. A left drag boxes (drawn over the picture); Shift adds, Ctrl/Cmd takes out; B boxes once.
   await reset()
-  // G, R and S above also picked the Move, Rotate and Scale tools (web/tests/basics.mjs asserts
-  // it), so the select tool is picked again first: W.
-  await page.mouse.move(centre[0], centre[1])
-  if ((await details()).tool.id !== 'select') {
-    note(20, `G, R and S leave their tool picked (${(await details()).tool.id} now): a drag on empty space moves the selection until W picks the select tool again`)
-    await page.keyboard.press('KeyW')
-    await until(async () => (await details()).tool.id === 'select', 'W picks the select tool')
-  }
+  // G, R and S above ran from the keyboard: when each ended, the tool from before came back.
+  assert.equal((await details()).tool.id, 'select', 'Select Box is still the tool after G, R and S')
+  // G, the pointer, a click: the Move tool the key picked gives way to Select Box again, so a
+  // drag on empty space boxes instead of moving the cube.
+  await begin('KeyG', start)
+  await until(async () => (await details()).tool.id === 'move', 'G picks the move tool while it runs')
+  await glide([start[0] + 80, start[1] + 20])
+  await page.mouse.click(start[0] + 80, start[1] + 20)
+  await until(async () => (await undo()) === 'Move', 'a click confirms the move')
+  await until(async () => (await details()).tool.id === 'select', async () => `the tool from before comes back (${(await details()).tool.id})`)
+  const movedTo = (await named('Cube')).location
+  // Adjust Last Operation covers the bottom-left corner now: empty space higher up.
+  const blank = [box.x + box.width * 0.2, box.y + box.height * 0.3]
+  await page.mouse.click(blank[0], blank[1])
+  await until(async () => (await state()).selected.length === 0, async () => `a click on nothing deselects (${JSON.stringify(await selectedNames())}, tool ${(await details()).tool.id})`)
+  const there = await project(movedTo)
+  await page.mouse.move(there[0] - 120, there[1] - 120)
+  await page.mouse.down()
+  await page.mouse.move(there[0], there[1], { steps: 3 })
+  await page.mouse.move(there[0] + 120, there[1] + 120, { steps: 3 })
+  await page.mouse.up()
+  await until(async () => (await selectedNames()).join() === 'Cube', 'the drag on empty space boxes the cube')
+  assert.deepEqual((await named('Cube')).location, movedTo, 'and moves nothing')
+  await reset()
   await page.mouse.click(empty[0], empty[1])
   await until(async () => (await state()).selected.length === 0, 'nothing selected')
   at = await project([0, 0, 0])
@@ -743,6 +759,17 @@ try {
     const end = onPage(handles[name])
     return [middle[0] + (end[0] - middle[0]) * 0.75, middle[1] + (end[1] - middle[1]) * 0.75]
   }
+  /** The gizmo once it is drawn at the cube put back at the origin (its handles follow a frame later). */
+  const gizmoBack = async () => {
+    await until(async () => nearAll((await state()).transform.gizmo?.centre ?? [9, 9, 9], [0, 0, 0]), 'the gizmo is at the cube again')
+    let last = JSON.stringify((await gizmo())?.handles)
+    for (let same = 0, tries = 0; same < 3 && tries < 40; tries += 1) {
+      await page.waitForTimeout(100)
+      const now = JSON.stringify((await gizmo())?.handles)
+      same = now === last ? same + 1 : 0
+      last = now
+    }
+  }
   const handleDrag = async (from, by, modifier) => {
     await page.mouse.move(from[0], from[1])
     if (modifier) await page.keyboard.down(modifier)
@@ -763,11 +790,13 @@ try {
   let moved = (await named('Cube')).location
   assert.ok(Math.abs(moved[0]) > 0.2 && moved[1] === 0 && moved[2] === 0, `the X arrow keeps to X (${moved})`)
   await reset()
+  await gizmoBack()
   await handleDrag(onPage((await gizmo()).handles['move-plane-z']), [40, 30])
   await until(async () => (await undo()) === 'Move', 'the square drag is a Move step')
   moved = (await named('Cube')).location
   assert.ok(moved[2] === 0 && Math.abs(moved[0]) + Math.abs(moved[1]) > 0.2, `the XY square keeps z (${moved})`)
   await reset()
+  await gizmoBack()
   await handleDrag(await shaft('move-x'), [160, 0], mod)
   await until(async () => (await undo()) === 'Move', 'the stepped drag is a Move step')
   moved = (await named('Cube')).location

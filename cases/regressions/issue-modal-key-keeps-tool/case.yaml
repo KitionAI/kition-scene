@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-modal-key-keeps-tool
+feature: scene.editor.modal-transform
+intent: >-
+  G, R and S from the keyboard (and Shift+D) pick their tool only while the transform they start
+  runs: when it ends (a click, Enter, the right button, Escape), the tool that was active before
+  the key comes back, so after G, a move and a click, a drag on empty space box-selects again as
+  in Blender. A press handed to the tool (G, then a drag before anything changed) keeps the tool
+  the key picked. Before, the Move, Rotate or Scale tool stayed picked and the next drag on empty
+  space moved the selection (item 20 of the first ten minutes' checklist).
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/acceptance.md, item 20 (plan scene-usable-by-hand, phase 9)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 420

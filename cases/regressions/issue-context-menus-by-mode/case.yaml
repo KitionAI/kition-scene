@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-context-menus-by-mode
+feature: scene.editor.interface
+intent: >-
+  The right button's menu follows the mode: object mode's Object menu with something selected,
+  the empty space's menu (Add, Select All, Frame All) with nothing selected, edit mode's Vertex,
+  Edge or Face menu by the select mode; menus that asked for a kind in a form of raw parameters
+  (Add Modifier) offer the kinds as a submenu. Before, one fixed menu of eleven rows showed in
+  every mode.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, B14, N21 (plan scene-usable-by-hand, phase 7)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/chrome.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/chrome.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

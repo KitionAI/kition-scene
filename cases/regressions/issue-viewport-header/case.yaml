@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-viewport-header
+feature: scene.editor.interface
+intent: >-
+  The viewport has a header along its top edge: the mode drop-down (the modes the active object
+  can be in; Ctrl+Tab lists them at the pointer), edit mode's vertex / edge / face buttons, the
+  mode's menus (object mode: View, Select, Add, Object; edit mode: View, Select, Mesh, Vertex, Edge,
+  Face, UV), and on the right the orientation, pivot point, snapping, overlays and four shading
+  buttons; the frame's menu bar hides the menus the mode has no use for (Mesh in object mode,
+  Object in edit mode). Before, there was no header, the modes were check boxes in the status bar
+  and every menu showed in every mode, mostly greyed out.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A2, A3 (plan scene-usable-by-hand, phase 7)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/chrome.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/chrome.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

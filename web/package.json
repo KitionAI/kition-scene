@@ -17,6 +17,7 @@
     "test:editops": "node tests/editops.mjs chromium && node tests/editops.mjs webkit",
     "test:navigate": "node tests/navigate.mjs chromium && node tests/navigate.mjs webkit",
     "test:gizmo": "node tests/gizmo.mjs chromium && node tests/gizmo.mjs webkit",
+    "test:chrome": "node tests/chrome.mjs chromium && node tests/chrome.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },
   "dependencies": {

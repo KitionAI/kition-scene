@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-shift-a-menu
+feature: scene.editor.interface
+intent: >-
+  Shift+A opens the Add menu at the pointer (Mesh, Curve and Light submenus, Text, Armature,
+  Lattice, Empty, Camera); a cylinder chosen there lands at the 3D cursor and shows in Adjust Last
+  Operation. F3 opens a search over the commands the mode can run (name, menu path, key) and
+  Enter runs the lit one; Z opens the shading pie, chosen by a click or by holding Z toward an item
+  and letting go; T and N show and hide the toolbar and the side panel. Before, these keys did
+  nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N9 (plan scene-usable-by-hand, phase 7)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/chrome.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/chrome.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

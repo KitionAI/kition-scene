@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-outliner-drag-parent
+feature: scene.editor.interface
+intent: >-
+  A row of the outliner dragged onto another row parents its object to that one (one Parent step),
+  dragged to the empty space below the rows clears the parent; the outliner's right button opens
+  Rename, Duplicate, Delete, Hide, Select Hierarchy; Set Parent To (Object menu, Ctrl+P) parents
+  the selection to the active object and Link Materials (Ctrl/Cmd+L) gives the active object's
+  material to the other selected ones; the side panel's Item section shows the dimensions (and in
+  edit mode the selection's median), which change the scale (and move the selection). Before, a
+  drag did nothing and there was no outliner menu.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N13, N21, N22 (plan scene-usable-by-hand, phase 7)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/chrome.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/chrome.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

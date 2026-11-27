@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-pause-frame-in-flight
+feature: scene.editor.fields-animation
+intent: >-
+  A tap of Space that pauses playback leaves the scene at the frame the timeline showed when it
+  was tapped, also on a scene heavy enough that a frame takes a while to show. Before, the frame
+  asked for just before the pause landed afterwards and moved the pause on: by eleven frames on
+  the CI runner's default scene, by about thirty on a 380,000-vertex scene on a fast machine. The
+  timeline marks itself while a frame is on its way (data-seeking), which the tests wait for.
+layer: gate
+source:
+  kind: probe
+  from: kit CI run 45947637488, test:fields (paused, the frame stays: 24 !== 13) (plan scene-usable-by-hand, phase 9)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, webkit] }
+  - exec: { cmd: [node, web/tests/fields.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/fields.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 600

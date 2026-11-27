@@ -898,11 +898,20 @@ try {
   await page.keyboard.press('Alt+KeyH')
   await until(async () => (await named('Cube')).hidden !== true, 'Alt+H shows it')
   await shot('30-outliner')
-  // Ctrl+P: the light parented to the cube (Control+P on a Mac: Cmd+P is the host's).
+  // Set Parent To: the light parented to the cube. Ctrl+P is the editor's on a Mac only (as
+  // Control+P: Cmd+P is the host's); elsewhere Ctrl+P is that same reserved key, and the Object
+  // menu's Parent row opens the same menu.
   await run([{ command: 'select.objects', params: { objects: ['Light'] } }, { command: 'select.objects', params: { objects: ['Cube'], extend: true } }])
   await until(async () => (await state()).active === (await named('Cube')).id && (await state()).selected.length === 2, 'the light and the cube, the cube active')
   await page.mouse.move(centre[0], centre[1])
-  await page.keyboard.press('Control+KeyP')
+  const editorOnMac = await frame.evaluate(() => /Mac|iPhone|iPad/i.test(navigator.platform))
+  if (editorOnMac) await page.keyboard.press('Control+KeyP')
+  else {
+    note(30, 'not a Mac: Ctrl+P is the host\'s, so Set Parent To comes from Object ▸ Parent')
+    await kit.getByTestId('scene-header-menu-Object').click()
+    await kit.getByTestId('scene-header-parent').hover()
+    await kit.getByTestId('scene-header-parentMenu').click()
+  }
   await kit.getByTestId('scene-parent-menu').waitFor()
   await kit.getByTestId('scene-popup-parent-object').click()
   await until(async () => (await named('Light')).parent === (await named('Cube')).id, 'Ctrl+P ▸ Object parents the light')
@@ -929,6 +938,42 @@ try {
   await until(async () => (await play.getAttribute('data-playing')) == null, 'and pauses')
   await run([{ command: 'animation.clear', params: {} }, { command: 'frame.set', params: { frame: 1 } }])
   await until(async () => !(await named('Cube')).animated?.length, 'keys cleared')
+  // A pause stays at the frame shown when Space was tapped, also when the scene is heavy enough
+  // that a frame takes a while to show: the frame on its way then does not move it on.
+  await run([
+    ...[0, 1, 2, 3].flatMap((index) => [
+      { command: 'object.addUvSphere', params: { name: `Heavy${index}`, location: [index * 2.5 - 4, 6, 1] } },
+      { command: 'modifier.add', params: { type: 'subdivision', levels: 3 } },
+    ]),
+    { command: 'select.objects', params: { objects: ['Cube'] } },
+  ])
+  await until(async () => (await named('Heavy3')) != null, 'a heavy scene')
+  await page.mouse.move(centre[0], centre[1])
+  await focusEditor()
+  await frame.evaluate(() => {
+    // The frame the timeline shows at the moment the button says paused.
+    const button = document.querySelector('[data-testid="scene-timeline-play"]')
+    window.__pausedAt = null
+    new MutationObserver((changes, observer) => {
+      if (button.getAttribute('data-playing') != null) return
+      window.__pausedAt = Number(document.querySelector('[data-testid="scene-timeline-frame"] input')?.value)
+      observer.disconnect()
+    }).observe(button, { attributes: true, attributeFilter: ['data-playing'] })
+  })
+  await page.keyboard.press('Space')
+  await until(async () => (await play.getAttribute('data-playing')) === 'true', 'a tap plays the heavy scene')
+  await until(async () => (await details()).animation.frame > 8, 'it plays on')
+  await page.keyboard.press('Space')
+  await until(async () => (await frame.evaluate(() => window.__pausedAt)) != null, 'a second tap pauses')
+  const pausedAt = await frame.evaluate(() => window.__pausedAt)
+  // Once no frame is on its way any more (the timeline says so), the frame is where the pause left it.
+  const seeking = () => kit.getByTestId('scene-timeline').getAttribute('data-seeking')
+  await until(async () => (await seeking()) == null, 'no frame on its way', 30000)
+  const settled = (await details()).animation.frame
+  assert.equal(settled, pausedAt, `the pause stays at the frame shown when Space was tapped (${pausedAt}), not one on its way (${settled})`)
+  assert.equal(await play.getAttribute('data-playing'), null, 'and it is paused')
+  await run([{ command: 'frame.set', params: { frame: 1 } }, { command: 'select.objects', params: { objects: ['Heavy0', 'Heavy1', 'Heavy2', 'Heavy3'] } }, { command: 'edit.delete', params: {} }])
+  await until(async () => (await named('Heavy0')) == null, 'the heavy spheres are gone')
   note(30, 'no collections, so no M (Move to Collection); Ctrl+P is Control+P on a Mac only (Cmd+P is the host\'s)')
   item(30, 'the outliner, H / Alt+H, Ctrl+P, Ctrl/Cmd+J, Space, I')
 

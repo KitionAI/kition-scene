@@ -114,6 +114,8 @@ export type NumberBoxProps = {
   onReset?: () => void
   /** Keys the property the field shows at the current frame; none when it is not animatable. */
   onInsertKey?: () => void
+  /** What its right-click menu is titled (`Location X`); the label by default. */
+  title?: string
 }
 
 /**
@@ -128,7 +130,7 @@ export type NumberBoxProps = {
  * copy and paste (`fieldKey`); the right button opens Copy, Paste, Reset to Default and Insert
  * Keyframe.
  */
-export function NumberBox({ label, value, min, max, step, precision, unit, disabled, testId, grip, onChange, onCancel, onReset, onInsertKey }: NumberBoxProps) {
+export function NumberBox({ label, value, min, max, step, precision, unit, disabled, testId, grip, onChange, onCancel, onReset, onInsertKey, title }: NumberBoxProps) {
   const digits = precision ?? decimalsOf(step)
   const format = (number: number) => {
     const fixed = number.toFixed(digits)
@@ -177,7 +179,7 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
 
   const actions = useRef<FieldActions | null>(null)
   actions.current = {
-    label,
+    label: title ?? label,
     copy: () => {
       const shown = latest.current.format(latest.current.value)
       copied = shown

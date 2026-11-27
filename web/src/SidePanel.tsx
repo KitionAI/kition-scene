@@ -74,7 +74,7 @@ export function Row({ label, children }: { label: string; children: ReactNode })
  * hears the draft while the label is dragged (null when the drag ends without a value). `precision`
  * keeps typed values to that many digits, whatever the step (which drags and the arrow keys use).
  */
-export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max = 1e6, step = 0.01, precision, unit, testId, track, defaultValue, onReset, onInsertKey }: { label: string; value: number; onCommit: (value: number) => void; onPreview?: (value: number | null) => void; min?: number; max?: number; step?: number; precision?: number; unit?: string; testId?: string; track?: boolean; defaultValue?: number | null; onReset?: () => void; onInsertKey?: () => void }) {
+export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max = 1e6, step = 0.01, precision, unit, testId, track, defaultValue, onReset, onInsertKey, title }: { label: string; title?: string; value: number; onCommit: (value: number) => void; onPreview?: (value: number | null) => void; min?: number; max?: number; step?: number; precision?: number; unit?: string; testId?: string; track?: boolean; defaultValue?: number | null; onReset?: () => void; onInsertKey?: () => void }) {
   const readOnly = useReadOnly()
   const rowLabel = useContext(RowLabel)
   const [draft, setDraft] = useState<number | null>(null)
@@ -121,6 +121,7 @@ export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max
       onCancel={cancel}
       onReset={onReset ?? (defaultValue != null ? () => Math.abs(value - defaultValue) > 1e-9 && onCommit(defaultValue) : undefined)}
       onInsertKey={onInsertKey}
+      title={title ?? (rowLabel && rowLabel !== label ? `${rowLabel} ${label}` : undefined)}
     />
   )
 }

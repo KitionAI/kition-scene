@@ -69,20 +69,6 @@ export function SnapControl({ info }: { info: SceneInfo }) {
   )
 }
 
-/**
- * The orientation, pivot point and snapping controls at the viewport's top left, until the
- * viewport has its own header (the three controls go there as they are).
- */
-export function TransformStrip({ info }: { info: SceneInfo }) {
-  return (
-    <div className="scene-transform-strip" data-testid="scene-transform-strip" onPointerDown={(event) => event.stopPropagation()}>
-      <OrientationControl info={info} />
-      <PivotControl info={info} />
-      <SnapControl info={info} />
-    </div>
-  )
-}
-
 /** The pivot point menu at the pointer (`.`). */
 export function pivotMenuRows(info: SceneInfo, t: Strings, run: (id: string, params: Record<string, unknown>) => Promise<unknown>): PointerMenuRow[] {
   return PIVOT_POINTS.map((pivot) => ({

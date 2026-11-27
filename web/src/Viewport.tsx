@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
-import { ContextMenu, KitDocumentCanvas, MenuItem, MenuSeparator, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { ContextMenu, KitDocumentCanvas, useKitEditor, useKitTools, type KitCanvasHandle, type KitCanvasView, type RasterView } from '@kition/sdk/editor'
 import type { SceneInfo } from './scene'
 import { WeightPaintControls } from './WeightPaint'
 import { SculptControls } from './Sculpt'
@@ -18,7 +18,7 @@ import { modalTransform } from './modal'
 import { ModalHeader, useModalActive } from './ModalUi'
 import { AdjustLast } from './AdjustLast'
 import { useTransformLayer } from './TransformGizmo'
-import { TransformStrip } from './TransformControls'
+import { MenuRows, type PointerMenuRow } from './PointerMenu'
 
 type Pending = {
   orbit: [number, number]
@@ -58,6 +58,8 @@ export function SceneViewport({
   presence,
   t,
   readOnly = false,
+  header,
+  contextMenu,
 }: {
   canvas: RefObject<KitCanvasHandle | null>
   info: SceneInfo | null
@@ -67,6 +69,10 @@ export function SceneViewport({
   t?: (key: string) => string
   /** The document cannot be changed: no gizmo, no transform settings. */
   readOnly?: boolean
+  /** The viewport's header along its top edge. */
+  header?: ReactNode
+  /** The right-click menu now (it follows the selection the click made): a title, a kind and rows. */
+  contextMenu?: () => { title: string; kind: string; rows: PointerMenuRow[] }
 }) {
   const editor = useKitEditor()
   const { doc } = editor.session
@@ -740,7 +746,7 @@ export function SceneViewport({
   }
   const modalActive = useModalActive()
   const { phrase: p, enabled } = editor
-  const command = (id: string, label: string) => <MenuItem key={id} label={p(label)} disabled={!enabled(id)} onSelect={() => void editor.run(id, {})} testId={`scene-context-${id}`} />
+  const shownMenu = menu && contextMenu ? contextMenu() : null
   return (
     <div
       ref={region}
@@ -771,7 +777,7 @@ export function SceneViewport({
           }}
         />
       ) : null}
-      {info && !readOnly && TRANSFORM_MODES.includes(info.mode) ? <TransformStrip info={info} /> : null}
+      {header}
       <ModalHeader />
       {t ? <AdjustLast operation={info?.operation ?? null} hidden={modalActive} t={t} /> : null}
       <RenderedViewport active={info?.shading === 'rendered'} />
@@ -779,22 +785,17 @@ export function SceneViewport({
       {info ? <SculptControls info={info} /> : null}
       {info ? <ParticleEditControls info={info} /> : null}
       {presence ? <PresenceLayer peers={presence.peers} region={region} /> : null}
-      <ContextMenu at={menu} onClose={() => setMenu(null)} label={p('Scene')} testId="scene-context-menu">
-        {command('edit.undo', 'Undo')}
-        {command('edit.redo', 'Redo')}
-        <MenuSeparator />
-        {command('edit.duplicate', 'Duplicate')}
-        {command('edit.delete', 'Delete')}
-        {command('mode.toggle', 'Toggle Edit Mode')}
-        <MenuSeparator />
-        {command('object.shadeSmooth', 'Shade Smooth')}
-        {command('object.shadeSmoothByAngle', 'Shade Smooth by Angle')}
-        {command('object.shadeFlat', 'Shade Flat')}
-        <MenuSeparator />
-        {command('view.frameSelected', 'Frame Selected')}
-        {command('view.frameAll', 'Frame All')}
-        <MenuSeparator />
-        <MenuItem label={p('Render Image')} disabled={!enabled('render.image')} onSelect={onRender} />
+      <ContextMenu at={menu} onClose={() => setMenu(null)} label={shownMenu ? shownMenu.title : p('Scene')} testId="scene-context-menu">
+        {shownMenu ? (
+          <>
+            <div className="scene-pointer-menu-title" role="presentation" data-kind={shownMenu.kind} data-testid="scene-context-title">
+              {shownMenu.title}
+            </div>
+            <MenuRows rows={shownMenu.rows} prefix="scene-context" close={() => setMenu(null)} />
+          </>
+        ) : (
+          <span />
+        )}
       </ContextMenu>
     </div>
   )

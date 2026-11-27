@@ -10,8 +10,9 @@ import {
   EngineToolRail,
   IconButton,
   KitEditorProvider,
-  Segmented,
   commandForShortcut,
+  commandIcon,
+  isMac,
   commandMenuTabs,
   createKitStrings,
   toast,
@@ -49,7 +50,12 @@ import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
 import { focusEditor } from './NumberBox'
 import { viewMenuRows, viewNavigator } from './navigator'
-import { orientationMenuRows, pivotMenuRows, snapMenuRows } from './TransformControls'
+import { orientationMenuRows, pivotMenuRows, selectionToCursor, snapMenuRows } from './TransformControls'
+import { ViewportHeader } from './ViewportHeader'
+import { ADD_MENU, KIND_SUBMENUS, buildRows, contextMenu, frameMenuShown, MODE_LABELS, modeSteps, modesFor, type MenuContext, type SceneMode } from './menus'
+import { PieMenu, type PieState } from './PieMenu'
+import { CommandSearch, searchEntries } from './CommandSearch'
+import { StatusHints } from './StatusHints'
 
 const EXPORT_FORMATS = ['glb', 'gltf', 'obj', 'stl', 'fbx', 'usda', 'usdc', 'usdz', 'png'] as const
 type ExportFormat = (typeof EXPORT_FORMATS)[number]
@@ -107,6 +113,20 @@ const FORM_ROWS: Record<string, Array<{ id: string; label: string; shortcut: str
 }
 const FORM_ROW_IDS = Object.values(FORM_ROWS).flatMap((rows) => rows.map((row) => row.id))
 
+/** Rows of the editor's own menus (the header's, the right button's, the search) that start a modal. */
+const ROW_MODALS: Record<string, ModalKind | ModalOperation> = {
+  ...MENU_MODALS,
+  ...Object.fromEntries(Object.values(FORM_ROWS).flatMap((rows) => rows.flatMap((row) => (row.modal ? [[row.id, row.modal]] : [])))),
+}
+
+/**
+ * Commands that need a kind chosen first: the frame's menus offer a row (at the top of the menu)
+ * that opens the kinds at the pointer instead of the frame's form of raw parameters. Add Modifier
+ * was the Modifier menu's one row: it goes to the Object menu (Blender's Object ▸ Modifiers).
+ */
+const KIND_ROWS: Record<string, string[]> = { Object: ['modifier.add', 'constraint.add', 'animation.setInterpolation'], Curve: ['curve.setHandleType'] }
+const KIND_ROW_IDS = Object.values(KIND_ROWS).flat()
+
 /** The key `modal.key` takes for `event`, or null. */
 function modalKey(event: Pick<KeyboardEvent, 'code'>) {
   const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)
@@ -125,6 +145,18 @@ type NavKey = { code: string; key: string; metaKey: boolean; ctrlKey: boolean; a
 function pick(event: Pick<NavKey, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'target'>) {
   return { code: event.code, key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey, target: event.target }
 }
+
+/** The tools that work on the mesh being edited, off the rail in other modes. */
+const EDIT_TOOLS = ['loopCut', 'knife', 'slide']
+const NO_TOOLS: string[] = []
+
+/** Edit mode's operations on the toolbar, under the tools: a press starts the operation as its key does. */
+const RAIL_OPERATIONS: Array<{ id: string; label: string; shortcut: string; modal: ModalOperation }> = [
+  { id: 'mesh.extrude', label: 'Extrude Region', shortcut: 'E', modal: 'extrude' },
+  { id: 'mesh.inset', label: 'Inset Faces', shortcut: 'I', modal: 'inset' },
+  { id: 'mesh.bevel', label: 'Bevel', shortcut: 'Ctrl+B', modal: 'bevel' },
+  { id: 'mesh.loopCut', label: 'Loop Cut', shortcut: 'Ctrl+R', modal: 'loopCut' },
+]
 
 /** The commands that add an object: the editor puts what they add at the 3D cursor. */
 const addsObject = (id: string) => id.startsWith('object.add')
@@ -256,17 +288,25 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // Export needs the kit's format dialog and the host's destination picker.
   const tabs = useMemo<FrameTab[]>(() => commandMenuTabs(commands, {
     order: MENU_ORDER,
-    exclude: [...HOST_FILE_COMMANDS, 'file.export', ...FORM_ROW_IDS],
+    exclude: [...HOST_FILE_COMMANDS, 'file.export', ...FORM_ROW_IDS, ...KIND_ROW_IDS],
     before: {
       File: [{ label: t('exportTitle'), testId: 'scene-cmd-file.export', onSelect: () => onCommand('file.export') }],
+      Edit: [{ label: `${t('searchTitle')}… (F3)`, testId: 'scene-cmd-search', onSelect: () => latestSearch.current() }],
       ...Object.fromEntries(
-        Object.entries(FORM_ROWS).map(([menu, rows]) => [
+        [...new Set([...Object.keys(FORM_ROWS), ...Object.keys(KIND_ROWS)])].map((menu) => [
           menu,
-          rows.map((row) => ({
-            label: `${phrase(row.label)} (${row.shortcut})`,
-            testId: `scene-cmd-${row.id}`,
-            onSelect: () => (row.modal ? modalTransform.begin(row.modal) : latestRename.current()),
-          })),
+          [
+            ...(FORM_ROWS[menu] ?? []).map((row) => ({
+              label: `${phrase(row.label)} (${row.shortcut})`,
+              testId: `scene-cmd-${row.id}`,
+              onSelect: () => (row.modal ? modalTransform.begin(row.modal) : latestRename.current()),
+            })),
+            ...(KIND_ROWS[menu] ?? []).map((id) => ({
+              label: `${phrase(KIND_SUBMENUS[id].label)}…`,
+              testId: `scene-cmd-${id}`,
+              onSelect: () => latestKinds.current(id),
+            })),
+          ],
         ]),
       ),
     },
@@ -275,6 +315,18 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     primary: SCENE_PRIMARY,
     onCommand,
   }), [commands, onCommand, phrase, t])
+  // The frame's menus the mode has a use for (Blender's header changes with the mode): Mesh in edit
+  // mode, Object in object mode, and so on.
+  const activeType = state?.objects.find((object) => object.id === state.active)?.type ?? null
+  const shownKey = `${state?.mode ?? 'object'}|${activeType}`
+  const latestShown = useRef(state)
+  latestShown.current = state
+  const shownTabs = useMemo(
+    () => tabs.filter((tab) => frameMenuShown(tab.id, latestShown.current)),
+    // The filter reads the mode and the active object's type, which `shownKey` names.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tabs, shownKey],
+  )
 
   // Single keys (X, A, E, Tab, 1, 3, .) the frame binds only with a modifier.
   const plain = useMemo(() => commands.filter((command: KitCommand) => plainShortcut(command.shortcut)), [commands])
@@ -376,8 +428,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }, [])
   // F12 renders (the engine's command answers the picture).
   const frameKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // A menu at the pointer takes the keys (the arrows, Enter, Escape).
-    if (popup) return
+    // A menu at the pointer, the pie and the search take the keys (the arrows, Enter, Escape).
+    if (popup || pie || searching) return
     // A transform under way (or a transform tool's press) takes the keys: Escape cancels it,
     // Enter confirms it, axis letters, digits and the rest go to it, and no shortcut runs.
     if (modalTransform.active || (toolGesture.held && toolGesture.transform)) {
@@ -396,6 +448,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     if (!typing && transformKey(event)) return
     if (!typing && startKey(event)) return
     if (!typing && editKey(event)) return
+    if (!typing && chromeKey(event)) return
     if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !typing) {
       event.preventDefault()
       event.stopPropagation()
@@ -607,6 +660,185 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         return false
     }
   }
+  // ------------------------------------------------------------ the editor's own menus
+
+  const commandMap = useMemo(() => new Map(commands.map((command: KitCommand) => [command.id, command])), [commands])
+  const [railShown, setRailShown] = useState(true)
+  const [panelsShown, setPanelsShown] = useState(true)
+  const [pie, setPie] = useState<PieState | null>(null)
+  const [searching, setSearching] = useState(false)
+  const latestSearch = useRef<() => void>(() => {})
+  latestSearch.current = () => setSearching(true)
+  /** A menu row of the editor's own menus: a modal for the operations sized by the pointer, else the command. */
+  const runMenuCommand = (id: string, params?: Record<string, unknown>) => {
+    const current = latest.current.editor
+    const modal = params ? undefined : ROW_MODALS[id]
+    if (modal) {
+      modalTransform.begin(modal)
+      return
+    }
+    if (id === 'object.rename' && !params) {
+      latestRename.current()
+      return
+    }
+    if (id === 'render.image' && !params) {
+      renderImage()
+      return
+    }
+    const shown = current.session.state
+    const values = addsObject(id) && shown?.mode === 'object' ? { location: shown.transform.cursor, ...params } : (params ?? {})
+    void current.run(id, values).finally(() => focusEditor())
+  }
+  /** The kinds a command needs chosen first, at the pointer (from a frame menu's row). */
+  const latestKinds = useRef<(id: string) => void>(() => {})
+  latestKinds.current = (id) => {
+    const kinds = KIND_SUBMENUS[id]
+    if (kinds) openMenu(phrase(kinds.label), 'scene-kind-menu', buildRows(kinds.items, menuContext))
+  }
+  /** Switches to `to` from the mode the editor is in (through object mode). */
+  const switchMode = (to: SceneMode) => {
+    const from = latest.current.editor.session.state?.mode ?? 'object'
+    void (async () => {
+      for (const [id, params] of modeSteps(from, to)) await latest.current.editor.run(id, params)
+    })().finally(() => focusEditor())
+  }
+  /** Link Materials: the active object's material on every other selected object (one Assign Material step). */
+  const linkMaterials = () => {
+    const shown = latest.current.editor.session.state
+    const active = shown?.objects.find((object) => object.id === shown.active)
+    const others = shown ? shown.selected.filter((id) => id !== shown.active) : []
+    if (!shown || !active || active.material == null || !others.length) {
+      setNote({ text: t(active && active.material == null ? 'noMaterialToLink' : 'selectTwo'), serial: Date.now() })
+      return
+    }
+    void editor.run('material.assign', { material: active.material, objects: others })
+  }
+  /** Ctrl+P's menu (Set Parent To): the active object becomes the parent of the other selected ones. */
+  const parentMenu = () => {
+    const shown = latest.current.editor.session.state
+    if (!shown || shown.mode !== 'object' || shown.selected.filter((id) => id !== shown.active).length === 0 || shown.active == null) {
+      setNote({ text: t('selectTwo'), serial: Date.now() })
+      return
+    }
+    openMenu(t('setParentTo'), 'scene-parent-menu', [
+      { id: 'parent-object', label: t('parentObject'), onSelect: () => void editor.run('object.parent', {}).finally(() => focusEditor()) },
+      { id: 'parent-keep', label: t('parentKeepTransform'), onSelect: () => void editor.run('object.parent', {}).finally(() => focusEditor()) },
+    ])
+  }
+  const runSet = (id: string, params: Record<string, unknown>) => editor.run(id, params)
+  const actions: Record<string, () => void> = {
+    toggleToolbar: () => setRailShown((shown) => !shown),
+    toggleSidebar: () => setPanelsShown((shown) => !shown),
+    adjustLast: () => toggleAdjustLast(),
+    alignCamera: () => viewNavigator.hooks?.alignCamera(),
+    centerCursor: () => void editor.run('cursor.reset', {}).then(() => viewNavigator.hooks?.command('view.frameAll', true)),
+    search: () => setSearching(true),
+    duplicate: () => modalTransform.begin('move', { duplicate: true }),
+    clearLocation: () => void editor.run('object.transform', { location: [0, 0, 0] }),
+    clearRotation: () => void editor.run('object.transform', { rotation: [0, 0, 0] }),
+    clearScale: () => void editor.run('object.transform', { scale: [1, 1, 1] }),
+    parentMenu,
+    linkMaterials,
+    rename: () => latestRename.current(),
+    edgeSlide: () => tools.select('slide'),
+    render: () => renderImage(),
+    cursorOrigin: () => void editor.run('cursor.reset', {}),
+    cursorSelected: () => void editor.run('cursor.moveToSelected', {}),
+    cursorActive: () => void editor.run('cursor.moveToActive', {}),
+    selectionToCursor: () => {
+      const shown = latest.current.editor.session.state
+      const toCursor = shown ? selectionToCursor(shown) : null
+      if (toCursor) void editor.run(toCursor.command, toCursor.params)
+    },
+  }
+  const menuContext: MenuContext = { commands: commandMap, phrase, runCommand: runMenuCommand, action: (name) => actions[name]?.() }
+  const headerContext: MenuContext = { ...menuContext, disabled: (id) => !editor.enabled(id) }
+  /** Shift+A's menu at the pointer: what object mode adds (edit mode adds nothing into a mesh yet). */
+  const openAddMenu = () => {
+    const mode = state?.mode ?? 'object'
+    if (mode === 'object') openMenu(phrase('Add'), 'scene-add-menu', buildRows(ADD_MENU, menuContext))
+    else openMenu(phrase('Add'), 'scene-add-menu', [{ id: 'none', label: t('addNothingHere'), disabled: true, onSelect: () => undefined }])
+  }
+  /** Ctrl+Tab's menu: the modes the active object can be in. */
+  const openModeMenu = () => {
+    if (!state) return
+    openMenu(t('modeChoice'), 'scene-mode-menu', modesFor(state).map((mode) => ({ id: `mode-${mode}`, label: `${state.mode === mode ? '• ' : ''}${t(MODE_LABELS[mode])}`, onSelect: () => switchMode(mode) })))
+  }
+  /** Z's pie: the four shadings round the pointer. */
+  const openShadingPie = (code: string) => {
+    if (!state) return
+    const viewport = document.querySelector('[data-testid="scene-viewport"]')
+    const items: PieState['items'] = [
+      { id: 'wireframe', label: t('wireframe'), side: 'left', active: state.shading === 'wireframe', onSelect: () => void editor.run('view.shading', { mode: 'wireframe' }) },
+      { id: 'solid', label: t('solid'), side: 'right', active: state.shading === 'solid', onSelect: () => void editor.run('view.shading', { mode: 'solid' }) },
+      { id: 'material', label: t('materialPreview'), side: 'bottom', active: state.shading === 'material', onSelect: () => void editor.run('view.shading', { mode: 'material' }) },
+      { id: 'rendered', label: t('rendered'), side: 'top', active: state.shading === 'rendered', onSelect: () => void editor.run('view.shading', { mode: 'rendered' }) },
+    ]
+    setPie({ at: pointerPoint(viewport), title: t('shadingMode'), items, key: code, testId: 'scene-pie' })
+  }
+  /**
+   * The keys of the editor's menus and areas: Shift+A adds, F3 (and Ctrl/Cmd+Shift+P, which a
+   * browser does not take) searches, Z opens the shading pie, Ctrl+Tab the mode menu, T and N show
+   * or hide the toolbar and the side panel, Ctrl+P (the Control key: Cmd+P is Kition's) parents and
+   * Ctrl/Cmd+L links materials. Answers whether the key was taken.
+   */
+  const chromeKey = (event: Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'repeat' | 'preventDefault' | 'stopPropagation'>) => {
+    const take = () => {
+      event.preventDefault()
+      event.stopPropagation()
+      return true
+    }
+    const command = event.metaKey || event.ctrlKey
+    if (event.key === 'F3' && !command && !event.altKey && !event.shiftKey) {
+      setSearching(true)
+      return take()
+    }
+    if (command && event.shiftKey && !event.altKey && event.code === 'KeyP') {
+      setSearching(true)
+      return take()
+    }
+    if (event.code === 'Tab' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+      openModeMenu()
+      return take()
+    }
+    // A text's edit mode takes letters as typed text.
+    if (state?.mode === 'textEdit') return false
+    if (event.code === 'KeyP' && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && isMac() && state?.mode === 'object') {
+      parentMenu()
+      return take()
+    }
+    if (event.code === 'KeyL' && command && !event.altKey && !event.shiftKey && state?.mode === 'object') {
+      linkMaterials()
+      return take()
+    }
+    if (command || event.altKey) return false
+    if (event.shiftKey) {
+      if (event.code === 'KeyA' && !host.readOnly) {
+        openAddMenu()
+        return take()
+      }
+      return false
+    }
+    if (event.code === 'KeyZ') {
+      if (!event.repeat) openShadingPie(event.code)
+      return take()
+    }
+    if (event.code === 'KeyT') {
+      setRailShown((shown) => !shown)
+      return take()
+    }
+    if (event.code === 'KeyN') {
+      setPanelsShown((shown) => !shown)
+      return take()
+    }
+    return false
+  }
+  const contextMenuNow = () => {
+    const shown = latest.current.editor.session.state
+    if (!shown) return { title: '', kind: 'none', rows: [] }
+    const spec = contextMenu(shown)
+    return { title: phrase(spec.title), kind: spec.kind, rows: buildRows(spec.items, menuContext) }
+  }
   const modalActive = useModalActive()
 
   // The note stays a few seconds, or until the next change.
@@ -680,36 +912,20 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       ) : null}
     </span>
   ) : null
+  // What the mouse buttons and the main keys do now, beside the counts (not during a transform,
+  // whose keys the status shows, nor while a tool says what it does).
+  const statusLine = state ? (
+    <>
+      {status}
+      {!modalActive && !tools.status ? <StatusHints info={state} tool={tools.active} t={t} /> : null}
+    </>
+  ) : null
   const statusEnd = state ? (
     <span className="scene-status-end">
-      {mode === 'edit' ? (
-        <Segmented
-          label={t('selectMode')}
-          value={state.select}
-          segments={[
-            { value: 'vertex', label: t('vertexMode') },
-            { value: 'edge', label: t('edgeMode') },
-            { value: 'face', label: t('faceMode') },
-          ]}
-          onChange={(value) => void editor.run('mesh.selectMode', { mode: value })}
-        />
-      ) : null}
       {mode === 'edit' ? <ProportionalControl info={state} /> : null}
       <WeightPaintToggle info={state} />
       <SculptToggle info={state} />
       {mode === 'edit' ? <Checkbox label={t('uvEditor')} checked={uvOpen} onChange={setUvOpen} testId="scene-uv-toggle" /> : null}
-      <Segmented
-        label={t('shadingMode')}
-        value={state.shading}
-        segments={[
-          { value: 'wireframe', label: t('wireframe') },
-          { value: 'solid', label: t('solid') },
-          { value: 'material', label: t('materialPreview') },
-          { value: 'rendered', label: t('rendered') },
-        ]}
-        onChange={(value) => void editor.run('view.shading', { mode: value })}
-      />
-      <Checkbox label={t('grid')} checked={state.grid} onChange={(on) => void editor.run('view.grid', { on })} testId="scene-grid" />
       <Checkbox label={t('graphEditor')} checked={graph} onChange={setGraph} testId="scene-graph-toggle" />
       <Checkbox label={t('nlaEditor')} checked={nlaOpen} onChange={setNlaOpen} testId="scene-nla-toggle" />
       <Checkbox label={t('nodeEditor')} checked={nodes} onChange={setNodes} testId="scene-nodes-toggle" />
@@ -720,16 +936,35 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     <KitEditorProvider editor={editor} tools={tools}>
       <div className="scene-editor-root" onKeyDownCapture={frameKeyDown} onKeyUpCapture={frameKeyUp}>
         <EditorFrame
-          tabs={tabs}
+          tabs={shownTabs}
           defaultTab={DEFAULT_TAB}
           canvas={canvas}
           zoom={null}
           onKeyDown={onKeyDown}
           actions={<IconButton icon={ImageIcon} label={`${phrase('Render Image')} (F12)`} disabled={!state || state.camera == null} onClick={() => void renderImage()} data-testid="scene-render" />}
-          status={status}
+          status={statusLine}
           statusEnd={statusEnd}
-          rail={<EngineToolRail />}
-          panels={state ? (
+          rail={
+            railShown ? (
+              <div className="scene-rail" data-testid="scene-rail">
+                <EngineToolRail hidden={mode === 'edit' ? NO_TOOLS : EDIT_TOOLS} />
+                {mode === 'edit' && !host.readOnly ? (
+                  <div className="scene-rail-operations" role="toolbar" aria-label={t('meshOperations')} data-testid="scene-rail-operations">
+                    {RAIL_OPERATIONS.map((operation) => (
+                      <IconButton
+                        key={operation.id}
+                        icon={commandIcon({ id: operation.id })}
+                        label={`${phrase(operation.label)} (${operation.shortcut})`}
+                        onClick={() => modalTransform.begin(operation.modal)}
+                        data-testid={`scene-rail-${operation.modal}`}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : undefined
+          }
+          panels={state && panelsShown ? (
             <PeersProvider peers={presence.peers}>
               <SidePanel info={state} />
             </PeersProvider>
@@ -737,7 +972,16 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
         >
           <div className="scene-stage">
             <div className="scene-split">
-              <SceneViewport canvas={canvas} info={state} onRender={() => void renderImage()} presence={presence} t={t} readOnly={host.readOnly} />
+              <SceneViewport
+                canvas={canvas}
+                info={state}
+                onRender={() => void renderImage()}
+                presence={presence}
+                t={t}
+                readOnly={host.readOnly}
+                header={state ? <ViewportHeader info={state} context={headerContext} onMode={switchMode} readOnly={host.readOnly === true} /> : null}
+                contextMenu={contextMenuNow}
+              />
               {state && uvOpen && mode === 'edit' ? (
                 <FrameChrome>
                   <UvEditor info={state} onClose={() => setUvOpen(false)} />
@@ -763,6 +1007,22 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
             window.requestAnimationFrame(() => focusEditor())
           }}
         />
+        <PieMenu
+          pie={pie}
+          onClose={() => {
+            setPie(null)
+            window.requestAnimationFrame(() => focusEditor())
+          }}
+        />
+        {searching ? (
+          <CommandSearch
+            entries={searchEntries(commands, editor.enabled, phrase, (id) => runMenuCommand(id))}
+            onClose={() => {
+              setSearching(false)
+              window.requestAnimationFrame(() => focusEditor())
+            }}
+          />
+        ) : null}
         {rendering ? <RenderDialog
             host={host}
             base={base}

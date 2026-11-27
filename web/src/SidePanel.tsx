@@ -1,10 +1,11 @@
 import { PresenceBadges } from './Presence'
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { ArrowDownIcon, ArrowUpIcon, BoxIcon, CameraIcon, WaypointsIcon, CheckIcon, EyeIcon, EyeOffIcon, Grid2x2Icon, LightbulbIcon, Move3dIcon, PlusIcon, SplineIcon, TrashIcon, TypeIcon, type IconComponent } from '@kition/tessera/icons/react'
 import {
   Checkbox,
   Choice,
   ColorPicker,
+  ContextMenu,
   IconButton,
   MenuButton,
   MenuItem,
@@ -18,6 +19,7 @@ import {
   useReadOnly,
 } from '@kition/sdk/editor'
 import { NumberBox, focusEditor } from './NumberBox'
+import { MenuRows, type PointerMenuRow } from './PointerMenu'
 import { TextureSlot } from './TextureSlot'
 import { WorldImageSlot } from './WorldImage'
 import { RigSections } from './PosePanel'
@@ -224,7 +226,21 @@ function ColorRow({ label, value, onCommit, testId }: { label: string; value: re
 /** The event F2 sends to the outliner: the row of object `detail` starts renaming. */
 export const RENAME_EVENT = 'scene-rename'
 
+/** The outliner's drag of a row and right-click menu, shared by its rows. */
+type OutlinerHooks = { press: (event: ReactPointerEvent, id: number) => void; dragged: () => boolean; menu: (event: ReactMouseEvent, id: number) => void; target: number | 'none' | null }
+const OutlinerContext = createContext<OutlinerHooks | null>(null)
+
+/** `id` and every object under it. */
+function hierarchy(objects: SceneObject[], id: number): number[] {
+  const found = [id]
+  for (let index = 0; index < found.length && found.length <= objects.length; index += 1) {
+    for (const child of objects) if (child.parent === found[index] && !found.includes(child.id)) found.push(child.id)
+  }
+  return found
+}
+
 function OutlinerRow({ object, info, depth }: { object: SceneObject; info: SceneInfo; depth: number }) {
+  const hooks = useContext(OutlinerContext)
   const { phrase: p, t, run: runNow } = useKitEditor()
   const readOnly = useReadOnly()
   const run = useRun()
@@ -249,11 +265,27 @@ function OutlinerRow({ object, info, depth }: { object: SceneObject; info: Scene
   const children = childrenOf(info.objects, object.id)
   return (
     <>
-      <div className="scene-outliner-row" data-selected={selected || undefined} data-active={active || undefined} data-hidden={object.hidden || undefined} style={{ paddingLeft: 8 + depth * 14 }} data-testid="scene-outliner-item" data-name={object.name} data-id={object.id}>
+      <div
+        className="scene-outliner-row"
+        data-selected={selected || undefined}
+        data-active={active || undefined}
+        data-hidden={object.hidden || undefined}
+        data-drop={hooks?.target === object.id || undefined}
+        style={{ paddingLeft: 8 + depth * 14 }}
+        data-testid="scene-outliner-item"
+        data-name={object.name}
+        data-id={object.id}
+        onContextMenu={(event) => hooks?.menu(event, object.id)}
+      >
         <button
           type="button"
           className="scene-outliner-name"
-          onClick={(event) => void select(event.shiftKey || event.metaKey || event.ctrlKey)}
+          onPointerDown={(event) => !renaming && hooks?.press(event, object.id)}
+          onClick={(event) => {
+            // The end of a drag onto another row is not a click on this one.
+            if (hooks?.dragged()) return
+            void select(event.shiftKey || event.metaKey || event.ctrlKey)
+          }}
           onDoubleClick={() => !readOnly && setRenaming(true)}
           aria-pressed={selected}
         >
@@ -304,14 +336,204 @@ function OutlinerRow({ object, info, depth }: { object: SceneObject; info: Scene
   )
 }
 
+/**
+ * The outliner: a row dragged onto another makes that object its parent (keeping where it is), a
+ * row dragged to the empty space below the rows clears its parent; the right button opens the
+ * row's menu (Rename, Duplicate, Delete, Hide or Show, Select Hierarchy, Clear Parent).
+ */
 function Outliner({ info }: { info: SceneInfo }) {
-  const { phrase: p, t } = useKitEditor()
+  const { phrase: p, t, run: runNow } = useKitEditor()
+  const readOnly = useReadOnly()
   const top = childrenOf(info.objects, null)
+  const box = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null)
+  const ended = useRef(0)
+  const [target, setTarget] = useState<number | 'none' | null>(null)
+  const [menu, setMenu] = useState<{ at: { x: number; y: number }; id: number } | null>(null)
+  const latest = useRef(info)
+  latest.current = info
+  /** Where a drag would drop at a page point: a row's object, the empty space (`none`), or nowhere. */
+  const dropAt = (x: number, y: number): number | 'none' | null => {
+    const under = document.elementFromPoint(x, y)
+    const row = under?.closest<HTMLElement>('[data-testid="scene-outliner-item"]')
+    if (row && box.current?.contains(row)) return Number(row.dataset.id)
+    return under && box.current?.contains(under) ? 'none' : null
+  }
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const current = drag.current
+      if (!current) return
+      if (!current.moved && Math.hypot(event.clientX - current.x, event.clientY - current.y) < 5) return
+      current.moved = true
+      const at = dropAt(event.clientX, event.clientY)
+      setTarget(at === current.id ? null : at)
+    }
+    const up = (event: PointerEvent) => {
+      const current = drag.current
+      drag.current = null
+      if (!current?.moved) return
+      ended.current = performance.now()
+      setTarget(null)
+      const shown = latest.current
+      const dragged = shown.objects.find((object) => object.id === current.id)
+      const at = dropAt(event.clientX, event.clientY)
+      if (!dragged || at == null || at === current.id) return
+      if (at === 'none') {
+        if (dragged.parent != null) void runNow('object.clearParent', { objects: [dragged.id] })
+      } else if (!hierarchy(shown.objects, dragged.id).includes(at) && dragged.parent !== at) {
+        void runNow('object.parent', { objects: [dragged.id], parent: at })
+      }
+    }
+    window.addEventListener('pointermove', move, true)
+    window.addEventListener('pointerup', up, true)
+    return () => {
+      window.removeEventListener('pointermove', move, true)
+      window.removeEventListener('pointerup', up, true)
+    }
+    // dropAt reads refs only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runNow])
+  const hooks: OutlinerHooks = {
+    press: (event, id) => {
+      if (readOnly || event.button !== 0 || latest.current.mode !== 'object') return
+      drag.current = { id, x: event.clientX, y: event.clientY, moved: false }
+    },
+    dragged: () => performance.now() - ended.current < 250,
+    menu: (event, id) => {
+      event.preventDefault()
+      if (readOnly || latest.current.mode !== 'object') return
+      const at = { x: event.clientX, y: event.clientY }
+      // The row's object is what the menu acts on: an unselected one becomes the selection.
+      const selected = latest.current.selected.includes(id)
+      void (selected ? Promise.resolve() : runNow('select.objects', { objects: [id] })).finally(() => setMenu({ at, id }))
+    },
+    target,
+  }
+  const chosen = menu ? info.objects.find((object) => object.id === menu.id) : undefined
+  const selection = chosen ? (info.selected.includes(chosen.id) ? info.selected : [chosen.id]) : []
+  const rows: PointerMenuRow[] = chosen
+    ? [
+        { id: 'rename', label: p('Rename'), shortcut: 'F2', onSelect: () => window.dispatchEvent(new CustomEvent(RENAME_EVENT, { detail: chosen.id })) },
+        'separator',
+        { id: 'duplicate', label: p('Duplicate'), onSelect: () => void runNow('edit.duplicate', { objects: selection }) },
+        { id: 'delete', label: p('Delete'), shortcut: 'X', onSelect: () => void runNow('edit.delete', { objects: selection }) },
+        'separator',
+        chosen.hidden ? { id: 'show', label: p('Show Hidden'), onSelect: () => void runNow('object.reveal', { objects: [chosen.id] }) } : { id: 'hide', label: p('Hide'), shortcut: 'H', onSelect: () => void runNow('object.hide', { objects: selection }) },
+        { id: 'selectHierarchy', label: p('Select Hierarchy'), onSelect: () => void runNow('select.objects', { objects: hierarchy(info.objects, chosen.id) }) },
+        ...(chosen.parent != null ? (['separator', { id: 'clearParent', label: p('Clear Parent'), shortcut: 'Alt+P', onSelect: () => void runNow('object.clearParent', { objects: [chosen.id] }) }] as PointerMenuRow[]) : []),
+      ]
+    : []
   return (
     <PanelSection title={p('Outliner')} testId="scene-outliner-section">
-      <div className="scene-outliner" role="tree" aria-label={p('Outliner')} data-testid="scene-outliner">
-        {top.length ? top.map((object) => <OutlinerRow key={object.id} object={object} info={info} depth={0} />) : <p className="kui-muted scene-empty">{t('emptyScene')}</p>}
-      </div>
+      <OutlinerContext.Provider value={hooks}>
+        <div ref={box} className="scene-outliner" role="tree" aria-label={p('Outliner')} data-testid="scene-outliner" data-drop={target === 'none' || undefined}>
+          {top.length ? top.map((object) => <OutlinerRow key={object.id} object={object} info={info} depth={0} />) : <p className="kui-muted scene-empty">{t('emptyScene')}</p>}
+          <div className="scene-outliner-space" aria-hidden="true" data-testid="scene-outliner-space" />
+        </div>
+      </OutlinerContext.Provider>
+      <ContextMenu at={menu?.at ?? null} onClose={() => setMenu(null)} label={p('Outliner')} testId="scene-outliner-menu">
+        <MenuRows rows={rows} prefix="scene-outliner-menu" />
+      </ContextMenu>
+    </PanelSection>
+  )
+}
+
+// ---------------------------------------------------------------- item (Blender's sidebar Item tab)
+
+type Matrix3 = [number, number, number, number, number, number, number, number, number]
+
+/** An object's rotation (XYZ Euler, degrees) and scale as a 3 × 3 matrix (row major). */
+function linearOf(object: SceneObject): Matrix3 {
+  const [x, y, z] = object.rotation.map((degrees) => (degrees * Math.PI) / 180)
+  const [cx, sx, cy, sy, cz, sz] = [Math.cos(x), Math.sin(x), Math.cos(y), Math.sin(y), Math.cos(z), Math.sin(z)]
+  // Rz · Ry · Rx, then the scale along the object's own axes.
+  const r = [cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx, sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx, -sy, cy * sx, cy * cx]
+  const [a, b, c] = object.scale
+  return [r[0] * a, r[1] * b, r[2] * c, r[3] * a, r[4] * b, r[5] * c, r[6] * a, r[7] * b, r[8] * c]
+}
+
+const multiply = (m: Matrix3, n: Matrix3): Matrix3 => {
+  const out = [0, 0, 0, 0, 0, 0, 0, 0, 0] as Matrix3
+  for (let row = 0; row < 3; row += 1) for (let column = 0; column < 3; column += 1) out[row * 3 + column] = m[row * 3] * n[column] + m[row * 3 + 1] * n[3 + column] + m[row * 3 + 2] * n[6 + column]
+  return out
+}
+
+/** `m`⁻¹ · `v`, or null when `m` flattens space (a zero scale). */
+function solve(m: Matrix3, v: Vec3): Vec3 | null {
+  const [a, b, c, d, e, f, g, h, i] = m
+  const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return null
+  const inverse = [e * i - f * h, c * h - b * i, b * f - c * e, f * g - d * i, a * i - c * g, c * d - a * f, d * h - e * g, b * g - a * h, a * e - b * d].map((value) => value / det)
+  return [inverse[0] * v[0] + inverse[1] * v[1] + inverse[2] * v[2], inverse[3] * v[0] + inverse[4] * v[1] + inverse[5] * v[2], inverse[6] * v[0] + inverse[7] * v[1] + inverse[8] * v[2]]
+}
+
+/** The world's linear part of an object's transform, through its parents. */
+function worldLinear(object: SceneObject, objects: SceneObject[]): Matrix3 {
+  let matrix = linearOf(object)
+  let parent = objects.find((other) => other.id === object.parent)
+  for (let depth = 0; parent && depth < 64; depth += 1) {
+    matrix = multiply(linearOf(parent), matrix)
+    const next = parent.parent
+    parent = objects.find((other) => other.id === next)
+  }
+  return matrix
+}
+
+/**
+ * The Item section (Blender's sidebar Item tab): the active object's location, rotation, scale and
+ * dimensions; in a mesh's edit mode, the selected vertices' median in world space, which moves them
+ * when changed (one Move Elements step).
+ */
+function ItemSection({ object, info }: { object: SceneObject; info: SceneInfo }) {
+  const { phrase: p, t } = useKitEditor()
+  const run = useRun()
+  const objects = [object.id]
+  if (info.mode === 'edit') {
+    const median = info.transform.median
+    return (
+      <PanelSection title={p('Item')} testId="scene-item">
+        {median && info.vertices.length ? (
+          <VectorRow
+            label={t('median')}
+            value={median}
+            unit="m"
+            step={0.1}
+            precision={3}
+            onCommit={(next) => {
+              const edited = info.objects.find((item) => item.id === info.editing) ?? object
+              const offset = solve(worldLinear(edited, info.objects), [next[0] - median[0], next[1] - median[1], next[2] - median[2]])
+              if (offset) run('mesh.translate', { offset })
+            }}
+            testId="scene-item-median"
+          />
+        ) : (
+          <p className="kui-muted scene-empty">{t('nothingSelected')}</p>
+        )}
+      </PanelSection>
+    )
+  }
+  const dimensions = object.dimensions
+  // In object mode the Object section below has the same transform; Item starts closed there.
+  return (
+    <PanelSection title={p('Item')} defaultOpen={false} testId="scene-item">
+      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => run('object.transform', { objects, location })} testId="scene-item-location" />
+      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => run('object.transform', { objects, rotation })} testId="scene-item-rotation" />
+      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => run('object.transform', { objects, scale })} testId="scene-item-scale" />
+      {dimensions ? (
+        <VectorRow
+          label={t('dimensions')}
+          value={dimensions}
+          unit="m"
+          step={0.1}
+          precision={3}
+          onCommit={(next) => {
+            // A size along an axis the object has none along (a plane's depth) stays as it is.
+            const scale = object.scale.map((value, index) => (Math.abs(dimensions[index]) > 1e-9 ? (value * next[index]) / dimensions[index] : value)) as Vec3
+            run('object.transform', { objects, scale })
+          }}
+          testId="scene-item-dimensions"
+        />
+      ) : null}
     </PanelSection>
   )
 }
@@ -1016,6 +1238,7 @@ export function SidePanel({ info }: { info: SceneInfo }) {
         <Outliner info={info} />
         {active ? (
           <>
+            <ItemSection key={`item-${active.id}-${info.mode}`} object={active} info={info} />
             <ObjectSection key={`object-${active.id}`} object={active} info={info} />
             <SculptSections info={info} />
             {active.type === 'mesh' ? <ModifiersSection object={active} info={info} /> : null}

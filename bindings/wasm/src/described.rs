@@ -688,7 +688,7 @@ fn output(id: &str) -> Option<Value> {
             r#"{"type":"object","additionalProperties":true,"properties":{"cursor":{"type":"array","items":{"type":"number"},"description":"the cursor's place, metres"}}}"#
         }
         "select.circle" | "select.lasso" | "select.loop" | "select.ring" | "select.linked" | "select.more" | "select.less" => {
-            r#"{"type":"object","additionalProperties":true,"properties":{"vertices":{"type":"integer","description":"the edited mesh's selected vertices"},"objects":{"type":"array","items":{"type":"integer"}},"active":{"type":["integer","null"]}}}"#
+            r#"{"type":"object","additionalProperties":true,"properties":{"vertices":{"type":"integer","description":"the edited mesh's selected vertices"},"objects":{"type":"array","items":{"type":"integer"}},"active":{"oneOf":[{"type":"integer"},{"type":"null"}],"description":"the active object, null when there is none"}}}"#
         }
         "view.toggleXray" => r#"{"type":"object","additionalProperties":true,"properties":{"xray":{"type":"boolean"}}}"#,
         "transform.set" => {

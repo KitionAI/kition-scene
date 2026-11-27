@@ -171,6 +171,10 @@ fn without_xray_a_box_takes_only_what_shows_and_with_xray_what_is_hidden_too() {
 fn editing_cube(doc: &mut SceneDocument) -> u32 {
     run(doc, "select.objects", json!({ "objects": "Cube" }));
     run(doc, "view.frameSelected", json!({}));
+    // Framed for its bounding sphere across the view's width, the cube's lowest front corner is
+    // below a 4:3 picture's bottom edge: a little further off, every corner shows on the screen.
+    let distance = doc.session().editor.view.distance;
+    run(doc, "view.set", json!({ "distance": distance * 1.8 }));
     run(doc, "mode.set", json!({ "mode": "edit" }));
     run(doc, "mesh.select", json!({ "vertices": [] }));
     let eye = eye(doc);

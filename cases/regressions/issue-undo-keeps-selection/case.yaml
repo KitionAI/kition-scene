@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-undo-keeps-selection
+feature: scene.editor.selection
+intent: >-
+  An undo or a redo keeps selected the objects that still exist, and the edited mesh's selected elements when the step leaves its vertices and faces as many as they were (otherwise none). Before, an undo kept whichever vertex indices were still in range.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A10 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: an_undo_keeps_the_selection_that_still_exists
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

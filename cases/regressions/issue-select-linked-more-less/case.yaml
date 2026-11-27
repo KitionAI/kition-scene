@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-select-linked-more-less
+feature: scene.editor.selection
+intent: >-
+  In a mesh's edit mode select.linked takes the connected part under the pointer (L; deselect takes it out, Shift+L) or every part the selection touches (Ctrl/Cmd+L), select.more and select.less grow and shrink the selection by a step of faces (Ctrl/Cmd+keypad + and −), and a Cmd/Ctrl+click adds the shortest path from the element clicked before. Before, none of these existed.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N11 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: more_less_linked_and_the_shortest_path
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

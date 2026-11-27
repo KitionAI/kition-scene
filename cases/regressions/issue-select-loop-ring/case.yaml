@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-select-loop-ring
+feature: scene.editor.selection
+intent: >-
+  In a mesh's edit mode select.loop takes the edge loop through the edge under the pointer (Alt+click; in face mode the loop of faces across it) and select.ring the ring of edges across the quads beside it (Ctrl+Alt+click); extend adds. Before, there were no loop or ring selects.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N11 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: loops_rings_and_face_loops_follow_the_quads
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-select-without-software-frame
+feature: scene.editor.selection
+intent: >-
+  A click, a box, a circle and a lasso pick with rays against the meshes as the viewport draws them, and no software picture is drawn for them; while the editor's GPU viewport draws, a tool's event owes the software picture no repaint (an area outside the picture), and the agent's picture is still drawn when asked for. Before, every click and box read the software picture's id buffer, so each change after a release drew a whole software frame the GPU viewport never showed.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N10, N11 and the latency section (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: clicks_and_boxes_pick_with_rays_and_draw_no_software_picture
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: while_the_gpu_viewport_draws_an_event_owes_the_software_picture_nothing
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 300

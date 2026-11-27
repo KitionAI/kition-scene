@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-select-by-hand
+feature: scene.editor.selection
+intent: >-
+  Selecting by hand as in Blender, with real mouse and keyboard events: a click and a box (the
+  default tool, Select Box: Shift adds, Ctrl/Cmd takes out) draw no software picture while the GPU
+  viewport shows; A, A twice and Ctrl/Cmd+I; W cycles Select Box, Circle and Lasso; B boxes once
+  with another tool; C paints with a circle (the wheel sizes it, the right button or Escape ends
+  it); Ctrl+right drag lassos; Alt+Z and the header's button turn X-ray on, which a box selects
+  through; in edit mode the box takes the cube's seven vertices that show (eight with X-ray),
+  Alt+click a loop, Ctrl+Alt+click a ring, L and Ctrl/Cmd+L, Ctrl/Cmd+keypad + and −,
+  Ctrl/Cmd+click's shortest path; Shift+H hides the unselected; an undo keeps the selection; the
+  outliner and the viewport agree. Before, there was only a click and a box that read the software
+  picture.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N10, N11, N13, A10 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/select.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/select.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

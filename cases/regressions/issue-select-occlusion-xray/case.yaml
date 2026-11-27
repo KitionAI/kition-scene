@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-select-occlusion-xray
+feature: scene.editor.selection
+intent: >-
+  Without X-ray a box, a click and a circle take only what shows (an object hidden behind another, the cube's far vertex); with X-ray (view.toggleXray, Alt+Z) and in wireframe shading they take what is hidden too. Before, there was no X-ray and edge picks ignored what hid them.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N11 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: without_xray_a_box_takes_only_what_shows_and_with_xray_what_is_hidden_too
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: edit_mode_takes_the_vertices_that_show_and_x_ray_takes_them_all
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+since: "2026-11-26"
+timeout_s: 300

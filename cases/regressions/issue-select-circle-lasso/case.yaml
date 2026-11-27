@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-select-circle-lasso
+feature: scene.editor.selection
+intent: >-
+  select.circle and select.lasso take what a circle or a lasso of viewport pixels covers, in object and edit mode, as the selection, added to it or taken out of it; the Select Circle and Select Lasso tools do the same with the pointer. Before, there was no circle or lasso select outside sculpt mode.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N10 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: circles_and_lassos_select_in_object_and_edit_mode
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

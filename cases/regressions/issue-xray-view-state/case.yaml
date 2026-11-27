@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-xray-view-state
+feature: scene.editor.selection
+intent: >-
+  view.toggleXray turns X-ray on and off as the person's view state: inspect and the view state carry it, the GPU frame says it, no undo step, no unsaved change. Before, there was no X-ray.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N11 (plan scene-usable-by-hand, phase 6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: select
+      filter: xray_is_view_state_and_the_gpu_frame_shows_it
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

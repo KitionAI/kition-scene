@@ -284,7 +284,7 @@ pub struct SceneDocument {
     /// The drawn meshes' ray hierarchies kept between rays (the cursor, snapping; never saved).
     rays: RefCell<ray::Rays>,
     /// The drawn meshes for picking, as of a revision (never saved).
-    ray_cache: RefCell<Option<(u64, std::rc::Rc<ray::RayScene>)>>,
+    ray_cache: RefCell<Option<(u64, std::sync::Arc<ray::RayScene>)>>,
     /// The editor's GPU viewport draws the picture: a tool's event then owes the software picture
     /// nothing (it is drawn when asked for, as for the agent's screenshot).
     gl_shown: bool,

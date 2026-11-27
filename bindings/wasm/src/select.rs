@@ -14,7 +14,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{BTreeSet, BinaryHeap, HashMap};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use glam::{Mat4, Vec3};
 use kition_kit::KitCommand;
@@ -469,18 +469,18 @@ impl SceneDocument {
 
     /// The drawn meshes for rays, kept while the revision stays (a transform under way moves
     /// objects without moving it: then they are taken afresh).
-    pub(crate) fn pick_rays(&self) -> Rc<RayScene> {
+    pub(crate) fn pick_rays(&self) -> Arc<RayScene> {
         if self.modal.is_some() {
-            return Rc::new(self.ray_scene(&|_| false));
+            return Arc::new(self.ray_scene(&|_| false));
         }
         let mut cache = self.ray_cache.borrow_mut();
         if let Some((revision, rays)) = cache.as_ref()
             && *revision == self.revision
         {
-            return Rc::clone(rays);
+            return Arc::clone(rays);
         }
-        let rays = Rc::new(self.ray_scene(&|_| false));
-        *cache = Some((self.revision, Rc::clone(&rays)));
+        let rays = Arc::new(self.ray_scene(&|_| false));
+        *cache = Some((self.revision, Arc::clone(&rays)));
         rays
     }
 

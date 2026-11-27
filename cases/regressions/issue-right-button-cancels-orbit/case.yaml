@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-right-button-cancels-orbit
+feature: scene.editor.navigation
+intent: >-
+  The right button pressed while the middle button orbits, pans or zooms the view cancels the
+  gesture: the view goes back to where the drag began, and no context menu opens. Before, the
+  right button did nothing during the drag and the view stayed where it was dragged to. Item 1
+  of the first ten minutes' checklist, which the test goes through whole.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/gap-reference.md, section 11, item 1 (plan scene-usable-by-hand, phase 9)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 420

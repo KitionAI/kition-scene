@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-double-click-edit-mode
+feature: scene.editor.basics
+intent: >-
+  A double click on a mesh in object mode is the two clicks it is made of: it selects the mesh and
+  the editor stays in object mode, as in Blender. Before, a double click entered edit mode, which a
+  person did by accident (walkthrough finding A8).
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A8 (plan scene-usable-by-hand, phase 9)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/first-ten-minutes.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 420

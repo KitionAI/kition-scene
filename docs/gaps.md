@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last updated:** 2026-11-17 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
+> **Last updated:** 2026-11-26 · **Source:** `features.yaml` (updated 2026-11-26), the engine's command list and the first ten minutes' acceptance run (`web/tests/first-ten-minutes.mjs`)
 
 Every known shortfall of Kition Scene, from the feature catalogue: features that are not yet `has`,
 then the differences recorded on features that work. Update the feature in `features.yaml` when you
@@ -28,7 +28,16 @@ land work, then this list. The comparison with the target application is in
 - `scene.rigging.armature` (P1, partial): Bones, poses, vertex groups, shape keys and constraints. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `scene.sculpt.paint` (P1, partial): Sculpting, multiresolution and weight painting. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `scene.uv.editing` (P1, partial): UV projections and UV editing. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
-- `scene.view.viewport` (P1, partial): Viewport shading, views and overlays. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
+- `scene.view.viewport` (P1, partial): Viewport shading, views and overlays. The engine has these commands; the navigation a person does is `scene.editor.navigation` (below); no case yet shows shading and overlays working end to end in the editor and surviving save and reopen.
+- `scene.editor.basics` (P1, partial): The viewport's basics by hand. G, R and S also pick the Move, Rotate and Scale tools, which stay picked; the label drag's live preview covers object transforms only; the outline and edit-mode colours are not Blender's.
+- `scene.editor.modal-transform` (P0, partial): Modal G, R and S. No units or arithmetic in a typed value; no trackball (R R), automatic constraint (middle button) or G G slide; the side panel shows the values only after the confirm; the pointer stops at the screen's edge.
+- `scene.editor.modal-operators` (P0, partial): E, I, Ctrl/Cmd+B, Ctrl/Cmd+R as modals; X, M, P menus. Inset is per face, with no Outset, Boundary or Individual; no bevel profile; no loop cut smoothness; the Merge and Separate menus have one row each; object mode's X deletes without asking.
+- `scene.editor.adjust-last` (P0, partial): Adjust Last Operation. Only the adjustable commands of `operation.rs`; a field applies on Enter, not while dragged.
+- `scene.editor.navigation` (P0, partial): Navigation. No walk or fly, local view, roll, zoom to the pointer; a trackpad is told from a mouse by its events alone and no real trackpad has been tried; a document opens with the engine's view and nothing selected.
+- `scene.editor.transform-tools` (P0, partial): The 3D cursor, gizmos, pivot, orientation, snapping. No Cursor or Transform tool, no Scale Cage; snapping moves only and has no grid, edge-centre or perpendicular targets.
+- `scene.editor.interface` (P0, partial): The viewport header, menus by mode, Shift+A, right-click menus, F3, Z's pie, T and N. No Shift+A in edit mode; only Z is a pie; the outliner has no collections; Ctrl+P is Control+P on a Mac only.
+- `scene.editor.selection` (P0, partial): Selecting by hand. The edit-mode selection is a set of vertices (rings and face loops select the band); no active element; no Select Similar, Random or Mirror.
+- `scene.editor.fields-animation` (P0, partial): Number fields and animation basics. Auto-keying keys object transforms only; the timeline's own fields are the frame's; no reverse play.
 
 ## Differences on working features
 
@@ -46,6 +55,25 @@ land work, then this list. The comparison with the target application is in
 - `scene.uv.minimum-stretch`: Importance weights and optional flips are not exposed. Nondegenerate orientable charts are required; a noninjective pinned initialization is rejected. At most 128 islands and 20000 chart vertices per operation.
 - `scene.viewport.rendered`: CPU previews use at most 512 pixels per side and 256 samples; motion blur and compositing are final-render features.
 
+## Interaction
+
+What a person used to Blender still finds different, from the acceptance run of 2026-11-26 (the
+thirty items of `web/tests/first-ten-minutes.mjs`; the full table is kept with the plan's walkthrough
+notes, outside this repository):
+
+- Object mode's X deletes at once; Blender asks "Delete selected objects?" (`web/tests/delete-focus.mjs` asserts the deletion).
+- G, R and S also pick the Move, Rotate and Scale tools, and the tool stays: afterwards a drag on empty space moves the selection instead of boxing, until W picks the select tool again (`web/tests/basics.mjs` asserts the pick).
+- The main keyboard's `.` opens the pivot menu; framing the selection is keypad `.` (or the View menu).
+- Ctrl+P is Control+P on a Mac only; Cmd+P and other systems' Ctrl+P are Kition's.
+- A tap of Space plays (under 250 ms); holding it is the frame's hand tool.
+- No collections (M), no linked duplicates (Alt+D), one object in edit mode at a time, no R R trackball, no walk or fly, no local view.
+- The inset is per face; no Outset, Boundary or Individual; bevel has no profile; loop cut has no smoothness (the headers read "Cuts: n" and "Offset: … m, Segments: n" without Blender's extra fields).
+- A modal's typed value takes digits, the point, minus, slash, Backspace and Tab only; units and arithmetic work in the number fields, not in G, R, S, E or I.
+- The side panel shows a transform's values once it is confirmed, not while it moves.
+- The moving object keeps its orange outline (Blender draws it white); the active outline is #FFAA40 (Blender #FFA028); selected vertices, edges and faces are one orange (#F15800; Blender #FF7A00, #FFD800 and a see-through #FFB700).
+- A document opens with nothing selected and the engine's own view (Blender selects the cube and shows the default view).
+- In a browser window (the development host), keys the browser keeps for itself (Cmd+W, Cmd+T, Cmd+Q; Ctrl+Tab in some browsers) may never reach the editor; each has another route (the header's mode drop-down for Ctrl+Tab, the menus for the rest). Cmd+P is not taken by the editor and prints the page there.
+
 ## Catalogue
 
-The catalogue has 51 features: 31 `has`, 20 not yet.
+The catalogue has 64 features: 35 `has`, 29 not yet.

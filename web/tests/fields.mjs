@@ -232,6 +232,8 @@ try {
   await until(async () => (await animation()).frame > startFrame + 2, 'the frames advance')
   await page.keyboard.press('Space')
   await until(async () => (await play.getAttribute('data-playing')) == null, 'a second tap pauses')
+  // A frame asked for just before the pause lands first (on a slow machine a moment later).
+  await until(async () => (await kit.getByTestId('scene-timeline').getAttribute('data-seeking')) == null, 'no frame on its way')
   const paused = (await animation()).frame
   await page.waitForTimeout(400)
   assert.equal((await animation()).frame, paused, 'paused, the frame stays')

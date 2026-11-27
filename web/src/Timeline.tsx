@@ -32,23 +32,33 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
   latest.current = { animation, editor }
   const busy = useRef(false)
   const wanted = useRef<number | null>(null)
+  /** A request that runs even when the frame looks like it already is that one (the pause's). */
+  const forced = useRef(false)
+  const root = useRef<HTMLDivElement>(null)
   // The frame playback began at: Escape goes back to it.
   const began = useRef<number | null>(null)
+  /** Escape stopped playback: it goes back to `began`, not to the frame shown when it came. */
+  const stopped = useRef(false)
 
   // One frame request in flight; a newer request replaces the one waiting.
   const goTo = (frame: number) => {
     wanted.current = Math.round(frame)
     if (busy.current) return
     busy.current = true
+    // The timeline says while a frame is on its way (tests wait for it to land).
+    root.current?.setAttribute('data-seeking', 'true')
     void (async () => {
       try {
         while (wanted.current != null) {
           const next = wanted.current
+          const force = forced.current
           wanted.current = null
-          if (next !== latest.current.animation.frame) await latest.current.editor.run('frame.set', { frame: next })
+          forced.current = false
+          if (force || next !== latest.current.animation.frame) await latest.current.editor.run('frame.set', { frame: next })
         }
       } finally {
         busy.current = false
+        root.current?.removeAttribute('data-seeking')
       }
     })()
   }
@@ -68,6 +78,7 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
       const kind = (event as CustomEvent<PlaybackRequest>).detail
       if (kind === 'toggle') setPlaying((on) => !on)
       else if (kind === 'stop') {
+        stopped.current = true
         setPlaying(false)
         if (began.current != null) goTo(began.current)
       }
@@ -82,6 +93,7 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
     playback.playing = playing
     if (!playing) return
     began.current = latest.current.animation.frame
+    stopped.current = false
     let handle = 0
     const begin = performance.now()
     const from = latest.current.animation.frame
@@ -97,6 +109,13 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
     return () => {
       cancelAnimationFrame(handle)
       playback.playing = false
+      // A frame still on its way would move a pause on past the frame shown when it came (on a
+      // heavy scene, by a second or more): the shown frame follows it. Escape's own request (back
+      // to where playback began) stands.
+      if (busy.current && wanted.current == null && !stopped.current) {
+        wanted.current = latest.current.animation.frame
+        forced.current = true
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing])
@@ -117,7 +136,7 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
   const keyed = animation.selectedKeyFrames.includes(frame)
 
   return (
-    <div className="scene-timeline" data-testid="scene-timeline">
+    <div ref={root} className="scene-timeline" data-testid="scene-timeline">
       <div className="scene-timeline-controls">
         <IconButton
           icon={CircleDotIcon}

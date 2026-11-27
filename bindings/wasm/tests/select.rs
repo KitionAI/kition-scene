@@ -83,10 +83,15 @@ fn vertices(doc: &SceneDocument) -> BTreeSet<u32> {
     doc.session().vertices.clone()
 }
 
-/// Nothing a selection does is an undo step or an unsaved change.
-fn untouched(doc: &SceneDocument) {
+/// The step an undo would take back now.
+fn history(doc: &SceneDocument) -> Value {
+    doc.inspect().unwrap()["undo"].clone()
+}
+
+/// Nothing a selection does is an undo step or an unsaved change: the history is as `before`.
+fn untouched(doc: &SceneDocument, before: &Value) {
     assert!(!doc.dirty(), "selecting leaves the document clean");
-    assert_eq!(doc.inspect().unwrap()["canUndo"], json!(false), "selecting makes no undo step");
+    assert_eq!(&history(doc), before, "selecting makes no undo step");
 }
 
 #[test]
@@ -109,7 +114,7 @@ fn clicks_and_boxes_pick_with_rays_and_draw_no_software_picture() {
     );
     drag(&mut doc, [cube[0] - 10.0, cube[1] - 10.0], [cube[0] + 10.0, cube[1] + 10.0], command());
     assert!(!selected(&doc).contains("Cube"), "Cmd/Ctrl+box takes the cube out");
-    run(&mut doc, "edit.selectAll", json!({}));
+    run(&mut doc, "select.objects", json!({ "objects": "Cube" }));
     run(&mut doc, "mode.set", json!({ "mode": "edit" }));
     drag(&mut doc, [2.0, 2.0], [798.0, 598.0], ToolMods::default());
     assert!(!vertices(&doc).is_empty(), "a box in edit mode takes vertices");
@@ -145,6 +150,7 @@ fn hidden_cube(doc: &mut SceneDocument) {
 fn without_xray_a_box_takes_only_what_shows_and_with_xray_what_is_hidden_too() {
     let mut doc = starter();
     hidden_cube(&mut doc);
+    let before = history(&doc);
     let cube = screen(&doc, Vec3::ZERO);
     click(&mut doc, cube, ToolMods::default());
     assert_eq!(selected(&doc), names(&["Cube"]), "a click takes the cube in front");
@@ -157,7 +163,7 @@ fn without_xray_a_box_takes_only_what_shows_and_with_xray_what_is_hidden_too() {
     run(&mut doc, "view.shading", json!({ "mode": "wireframe" }));
     drag(&mut doc, [cube[0] - 40.0, cube[1] - 40.0], [cube[0] + 40.0, cube[1] + 40.0], ToolMods::default());
     assert_eq!(selected(&doc), names(&["Cube", "Behind"]), "wireframe selects through");
-    untouched(&doc);
+    untouched(&doc, &before);
 }
 
 /// The starter cube in edit mode, nothing selected, and its vertex farthest from the eye (the one
@@ -178,6 +184,7 @@ fn editing_cube(doc: &mut SceneDocument) -> u32 {
 fn edit_mode_takes_the_vertices_that_show_and_x_ray_takes_them_all() {
     let mut doc = starter();
     let hidden = editing_cube(&mut doc);
+    let before = history(&doc);
     drag(&mut doc, [2.0, 2.0], [798.0, 598.0], ToolMods::default());
     assert_eq!(vertices(&doc).len(), 7, "the box takes the seven vertices that show: {:?}", vertices(&doc));
     assert!(!vertices(&doc).contains(&hidden));
@@ -202,7 +209,7 @@ fn edit_mode_takes_the_vertices_that_show_and_x_ray_takes_them_all() {
     let at = screen(&doc, middle(&near));
     click(&mut doc, at, ToolMods::default());
     assert_eq!(vertices(&doc), near.iter().copied().collect::<BTreeSet<u32>>(), "a click in a face takes its corners");
-    untouched(&doc);
+    untouched(&doc, &before);
 }
 
 /// A UV sphere in edit mode (32 segments, 16 rings), nothing selected, and its equator.
@@ -238,6 +245,7 @@ fn edge_facing(doc: &SceneDocument, keep: impl Fn(Vec3, Vec3) -> bool) -> [f64; 
 fn loops_rings_and_face_loops_follow_the_quads() {
     let mut doc = starter();
     let equator = editing_sphere(&mut doc);
+    let before = history(&doc);
     assert_eq!(equator.len(), 32);
     let along = edge_facing(&doc, |a, b| a.z.abs() < 1e-4 && b.z.abs() < 1e-4);
     run(&mut doc, "select.loop", json!({ "position": along }));
@@ -256,7 +264,7 @@ fn loops_rings_and_face_loops_follow_the_quads() {
     run(&mut doc, "select.loop", json!({ "position": along, "extend": true }));
     run(&mut doc, "select.ring", json!({ "position": across, "extend": true }));
     assert_eq!(vertices(&doc), ring, "extend adds to the selection");
-    untouched(&doc);
+    untouched(&doc, &before);
 }
 
 #[test]
@@ -322,6 +330,7 @@ fn more_less_linked_and_the_shortest_path() {
 #[test]
 fn circles_and_lassos_select_in_object_and_edit_mode() {
     let mut doc = starter();
+    let before = history(&doc);
     let cube = screen(&doc, Vec3::ZERO);
     let light = screen(&doc, doc.scene().object_named("Light").unwrap().location);
     run(&mut doc, "select.circle", json!({ "position": cube, "radius": 10 }));
@@ -358,7 +367,7 @@ fn circles_and_lassos_select_in_object_and_edit_mode() {
     assert!(vertices(&doc).is_empty(), "the circle leaves the hidden vertex");
     run(&mut doc, "select.circle", json!({ "position": [400, 300], "radius": 1000 }));
     assert_eq!(vertices(&doc).len(), 7);
-    untouched(&doc);
+    untouched(&doc, &before);
 }
 
 #[test]
@@ -369,7 +378,7 @@ fn xray_is_view_state_and_the_gpu_frame_shows_it() {
     assert_eq!(doc.inspect().unwrap()["view"]["xray"], json!(true));
     assert_eq!(doc.gl_scene()["xray"], json!(true));
     assert_eq!(doc.view_state()["xray"], json!(true));
-    untouched(&doc);
+    untouched(&doc, &json!(null));
     let state = doc.view_state();
     let mut other = SceneDocument::create("Other.kscene", 800, 600).unwrap();
     assert!(other.restore_view_state(&state));

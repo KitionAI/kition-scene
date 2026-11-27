@@ -21,7 +21,7 @@ use glam::{Mat3, Vec3};
 use kition_kit::KitCommand;
 use kition_kit::tools::ToolOverlay;
 use kition_scene_model::scene::{euler_matrix, matrix_euler};
-use kition_scene_model::{Id, ObjectData};
+use kition_scene_model::{Id, ObjectData, Property};
 use kition_scene_raster::{Projector, ViewState};
 use serde_json::{Value, json};
 
@@ -1817,6 +1817,11 @@ impl SceneDocument {
             None => self.step(modal.items.label(modal.kind)),
         };
         self.modal_apply(&mut modal);
+        if self.session.editor.auto_key
+            && let Items::Objects(objects) = &modal.items
+        {
+            self.modal_auto_keys(modal.kind, objects);
+        }
         if let Err(error) = self.scene.validate() {
             self.restore(before);
             self.touched();
@@ -1831,6 +1836,36 @@ impl SceneDocument {
             crate::operation::record_transform(self, replay, transform_params(&modal), modal.selected_before.clone());
         }
         Ok(true)
+    }
+
+    /// Auto-keying: the moved objects get keys at the current frame, in the transform's step, on
+    /// what the transform is about (a move's location, a rotation's, a scale's) and on any other of
+    /// the three it changed (a rotation about the cursor moves the objects too). A property a
+    /// driver sets takes no key, and is passed over.
+    fn modal_auto_keys(&mut self, kind: Kind, objects: &[ObjectStart]) {
+        let frame = self.scene.animation.timeline.frame as f32;
+        let own = match kind {
+            Kind::Rotate => Property::Rotation,
+            Kind::Scale => Property::Scale,
+            _ => Property::Location,
+        };
+        for start in objects {
+            let Ok(object) = self.scene.object(start.id) else { continue };
+            let changed = |from: Vec3, to: Vec3| (from - to).abs().max_element() > 1e-6;
+            let mut wanted = vec![own];
+            for (property, from, to) in [
+                (Property::Location, start.location, object.location),
+                (Property::Rotation, start.rotation, object.rotation),
+                (Property::Scale, start.scale, object.scale),
+            ] {
+                if property != own && changed(from, to) {
+                    wanted.push(property);
+                }
+            }
+            for property in wanted {
+                self.scene.insert_key(start.id, property, frame).ok();
+            }
+        }
     }
 
     /// A loop cut's loop is chosen: it is cut in the middle, and the modal slides it.

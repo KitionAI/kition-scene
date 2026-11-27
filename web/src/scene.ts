@@ -351,6 +351,8 @@ export type TransformInfo = {
   orientation: TransformOrientation
   snap: boolean
   snapTarget: SnapTarget
+  /** Auto-keying (the timeline's record button): a confirmed transform keys what it changed. */
+  autoKey: boolean
   /** Where the gizmo stands and its axes (the orientation's, world space); null with nothing to transform. */
   gizmo: { centre: Vec3; axes: [Vec3, Vec3, Vec3] } | null
   /** The selection's middle (world), and in edit mode the cursor in the edited object's own space. */
@@ -367,6 +369,7 @@ function transformOf(raw: Raw | undefined): TransformInfo {
     orientation: pick(raw?.orientation, ORIENTATIONS, 'global'),
     snap: raw?.snap === true,
     snapTarget: pick(raw?.snapTarget, SNAP_TARGETS, 'increment'),
+    autoKey: raw?.autoKey === true,
     gizmo,
     median: Array.isArray(raw?.median) ? vec(raw.median) : null,
     cursorLocal: Array.isArray(raw?.cursorLocal) ? vec(raw.cursorLocal) : null,

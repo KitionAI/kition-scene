@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { KeyframeIcon, KeyframeNextIcon, KeyframePreviousIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, TrashIcon } from '@kition/tessera/icons/react'
+import { CircleDotIcon, KeyframeIcon, KeyframeNextIcon, KeyframePreviousIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, TrashIcon } from '@kition/tessera/icons/react'
 import { IconButton, NumberField, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import type { AnimationInfo } from './animation'
 import { KeyingSetChoice } from './AnimationPanel'
+import { PLAYBACK_EVENT, playback, type PlaybackRequest } from './playback'
 import type { SceneInfo } from './scene'
 
 /** Pixels between the ruler's edges and its first and last frames. */
@@ -31,6 +32,8 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
   latest.current = { animation, editor }
   const busy = useRef(false)
   const wanted = useRef<number | null>(null)
+  // The frame playback began at: Escape goes back to it.
+  const began = useRef<number | null>(null)
 
   // One frame request in flight; a newer request replaces the one waiting.
   const goTo = (frame: number) => {
@@ -59,8 +62,26 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
     return () => observer.disconnect()
   }, [])
 
+  // A tap of Space plays and pauses; Escape stops and goes back to where playback began.
   useEffect(() => {
+    const request = (event: Event) => {
+      const kind = (event as CustomEvent<PlaybackRequest>).detail
+      if (kind === 'toggle') setPlaying((on) => !on)
+      else if (kind === 'stop') {
+        setPlaying(false)
+        if (began.current != null) goTo(began.current)
+      }
+    }
+    window.addEventListener(PLAYBACK_EVENT, request)
+    return () => window.removeEventListener(PLAYBACK_EVENT, request)
+    // `goTo` reads its refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    playback.playing = playing
     if (!playing) return
+    began.current = latest.current.animation.frame
     let handle = 0
     const begin = performance.now()
     const from = latest.current.animation.frame
@@ -73,7 +94,10 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
       handle = requestAnimationFrame(tick)
     }
     handle = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(handle)
+    return () => {
+      cancelAnimationFrame(handle)
+      playback.playing = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing])
 
@@ -95,9 +119,19 @@ export function Timeline({ animation, hasSelection, info }: { animation: Animati
   return (
     <div className="scene-timeline" data-testid="scene-timeline">
       <div className="scene-timeline-controls">
+        <IconButton
+          icon={CircleDotIcon}
+          label={t('autoKey')}
+          className="scene-timeline-autokey"
+          aria-pressed={info?.transform.autoKey ?? false}
+          data-on={info?.transform.autoKey || undefined}
+          disabled={readOnly || !info}
+          onClick={() => void editor.run('transform.set', { autoKey: !info?.transform.autoKey })}
+          data-testid="scene-timeline-autokey"
+        />
         <IconButton icon={SkipBackIcon} label={t('jumpStart')} onClick={() => void editor.run('frame.start', {})} />
         <IconButton icon={KeyframePreviousIcon} label={t('previousKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('animation.previousKey', {})} />
-        <IconButton icon={playing ? PauseIcon : PlayIcon} label={playing ? t('pause') : t('play')} onClick={() => setPlaying((on) => !on)} data-testid="scene-timeline-play" />
+        <IconButton icon={playing ? PauseIcon : PlayIcon} label={`${playing ? t('pause') : t('play')} (Space)`} onClick={() => setPlaying((on) => !on)} data-testid="scene-timeline-play" data-playing={playing || undefined} />
         <IconButton icon={KeyframeNextIcon} label={t('nextKey')} disabled={animation.keyFrames.length === 0} onClick={() => void editor.run('animation.nextKey', {})} />
         <IconButton icon={SkipForwardIcon} label={t('jumpEnd')} onClick={() => void editor.run('frame.end', {})} />
         <span className="scene-timeline-field scene-timeline-frame">

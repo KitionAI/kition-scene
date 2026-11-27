@@ -168,6 +168,10 @@ pub struct Editor {
     /// X-ray: the surfaces see-through, and a region selects what is hidden too.
     #[serde(default)]
     pub xray: bool,
+    /// Auto-keying (the timeline's record button): a confirmed transform keys what it changed at
+    /// the current frame, in its own undo step.
+    #[serde(default)]
+    pub auto_key: bool,
 }
 
 /// The version of the view state `view.state` answers (its `v`): `view.restore` ignores another.
@@ -200,6 +204,7 @@ impl Default for Editor {
             snap: false,
             snap_target: cursor::SnapTarget::default(),
             xray: false,
+            auto_key: false,
         }
     }
 }

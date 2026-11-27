@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { readNumber } from './numeric'
 
 /** Digits after the point that `step` has (0.1 → 1, 1 → 0). */
 function decimalsOf(step: number) {
@@ -6,13 +7,6 @@ function decimalsOf(step: number) {
   const text = String(step)
   const dot = text.indexOf('.')
   return dot === -1 ? 0 : text.length - dot - 1
-}
-
-function parse(text: string) {
-  const normalized = text.trim().replace(',', '.')
-  if (normalized === '') return null
-  const value = Number(normalized)
-  return Number.isFinite(value) ? value : null
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -23,6 +17,76 @@ function clamp(value: number, min: number, max: number) {
 export function focusEditor() {
   document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
 }
+
+/** What the pointer's field offers the keys and its right-click menu (Blender's field under the pointer). */
+export type FieldActions = {
+  label: string
+  copy: () => void
+  /** Null when the field cannot be changed (read-only). */
+  paste: (() => void) | null
+  /** Null when the field has no default the engine describes. */
+  reset: (() => void) | null
+  /** Null when the property is not animatable. */
+  insertKey: (() => void) | null
+}
+
+/** Each field's actions, by its element. */
+const fields = new WeakMap<Element, FieldActions>()
+
+/** Where the pointer last was on the page, in client pixels. */
+const pointer = { x: 0, y: 0, seen: false }
+if (typeof window !== 'undefined') {
+  const seen = (event: globalThis.PointerEvent | globalThis.MouseEvent) => {
+    pointer.x = event.clientX
+    pointer.y = event.clientY
+    pointer.seen = true
+  }
+  window.addEventListener('pointermove', seen, { capture: true, passive: true })
+  window.addEventListener('pointerdown', seen, { capture: true, passive: true })
+  window.addEventListener('mousemove', seen, { capture: true, passive: true })
+}
+
+/** The field under the pointer, if any (found where the pointer is when a key goes down). */
+function hoveredField() {
+  if (!pointer.seen) return null
+  const element = document.elementFromPoint(pointer.x, pointer.y)?.closest('.kui-number-field')
+  return element ? (fields.get(element) ?? null) : null
+}
+
+/** The value Ctrl/Cmd+C over a field took (also given to the system clipboard when it allows). */
+let copied: string | null = null
+
+/** The event a field's right button sends: the editor opens its menu at the pointer. */
+export const FIELD_MENU_EVENT = 'scene-field-menu'
+export type FieldMenuDetail = { at: { x: number; y: number }; actions: FieldActions }
+
+/**
+ * Over a field, Backspace resets it to its default and Ctrl/Cmd+C and Ctrl/Cmd+V copy and paste
+ * its value, as in Blender; answers whether `event` was one of those.
+ */
+export function fieldKey(event: Pick<globalThis.KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'preventDefault' | 'stopPropagation'>) {
+  if (event.altKey || event.shiftKey) return false
+  const field = hoveredField()
+  if (!field) return false
+  const command = event.metaKey || event.ctrlKey
+  let action: (() => void) | null = null
+  if (!command && event.key === 'Backspace') action = field.reset ?? (() => undefined)
+  else if (command && event.code === 'KeyC') action = field.copy
+  else if (command && event.code === 'KeyV') action = field.paste ?? (() => undefined)
+  if (!action) return false
+  event.preventDefault()
+  event.stopPropagation()
+  action()
+  return true
+}
+
+/** For tests: the value Ctrl/Cmd+C over a field took last. */
+declare global {
+  interface Window {
+    sceneFieldCopied?: () => string | null
+  }
+}
+if (import.meta.env.DEV && typeof window !== 'undefined') window.sceneFieldCopied = () => copied
 
 export type NumberBoxProps = {
   label: string
@@ -36,6 +100,7 @@ export type NumberBoxProps = {
    * the field shows no trailing zeros (0.05, not 0.050).
    */
   precision?: number
+  /** The unit shown after the value: `m` and `mm` take lengths, `°` angles (see `readNumber`). */
   unit?: string
   disabled?: boolean
   testId?: string
@@ -45,16 +110,25 @@ export type NumberBoxProps = {
   onChange: (value: number, final: boolean) => void
   /** A drag let go of with Escape: the value goes back to where it was. */
   onCancel?: () => void
+  /** Puts the field (and the vector it belongs to) back to its default; none when it has none. */
+  onReset?: () => void
+  /** Keys the property the field shows at the current frame; none when it is not animatable. */
+  onInsertKey?: () => void
 }
 
 /**
  * A boxed number field in the frame's look (kit-editor's `kui-number-field`) whose step governs
  * only dragging and the arrow keys: a typed value keeps its digits up to `precision` (kit-editor's
- * field rounds what is typed to the step). Dragging the label scrubs (Shift ten times, Alt a tenth),
- * reporting each value with `final: false`; Escape during a drag puts the value back. Enter and
- * Escape while typing give the keyboard back to the editor.
+ * field rounds what is typed to the step), and may carry units and arithmetic (`50cm`, `1+1`,
+ * `90deg`); an entry that does not read shakes the field and puts the value back, sending
+ * nothing. Dragging the label scrubs (Shift finely, Ctrl/Cmd in whole steps of ten), reporting each
+ * value with `final: false`; Escape during a drag puts the value back. A click on the label, or a
+ * double click, types into the field. Enter and Escape while typing give the keyboard back to the
+ * editor. The wheel does nothing over it. Over the field, Backspace resets it and Ctrl/Cmd+C and V
+ * copy and paste (`fieldKey`); the right button opens Copy, Paste, Reset to Default and Insert
+ * Keyframe.
  */
-export function NumberBox({ label, value, min, max, step, precision, unit, disabled, testId, grip, onChange, onCancel }: NumberBoxProps) {
+export function NumberBox({ label, value, min, max, step, precision, unit, disabled, testId, grip, onChange, onCancel, onReset, onInsertKey }: NumberBoxProps) {
   const digits = precision ?? decimalsOf(step)
   const format = (number: number) => {
     const fixed = number.toFixed(digits)
@@ -65,10 +139,12 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
     return clamp(Math.round(raw * factor) / factor, min, max)
   }
   const [text, setText] = useState(() => format(value))
+  const [invalid, setInvalid] = useState(0)
   const editing = useRef(false)
+  const input = useRef<HTMLInputElement>(null)
   const drag = useRef<{ pointerId: number; startX: number; startValue: number; last: number; sent: boolean; element: HTMLElement; escape: (event: globalThis.KeyboardEvent) => void } | null>(null)
-  const latest = useRef({ value, onChange, onCancel })
-  latest.current = { value, onChange, onCancel }
+  const latest = useRef({ value, onChange, onCancel, onReset, onInsertKey, disabled, format, resolve })
+  latest.current = { value, onChange, onCancel, onReset, onInsertKey, disabled, format, resolve }
 
   useEffect(() => {
     if (editing.current || drag.current) return
@@ -76,6 +152,58 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
     // `format` follows `digits` and `precision`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, digits, precision])
+
+  // The shake ends by itself.
+  useEffect(() => {
+    if (!invalid) return
+    const timer = window.setTimeout(() => setInvalid(0), 450)
+    return () => window.clearTimeout(timer)
+  }, [invalid])
+
+  /** Sets the value from text typed or pasted; answers whether it read. */
+  const apply = (raw: string) => {
+    const current = latest.current
+    const parsed = readNumber(raw, unit)
+    if (parsed === null) {
+      setText(current.format(current.value))
+      setInvalid(Date.now())
+      return false
+    }
+    const next = current.resolve(parsed)
+    setText(current.format(next))
+    if (next !== current.value) current.onChange(next, true)
+    return true
+  }
+
+  const actions = useRef<FieldActions | null>(null)
+  actions.current = {
+    label,
+    copy: () => {
+      const shown = latest.current.format(latest.current.value)
+      copied = shown
+      void navigator.clipboard?.writeText(shown).catch(() => undefined)
+    },
+    paste: disabled ? null : () => {
+      if (copied != null) apply(copied)
+    },
+    reset: disabled || !onReset ? null : () => latest.current.onReset?.(),
+    insertKey: disabled || !onInsertKey ? null : () => latest.current.onInsertKey?.(),
+  }
+  const self = useRef<FieldActions>({
+    get label() {
+      return actions.current?.label ?? ''
+    },
+    copy: () => actions.current?.copy(),
+    get paste() {
+      return actions.current?.paste ?? null
+    },
+    get reset() {
+      return actions.current?.reset ?? null
+    },
+    get insertKey() {
+      return actions.current?.insertKey ?? null
+    },
+  } as FieldActions)
 
   const endDrag = (cancelled: boolean) => {
     const current = drag.current
@@ -91,12 +219,22 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
     }
     setText(format(current.last))
     if (current.sent) change(current.last, true)
+    // A press on the label let go of without moving types into the field.
+    else if (!disabled) {
+      input.current?.focus()
+      input.current?.select()
+    }
   }
 
   const scrubbed = (event: PointerEvent<HTMLElement>, current: NonNullable<typeof drag.current>) => {
     const steps = (event.clientX - current.startX) / 2
-    const multiplier = event.shiftKey ? 10 : event.altKey ? 0.1 : 1
-    return resolve(current.startValue + steps * step * multiplier)
+    const raw = current.startValue + steps * step * (event.shiftKey ? 0.1 : 1)
+    // Ctrl or Cmd: whole steps of ten times the field's step (1 m, 10°, 1.0).
+    if (event.ctrlKey || event.metaKey) {
+      const coarse = step * 10
+      return resolve(Math.round(raw / coarse) * coarse)
+    }
+    return resolve(raw)
   }
 
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
@@ -129,14 +267,9 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
   }
 
   const commit = (raw: string) => {
-    const parsed = parse(unit && raw.trim().endsWith(unit) ? raw.trim().slice(0, -unit.length) : raw)
-    if (parsed === null) {
-      setText(format(value))
-      return
-    }
-    const next = resolve(parsed)
-    setText(format(next))
-    if (next !== value) onChange(next, true)
+    // An entry left as it is shows the value rounded for display: it changes nothing.
+    if (raw === format(value)) return
+    apply(raw)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (disabled || event.nativeEvent.isComposing) return
@@ -160,8 +293,23 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
     }
   }
 
+  const onContextMenu = (event: MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const detail: FieldMenuDetail = { at: { x: event.clientX, y: event.clientY }, actions: self.current }
+    window.dispatchEvent(new CustomEvent(FIELD_MENU_EVENT, { detail }))
+  }
+
   return (
-    <div className="kui-number-field" data-testid={testId}>
+    <div
+      className="kui-number-field"
+      data-testid={testId}
+      data-invalid={invalid ? 'true' : undefined}
+      ref={(element) => {
+        if (element) fields.set(element, self.current)
+      }}
+      onContextMenu={onContextMenu}
+    >
       <span
         className={grip ? 'kui-number-field-label scene-number-grip' : 'kui-number-field-label'}
         data-testid={testId ? `${testId}-label` : undefined}
@@ -171,10 +319,16 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => endDrag(true)}
+        onDoubleClick={() => {
+          if (disabled) return
+          input.current?.focus()
+          input.current?.select()
+        }}
       >
         {grip ? null : label}
       </span>
       <input
+        ref={input}
         className="kui-field kui-number-field-input"
         type="text"
         inputMode="decimal"
@@ -184,6 +338,7 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
         aria-valuemax={max}
         aria-valuenow={value}
         aria-valuetext={unit ? `${format(value)} ${unit}` : format(value)}
+        aria-invalid={invalid ? true : undefined}
         value={text}
         disabled={disabled}
         onChange={(event) => {
@@ -191,6 +346,7 @@ export function NumberBox({ label, value, min, max, step, precision, unit, disab
           editing.current = true
           setText(event.target.value)
         }}
+        onDoubleClick={(event) => event.currentTarget.select()}
         onKeyDown={onKeyDown}
         onBlur={() => {
           if (disabled || !editing.current) return

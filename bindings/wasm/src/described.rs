@@ -463,7 +463,9 @@ fn describe(id: &str) -> &'static str {
             "Gives the transform under way a key: X, Y or Z keeps it to an axis (Shift: a plane), digits type its value, G, R and S switch it."
         }
         "modal.wheel" => "Gives the transform under way the wheel: with proportional editing it resizes the radius; answers whether it took it.",
-        "modal.confirm" => "Ends the transform under way as it is now, as one undo step named after it (none when it changed nothing).",
+        "modal.confirm" => {
+            "Ends the transform under way as it is now, as one undo step named after it (none when it changed nothing); with auto-keying on (transform.set's autoKey), the moved objects' keys at the current frame are in that step."
+        }
         "modal.cancel" => {
             "Ends the modal under way and puts everything back as it was, leaving no undo step; Shift+D's copies and an extrusion's geometry stay (one step), a loop cut already cut stays in the middle."
         }
@@ -495,7 +497,7 @@ fn describe(id: &str) -> &'static str {
             "Turns X-ray on or off (`value`; the other way when left out): the viewport's surfaces show see-through and region selects take what is hidden too. View state: no undo step."
         }
         "transform.set" => {
-            "Sets the person's transform settings: the pivot point rotations and scales turn about, the orientation axis keys and the gizmo follow, snapping on or off and what it snaps to. View state: no undo step."
+            "Sets the person's transform settings: the pivot point rotations and scales turn about, the orientation axis keys and the gizmo follow, snapping on or off and what it snaps to, and auto-keying (a confirmed transform keys what it changed at the current frame). View state: no undo step."
         }
         "operation.get" => {
             "Answers the person's last operation (an added object, an edit-mode operation, a confirmed transform) with the values it ran with and its adjustable fields, or null once anything else happened."
@@ -692,7 +694,7 @@ fn output(id: &str) -> Option<Value> {
         }
         "view.toggleXray" => r#"{"type":"object","additionalProperties":true,"properties":{"xray":{"type":"boolean"}}}"#,
         "transform.set" => {
-            r#"{"type":"object","additionalProperties":true,"properties":{"pivot":{"type":"string"},"orientation":{"type":"string"},"snap":{"type":"boolean"},"snapTarget":{"type":"string"}}}"#
+            r#"{"type":"object","additionalProperties":true,"properties":{"pivot":{"type":"string"},"orientation":{"type":"string"},"snap":{"type":"boolean"},"snapTarget":{"type":"string"},"autoKey":{"type":"boolean"}}}"#
         }
         "presence.local" => {
             r#"{"type":"object","additionalProperties":true,"properties":{"selection":{"type":"array","items":{"type":"string"}},"viewport":{"type":"object","additionalProperties":true,"properties":{}}}}"#

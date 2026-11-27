@@ -267,6 +267,7 @@ impl SceneDocument {
             "orientation": editor.orientation.name(),
             "snap": editor.snap,
             "snapTarget": editor.snap_target.name(),
+            "autoKey": editor.auto_key,
             "gizmo": gizmo,
             // The selection's middle (world), and in edit mode the cursor in the edited object's
             // own space, for moving the selection to the cursor.
@@ -362,6 +363,7 @@ pub fn catalogue(doc: &SceneDocument) -> Vec<KitCommand> {
                 ("orientation", s::choice("Whose axes the axis keys and the gizmo follow (global)", &["global", "local", "normal", "view"])),
                 ("snap", s::boolean("Transforms snap (Ctrl inverts it while held); false")),
                 ("snapTarget", s::choice("What they snap to (increment)", &["increment", "vertex", "edge", "face"])),
+                ("autoKey", s::boolean("Auto-keying: a confirmed transform keys what it changed at the current frame, in its own undo step (false)")),
             ]),
         ),
     ];
@@ -451,6 +453,7 @@ fn settings(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
     let target = params::string(params, "snapTarget")?
         .map(|name| SnapTarget::parse(name).ok_or_else(|| bad("`snapTarget` must be increment, vertex, edge or face")))
         .transpose()?;
+    let auto_key = params::boolean(params, "autoKey")?;
     let before = doc.session.editor.clone();
     let editor = &mut doc.session.editor;
     if let Some(pivot) = pivot {
@@ -465,12 +468,15 @@ fn settings(doc: &mut SceneDocument, params: &Value) -> Result<Value, String> {
     if let Some(target) = target {
         editor.snap_target = target;
     }
+    if let Some(auto_key) = auto_key {
+        editor.auto_key = auto_key;
+    }
     if doc.session.editor != before {
         doc.touched();
     }
     let editor = &doc.session.editor;
     Ok(
-        json!({ "pivot": editor.pivot.name(), "orientation": editor.orientation.name(), "snap": editor.snap, "snapTarget": editor.snap_target.name() }),
+        json!({ "pivot": editor.pivot.name(), "orientation": editor.orientation.name(), "snap": editor.snap, "snapTarget": editor.snap_target.name(), "autoKey": editor.auto_key }),
     )
 }
 

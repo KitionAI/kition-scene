@@ -12,6 +12,7 @@ import { MODIFIERS_EN, MODIFIERS_PHRASES_ZH, MODIFIERS_ZH } from './ModifierStri
 import { ANIMATION_EN, ANIMATION_PHRASES_ZH, ANIMATION_ZH } from './AnimationStrings'
 import { NLA_EN, NLA_PHRASES_ZH, NLA_ZH } from './NlaStrings'
 import { CHROME_EN, CHROME_PHRASES_ZH, CHROME_ZH } from './ChromeStrings'
+import { FIELD_EN, FIELD_ZH } from './FieldStrings'
 
 /** The editor's own strings (`en-US` is required; others fall back to it). */
 const enUS: Catalog = {
@@ -1081,7 +1082,7 @@ const zhCN: Catalog = {
   groomingWith: '正在用{brush}梳理',
 }
 
-export const CATALOGS: Record<string, Catalog> = { 'en-US': { ...enUS, ...PHYSICS_EN, ...MODIFIERS_EN, ...ANIMATION_EN, ...NLA_EN, ...CHROME_EN }, 'zh-CN': { ...zhCN, ...PHYSICS_ZH, ...MODIFIERS_ZH, ...ANIMATION_ZH, ...NLA_ZH, ...CHROME_ZH } }
+export const CATALOGS: Record<string, Catalog> = { 'en-US': { ...enUS, ...PHYSICS_EN, ...MODIFIERS_EN, ...ANIMATION_EN, ...NLA_EN, ...CHROME_EN, ...FIELD_EN }, 'zh-CN': { ...zhCN, ...PHYSICS_ZH, ...MODIFIERS_ZH, ...ANIMATION_ZH, ...NLA_ZH, ...CHROME_ZH, ...FIELD_ZH } }
 
 /** Chinese names for the engine's English menus, command titles, and tool labels, and the panels'. */
 /** Adjust Last Operation's titles and field labels (the operations' parameter names). */

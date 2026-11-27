@@ -1446,3 +1446,41 @@
   padding: 6px 0;
   border-top: 1px solid var(--kit-border);
 }
+
+/* A number field whose entry did not read shakes and shows the value it kept (phase 8). */
+.kui-number-field[data-invalid='true'] {
+  animation: scene-field-shake 0.4s ease-in-out;
+  outline: 1px solid var(--kui-danger, #d9534f);
+}
+@keyframes scene-field-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kui-number-field[data-invalid='true'] { animation: none; }
+}
+
+/* A material shared by several objects: how many, beside its drop-down; a click copies it for this one. */
+.scene-material-users {
+  flex: none;
+  min-width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0 6px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.scene-row-value:has(.scene-material-users) {
+  display: flex;
+  align-items: center;
+}
+/* No material yet: an empty swatch that makes one. */
+.scene-swatch-empty > span {
+  background: repeating-linear-gradient(45deg, transparent 0 4px, color-mix(in srgb, var(--kit-text) 12%, transparent) 4px 8px);
+}
+
+/* The timeline's auto-keying button, red while on (Blender's record dot). */
+.scene-timeline-autokey[data-on='true'] {
+  color: var(--kui-danger, #d9534f);
+}

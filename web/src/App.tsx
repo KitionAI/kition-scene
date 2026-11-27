@@ -49,7 +49,9 @@ import { PointerMenu, pointerPoint, type PointerMenuRow, type PointerMenuState }
 import { toggleAdjustLast } from './AdjustLast'
 import { ModalKeys, useModalActive } from './ModalUi'
 import { RENAME_EVENT } from './SidePanel'
-import { focusEditor } from './NumberBox'
+import { FIELD_MENU_EVENT, fieldKey, focusEditor, type FieldMenuDetail } from './NumberBox'
+import { playback, requestPlayback, spaceTap } from './playback'
+import { runKeyed } from './keying'
 import { viewMenuRows, viewNavigator } from './navigator'
 import { orientationMenuRows, pivotMenuRows, selectionToCursor, snapMenuRows } from './TransformControls'
 import { ViewportHeader } from './ViewportHeader'
@@ -411,6 +413,7 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     const keyDown = (event: globalThis.KeyboardEvent) => {
       if (event.target !== document.body && event.target !== document.documentElement) return
       if (toolGesture.held || modalTransform.active) return
+      if (fieldKey(event)) return
       if (latestNavigation.current(event)) {
         document.querySelector<HTMLElement>('.kui-app')?.focus({ preventScroll: true })
         return
@@ -445,6 +448,11 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       return
     }
     const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    // Over a number field: Backspace resets it, Ctrl/Cmd+C and V copy and paste its value.
+    if (!typing && state?.mode !== 'textEdit' && fieldKey(event)) return
+    // A text's edit mode types spaces.
+    if (!typing && state?.mode !== 'textEdit' && playbackKey(event)) return
+    if (!typing && keyingKey(event)) return
     if (!typing && selectKey(event)) return
     if (!typing && navigationKey(event)) return
     if (!typing && transformKey(event)) return
@@ -505,6 +513,51 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   }
   const frameKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
     if (modalTransform.active && ['Shift', 'Control', 'Meta'].includes(event.key)) modalTransform.modifiers(event.shiftKey, event.ctrlKey || event.metaKey)
+    const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement
+    if (event.code === 'Space' && !typing && state?.mode !== 'textEdit') {
+      // No click on a focused button. A tap plays or pauses; a hold was the frame's hand tool.
+      event.preventDefault()
+      if (spaceTap.keyUp(event.timeStamp)) requestPlayback('toggle')
+    }
+  }
+  /**
+   * Space and Escape for playback: a short tap of Space (no pointer press while it is down) plays
+   * or pauses; the frame still gets the key for its hold-to-pan hand. Escape during playback stops
+   * it at the frame it began at. Answers whether the key was taken.
+   */
+  const playbackKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+    if (event.code === 'Space' && plainKey) {
+      // No scrolling and no click on a focused button; the frame's own listener still hears it.
+      event.preventDefault()
+      spaceTap.keyDown(event.repeat, event.timeStamp)
+      return true
+    }
+    if (event.key === 'Escape' && plainKey && playback.playing) {
+      event.preventDefault()
+      event.stopPropagation()
+      requestPlayback('stop')
+      return true
+    }
+    return false
+  }
+  /**
+   * K in object mode: the keying sets at the pointer (Blender's Insert Keyframe with a keying
+   * set); in edit mode K stays the knife. Answers whether the key was taken.
+   */
+  const keyingKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const plainKey = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+    if (event.code !== 'KeyK' || !plainKey || host.readOnly || state?.mode !== 'object' || !state.selected.length) return false
+    event.preventDefault()
+    event.stopPropagation()
+    const { builtins, sets } = state.animation.keyingSets
+    const key = (name: string) => () => void editor.run('animation.insertKey', { keyingSet: name }).finally(() => focusEditor())
+    openMenu(t('keyingMenu'), 'scene-keying-menu', [
+      ...builtins.map((name): PointerMenuRow => ({ id: `ks-${name}`, label: t(`ks_${name}`), onSelect: key(name) })),
+      ...(sets.length ? ['separator' as const] : []),
+      ...sets.map((set, index): PointerMenuRow => ({ id: `set-${index}`, label: set.name, onSelect: key(set.name) })),
+    ])
+    return true
   }
   /**
    * The keys that start a transform where the pointer is: G, R and S (the tool they pick is
@@ -529,7 +582,8 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
       event.preventDefault()
       event.stopPropagation()
       const cleared = kind === 'move' ? { location: [0, 0, 0] } : kind === 'rotate' ? { rotation: [0, 0, 0] } : { scale: [1, 1, 1] }
-      void editor.run('object.transform', cleared)
+      // With auto-keying on, the cleared property is keyed in the same step.
+      void runKeyed(editor, state?.transform.autoKey ?? false, 'object.transform', cleared, state?.selected ?? [], Object.keys(cleared))
       return true
     }
     return false
@@ -698,6 +752,22 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
 
   // A menu at the pointer (X, Delete, M, P in a mesh's edit mode).
   const [popup, setPopup] = useState<PointerMenuState | null>(null)
+  // A number field's right button: Copy, Paste, Reset to Default, Insert Keyframe.
+  useEffect(() => {
+    const open = (event: Event) => {
+      const { at, actions } = (event as CustomEvent<FieldMenuDetail>).detail
+      const command = isMac() ? 'Cmd' : 'Ctrl'
+      const rows: PointerMenuRow[] = [
+        { id: 'copy', label: t('fieldCopy'), shortcut: `${command}+C`, onSelect: () => actions.copy() },
+        { id: 'paste', label: t('fieldPaste'), shortcut: `${command}+V`, disabled: !actions.paste, onSelect: () => actions.paste?.() },
+        { id: 'reset', label: t('fieldReset'), shortcut: 'Backspace', disabled: !actions.reset, onSelect: () => actions.reset?.() },
+      ]
+      if (actions.insertKey) rows.push('separator', { id: 'insertKey', label: t('fieldInsertKey'), onSelect: () => actions.insertKey?.() })
+      setPopup({ at, title: actions.label, testId: 'scene-field-menu', rows })
+    }
+    window.addEventListener(FIELD_MENU_EVENT, open)
+    return () => window.removeEventListener(FIELD_MENU_EVENT, open)
+  }, [t])
   const openMenu = (title: string, testId: string, rows: PointerMenuRow[]) => {
     const viewport = document.querySelector('[data-testid="scene-viewport"]')
     setPopup({ at: pointerPoint(viewport), title, testId, rows })

@@ -19,6 +19,7 @@ import {
   useReadOnly,
 } from '@kition/sdk/editor'
 import { NumberBox, focusEditor } from './NumberBox'
+import { runAsOne, runKeyed, uniqueName } from './keying'
 import { MenuRows, type PointerMenuRow } from './PointerMenu'
 import { TextureSlot } from './TextureSlot'
 import { WorldImageSlot } from './WorldImage'
@@ -33,10 +34,15 @@ import { ParticlesSection } from './Particles'
 import { MultiresFields, SculptSections } from './SculptPanel'
 import { GeometryNodesFields } from './NodeEditor'
 import { CompositingRows } from './Compositor'
-import { childrenOf, linearHex, type Modifier, type SceneInfo, type SceneObject, type Vec3 } from './scene'
+import { childrenOf, linearHex, type Modifier, type SceneInfo, type SceneMaterial, type SceneObject, type Vec3 } from './scene'
 
 const TYPE_ICONS: Record<SceneObject['type'], IconComponent> = { mesh: BoxIcon, light: LightbulbIcon, camera: CameraIcon, empty: Move3dIcon, armature: WaypointsIcon, curve: SplineIcon, text: TypeIcon, lattice: Grid2x2Icon }
 const round = (value: number, digits = 4) => Math.round(value * 10 ** digits) / 10 ** digits
+/**
+ * What Reset to Default puts an object's transform back to: what Alt+G, Alt+R and Alt+S clear it
+ * to (the engine's identity transform, as Blender's).
+ */
+const CLEARED: { location: Vec3; rotation: Vec3; scale: Vec3 } = { location: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
 /** Whether a property is keyed on this frame, animated, or neither (the field's tint). */
 const keyState = (object: SceneObject, property: string) => (object.keyedNow.includes(property) ? 'keyed' : object.animated.includes(property) ? 'animated' : undefined)
 
@@ -68,7 +74,7 @@ export function Row({ label, children }: { label: string; children: ReactNode })
  * hears the draft while the label is dragged (null when the drag ends without a value). `precision`
  * keeps typed values to that many digits, whatever the step (which drags and the arrow keys use).
  */
-export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max = 1e6, step = 0.01, precision, unit, testId, track }: { label: string; value: number; onCommit: (value: number) => void; onPreview?: (value: number | null) => void; min?: number; max?: number; step?: number; precision?: number; unit?: string; testId?: string; track?: boolean }) {
+export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max = 1e6, step = 0.01, precision, unit, testId, track, defaultValue, onReset, onInsertKey }: { label: string; value: number; onCommit: (value: number) => void; onPreview?: (value: number | null) => void; min?: number; max?: number; step?: number; precision?: number; unit?: string; testId?: string; track?: boolean; defaultValue?: number | null; onReset?: () => void; onInsertKey?: () => void }) {
   const readOnly = useReadOnly()
   const rowLabel = useContext(RowLabel)
   const [draft, setDraft] = useState<number | null>(null)
@@ -113,8 +119,25 @@ export function NumberInput({ label, value, onCommit, onPreview, min = -1e6, max
       grip={rowLabel === label}
       onChange={change}
       onCancel={cancel}
+      onReset={onReset ?? (defaultValue != null ? () => Math.abs(value - defaultValue) > 1e-9 && onCommit(defaultValue) : undefined)}
+      onInsertKey={onInsertKey}
     />
   )
+}
+
+/**
+ * The defaults the engine describes, by command and parameter (a description with the value in
+ * brackets, `Index of refraction (1.5)`), or null: a field resets to nothing else.
+ */
+export function useDescribedDefaults() {
+  const { commands } = useKitEditor()
+  return (command: string, key: string): number | null => {
+    // The engine's schemas are the parameters by name (a JSON schema's `properties` too).
+    const schema = commands.find((item) => item.id === command)?.schema as Record<string, { description?: string }> & { properties?: Record<string, { description?: string }> } | undefined
+    const description = (schema?.properties ?? schema)?.[key]?.description ?? ''
+    const found = /\((-?\d+(?:\.\d+)?)\)/.exec(description)
+    return found ? Number(found[1]) : null
+  }
 }
 
 /**
@@ -159,7 +182,9 @@ function usePreview(command: string) {
 }
 
 /** X, Y, and Z of one vector; a change sends the whole vector, a drag of a label previews it. */
-export function VectorRow({ label, value, unit, step, precision, onCommit, onPreview, testId, animated }: { label: string; value: Vec3; unit?: string; step?: number; precision?: number; onCommit: (value: Vec3) => void; onPreview?: (value: Vec3 | null) => void; testId: string; animated?: 'keyed' | 'animated' }) {
+export function VectorRow({ label, value, unit, step, precision, onCommit, onPreview, testId, animated, defaults, onInsertKey }: { label: string; value: Vec3; unit?: string; step?: number; precision?: number; onCommit: (value: Vec3) => void; onPreview?: (value: Vec3 | null) => void; testId: string; animated?: 'keyed' | 'animated'; defaults?: Vec3; onInsertKey?: () => void }) {
+  // Backspace over one of the three resets all three (Blender's reset of a vector).
+  const reset = defaults && value.some((item, index) => Math.abs(item - defaults[index]) > 1e-9) ? () => onCommit([...defaults]) : defaults ? () => undefined : undefined
   return (
     <Row label={label}>
       <div className="scene-vector" data-animated={animated} data-testid={animated ? `${testId}-${animated}` : undefined}>
@@ -180,6 +205,8 @@ export function VectorRow({ label, value, unit, step, precision, onCommit, onPre
               testId={`${testId}-${axis.toLowerCase()}`}
               onPreview={onPreview ? (next) => onPreview(next == null ? null : vector(next)) : undefined}
               onCommit={(next) => onCommit(vector(next))}
+              onReset={reset}
+              onInsertKey={onInsertKey}
             />
           )
         })}
@@ -485,9 +512,12 @@ function worldLinear(object: SceneObject, objects: SceneObject[]): Matrix3 {
  * when changed (one Move Elements step).
  */
 function ItemSection({ object, info }: { object: SceneObject; info: SceneInfo }) {
-  const { phrase: p, t } = useKitEditor()
+  const editor = useKitEditor()
+  const { phrase: p, t } = editor
   const run = useRun()
   const objects = [object.id]
+  const transform = (values: Record<string, unknown>) => void runKeyed(editor, info.transform.autoKey, 'object.transform', { objects, ...values }, objects, Object.keys(values))
+  const keyed = (property: string) => () => run('animation.insertKey', { objects, properties: [property] })
   if (info.mode === 'edit') {
     const median = info.transform.median
     return (
@@ -516,9 +546,9 @@ function ItemSection({ object, info }: { object: SceneObject; info: SceneInfo })
   // In object mode the Object section below has the same transform; Item starts closed there.
   return (
     <PanelSection title={p('Item')} defaultOpen={false} testId="scene-item">
-      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => run('object.transform', { objects, location })} testId="scene-item-location" />
-      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => run('object.transform', { objects, rotation })} testId="scene-item-rotation" />
-      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => run('object.transform', { objects, scale })} testId="scene-item-scale" />
+      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => transform({ location })} testId="scene-item-location" defaults={CLEARED.location} onInsertKey={keyed('location')} />
+      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => transform({ rotation })} testId="scene-item-rotation" defaults={CLEARED.rotation} onInsertKey={keyed('rotation')} />
+      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => transform({ scale })} testId="scene-item-scale" defaults={CLEARED.scale} onInsertKey={keyed('scale')} />
       {dimensions ? (
         <VectorRow
           label={t('dimensions')}
@@ -529,7 +559,7 @@ function ItemSection({ object, info }: { object: SceneObject; info: SceneInfo })
           onCommit={(next) => {
             // A size along an axis the object has none along (a plane's depth) stays as it is.
             const scale = object.scale.map((value, index) => (Math.abs(dimensions[index]) > 1e-9 ? (value * next[index]) / dimensions[index] : value)) as Vec3
-            run('object.transform', { objects, scale })
+            transform({ scale })
           }}
           testId="scene-item-dimensions"
         />
@@ -546,10 +576,12 @@ function ObjectSection({ object, info }: { object: SceneObject; info: SceneInfo 
   const run = useRun()
   const objects = [object.id]
   const preview = usePreview('object.previewTransform')
+  const editor = useKitEditor()
   const transform = (values: Record<string, unknown>) => {
     preview.settle()
-    run('object.transform', { objects, ...values })
+    void runKeyed(editor, info.transform.autoKey, 'object.transform', { objects, ...values }, objects, Object.keys(values))
   }
+  const keyed = (property: string) => () => run('animation.insertKey', { objects, properties: [property] })
   const previewing = (key: 'location' | 'rotation' | 'scale') => (vector: Vec3 | null) => preview.show(vector ? { objects, [key]: vector } : null)
   return (
     <PanelSection title={p('Object')} testId="scene-object">
@@ -569,9 +601,9 @@ function ObjectSection({ object, info }: { object: SceneObject; info: SceneInfo 
           data-testid="scene-name"
         />
       </Row>
-      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => transform({ location })} onPreview={previewing('location')} testId="scene-location" animated={keyState(object, 'location')} />
-      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => transform({ rotation })} onPreview={previewing('rotation')} testId="scene-rotation" animated={keyState(object, 'rotation')} />
-      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => transform({ scale })} onPreview={previewing('scale')} testId="scene-scale" animated={keyState(object, 'scale')} />
+      <VectorRow label={t('location')} value={object.location} unit="m" step={0.1} precision={3} onCommit={(location) => transform({ location })} onPreview={previewing('location')} testId="scene-location" animated={keyState(object, 'location')} defaults={CLEARED.location} onInsertKey={readOnly ? undefined : keyed('location')} />
+      <VectorRow label={t('rotation')} value={object.rotation} unit="°" step={1} precision={2} onCommit={(rotation) => transform({ rotation })} onPreview={previewing('rotation')} testId="scene-rotation" animated={keyState(object, 'rotation')} defaults={CLEARED.rotation} onInsertKey={readOnly ? undefined : keyed('rotation')} />
+      <VectorRow label={t('scale')} value={object.scale} step={0.1} precision={3} onCommit={(scale) => transform({ scale })} onPreview={previewing('scale')} testId="scene-scale" animated={keyState(object, 'scale')} defaults={CLEARED.scale} onInsertKey={readOnly ? undefined : keyed('scale')} />
       {object.dimensions ? (
         <Row label={t('dimensions')}>
           <span className="scene-readout tabular-nums">{object.dimensions.map((value) => `${round(value, 3)} m`).join(' × ')}</span>
@@ -860,11 +892,59 @@ function ModifiersSection({ object, info }: { object: SceneObject; info: SceneIn
   )
 }
 
+/**
+ * A copy of `material` (its settings, images and shader) for `object` alone, as one undo step:
+ * Blender's user count button beside a material shared by several objects. Answers the steps.
+ */
+async function singleUserSteps(material: SceneMaterial, object: number, info: SceneInfo, doc: { invoke: <T>(name: string, ...args: unknown[]) => Promise<T> } | null) {
+  const name = uniqueName(material.name, info.materials.map((item) => item.name))
+  const settings: Record<string, unknown> = {}
+  for (const key of ['emission', 'emissionStrength', 'normalStrength', 'transmission', 'ior', 'alphaMode', 'alphaCutoff', 'shader'] as const) {
+    const value = (material as Record<string, unknown>)[key]
+    if (value !== undefined && value !== null) settings[key] = value
+  }
+  const steps: Array<{ command: string; params: Record<string, unknown> }> = [
+    { command: 'material.new', params: { name, baseColor: [...material.baseColor], metallic: material.metallic, roughness: material.roughness, assign: false } },
+  ]
+  if (Object.keys(settings).length) steps.push({ command: 'material.set', params: { material: name, ...settings } })
+  for (const slot of ['baseColor', 'metallicRoughness', 'normal'] as const) {
+    const hash = material[`${slot}Texture`]
+    if (!hash || !doc) continue
+    const bytes = await doc.invoke<Uint8Array>('imageBytes', hash)
+    const image = info.images.find((item) => item.hash === hash)
+    steps.push({ command: 'material.setTexture', params: { material: name, slot, base64: encodeBytes(bytes), name: image?.name ?? `${slot}.png` } })
+  }
+  steps.push({ command: 'material.assign', params: { material: name, objects: [object] } })
+  return steps
+}
+
+function encodeBytes(bytes: Uint8Array) {
+  let binary = ''
+  for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+  return btoa(binary)
+}
+
 function MaterialSection({ object, info }: { object: SceneObject; info: SceneInfo }) {
-  const { phrase: p, t } = useKitEditor()
+  const editor = useKitEditor()
+  const { phrase: p, t } = editor
   const readOnly = useReadOnly()
   const run = useRun()
   const material = info.materials.find((item) => item.id === object.material) ?? null
+  const users = material?.users ?? 0
+  const described = useDescribedDefaults()
+  const singleUser = async () => {
+    if (!material) return
+    const steps = await singleUserSteps(material, object.id, info, editor.session.doc as never)
+    await runAsOne(editor, p('Material'), steps)
+  }
+  // A mesh with no material: its colour swatch makes one for it alone (Material, or Material.001…).
+  const newFor = () => {
+    const name = uniqueName('Material', info.materials.map((item) => item.name))
+    void runAsOne(editor, p('Material'), [
+      { command: 'material.new', params: { name, assign: false } },
+      { command: 'material.assign', params: { material: name, objects: [object.id] } },
+    ])
+  }
   const choices: Array<readonly [string, string]> = [['none', t('noMaterial')], ...info.materials.map((item) => [String(item.id), item.name] as const), ['new', t('newMaterial')]]
   return (
     <PanelSection title={p('Material')} testId="scene-material">
@@ -883,7 +963,28 @@ function MaterialSection({ object, info }: { object: SceneObject; info: SceneInf
             else run('material.assign', { material: Number(value), objects: [object.id] })
           }}
         />
+        {material && users > 1 ? (
+          <button
+            type="button"
+            className="kui-field scene-material-users"
+            disabled={readOnly}
+            title={t('materialUsers', { count: users })}
+            aria-label={t('materialUsers', { count: users })}
+            onClick={() => void singleUser()}
+            data-testid="scene-material-users"
+          >
+            {users}
+          </button>
+        ) : null}
       </Row>
+      {!material ? (
+        <Row label={t('baseColor')}>
+          <button type="button" className="scene-swatch scene-swatch-empty" disabled={readOnly} aria-label={t('materialAddColor')} title={t('materialAddColor')} onClick={newFor} data-testid="scene-material-add-color">
+            <span />
+            <code>{t('newMaterial')}</code>
+          </button>
+        </Row>
+      ) : null}
       {material ? (
         <>
           <ColorRow label={t('baseColor')} value={material.baseColor} onCommit={(baseColor) => run('material.set', { material: material.id, baseColor })} testId="scene-base-color" />
@@ -915,7 +1016,7 @@ function MaterialSection({ object, info }: { object: SceneObject; info: SceneInf
           </Row>
           <div className="scene-track">
             <NumberInput label={t('transmission')} value={material.transmission ?? 0} min={0} max={1} step={0.01} track onCommit={(transmission) => run('material.set', { material: material.id, transmission })} testId="scene-transmission" />
-            <NumberInput label={t('ior')} value={material.ior ?? 1.5} min={1} max={10} step={0.01} onCommit={(ior) => run('material.set', { material: material.id, ior })} testId="scene-ior" />
+            <NumberInput label={t('ior')} value={material.ior ?? 1.5} min={1} max={10} step={0.01} defaultValue={described('material.set', 'ior')} onCommit={(ior) => run('material.set', { material: material.id, ior })} testId="scene-ior" />
           </div>
           <Row label={t('alpha')}>
             <Choice
@@ -945,7 +1046,7 @@ function MaterialSection({ object, info }: { object: SceneObject; info: SceneInf
                 testId="scene-alpha"
               />
               {material.alphaMode === 'clip' ? (
-                <NumberInput label={t('alphaCutoff')} value={material.alphaCutoff ?? 0.5} min={0} max={1} step={0.01} onCommit={(alphaCutoff) => run('material.set', { material: material.id, alphaCutoff })} testId="scene-alpha-cutoff" />
+                <NumberInput label={t('alphaCutoff')} value={material.alphaCutoff ?? 0.5} min={0} max={1} step={0.01} defaultValue={described('material.set', 'alphaCutoff')} onCommit={(alphaCutoff) => run('material.set', { material: material.id, alphaCutoff })} testId="scene-alpha-cutoff" />
               ) : null}
             </div>
           ) : null}
@@ -981,7 +1082,7 @@ function LightSection({ object }: { object: SceneObject }) {
       </Row>
       <ColorRow label={t('color')} value={light.color} onCommit={(color) => run('light.set', { ...target, color })} testId="scene-light-color" />
       <Row label={t(light.kind === 'sun' ? 'strength' : 'power')}>
-        <NumberInput label={t('power')} value={light.power} min={0} max={1e6} step={light.kind === 'sun' ? 0.1 : 10} unit={light.kind === 'sun' ? 'W/m²' : 'W'} onCommit={(power) => run('light.set', { ...target, power })} testId="scene-light-power" />
+        <NumberInput label={t('power')} value={light.power} min={0} max={1e6} step={light.kind === 'sun' ? 0.1 : 10} unit={light.kind === 'sun' ? 'W/m²' : 'W'} onCommit={(power) => run('light.set', { ...target, power })} onInsertKey={readOnly ? undefined : () => run('animation.insertKey', { objects: [object.id], properties: ['power'] })} testId="scene-light-power" />
       </Row>
       {light.kind === 'spot' ? (
         <Row label={t('spotSize')}>
@@ -996,6 +1097,7 @@ function CameraSection({ object, info }: { object: SceneObject; info: SceneInfo 
   const { phrase: p, t } = useKitEditor()
   const readOnly = useReadOnly()
   const run = useRun()
+  const described = useDescribedDefaults()
   const camera = object.camera
   if (!camera) return null
   const target = { object: object.id }
@@ -1019,7 +1121,7 @@ function CameraSection({ object, info }: { object: SceneObject; info: SceneInfo 
         </Row>
       ) : (
         <Row label={t('lens')}>
-          <NumberInput label={t('lens')} value={camera.lens} min={1} max={5000} step={1} unit="mm" onCommit={(lens) => run('camera.set', { ...target, lens })} testId="scene-camera-lens" />
+          <NumberInput label={t('lens')} value={camera.lens} min={1} max={5000} step={1} unit="mm" onCommit={(lens) => run('camera.set', { ...target, lens })} onInsertKey={readOnly ? undefined : () => run('animation.insertKey', { objects: [object.id], properties: ['lens'] })} testId="scene-camera-lens" />
         </Row>
       )}
       <Row label={t('sensorFit')}>
@@ -1064,9 +1166,9 @@ function CameraSection({ object, info }: { object: SceneObject; info: SceneInfo 
                 />
               </Row>
               <div className="scene-track">
-                <NumberInput label={t('fStop')} value={camera.fStop ?? 2.8} min={0.01} max={1000} step={0.1} onCommit={(fStop) => run('camera.set', { ...target, fStop })} testId="scene-fstop" />
+                <NumberInput label={t('fStop')} defaultValue={described('camera.set', 'fStop')} value={camera.fStop ?? 2.8} min={0.01} max={1000} step={0.1} onCommit={(fStop) => run('camera.set', { ...target, fStop })} testId="scene-fstop" />
                 {camera.focusObject == null ? (
-                  <NumberInput label={t('focusDistance')} value={camera.focusDistance ?? 10} min={0.001} max={1e6} step={0.1} unit="m" onCommit={(focusDistance) => run('camera.set', { ...target, focusDistance })} testId="scene-focus-distance" />
+                  <NumberInput label={t('focusDistance')} defaultValue={described('camera.set', 'focusDistance')} value={camera.focusDistance ?? 10} min={0.001} max={1e6} step={0.1} unit="m" onCommit={(focusDistance) => run('camera.set', { ...target, focusDistance })} testId="scene-focus-distance" />
                 ) : null}
               </div>
               <div className="scene-track">
@@ -1083,8 +1185,8 @@ function CameraSection({ object, info }: { object: SceneObject; info: SceneInfo 
                   }}
                   testId="scene-bokeh-blades"
                 />
-                <NumberInput label={t('bladeRotation')} value={camera.bladeRotation ?? 0} min={-360} max={360} step={1} unit="°" onCommit={(bladeRotation) => run('camera.set', { ...target, bladeRotation })} testId="scene-bokeh-rotation" />
-                <NumberInput label={t('bokehRatio')} value={camera.ratio ?? 1} min={0.01} max={100} step={0.05} onCommit={(ratio) => run('camera.set', { ...target, ratio })} testId="scene-bokeh-ratio" />
+                <NumberInput label={t('bladeRotation')} defaultValue={described('camera.set', 'bladeRotation')} value={camera.bladeRotation ?? 0} min={-360} max={360} step={1} unit="°" onCommit={(bladeRotation) => run('camera.set', { ...target, bladeRotation })} testId="scene-bokeh-rotation" />
+                <NumberInput label={t('bokehRatio')} defaultValue={described('camera.set', 'ratio')} value={camera.ratio ?? 1} min={0.01} max={100} step={0.05} onCommit={(ratio) => run('camera.set', { ...target, ratio })} testId="scene-bokeh-ratio" />
               </div>
             </>
           ) : null}
@@ -1105,6 +1207,7 @@ function SceneSection({ info }: { info: SceneInfo }) {
   const { phrase: p, t } = useKitEditor()
   const readOnly = useReadOnly()
   const run = useRun()
+  const described = useDescribedDefaults()
   const cameras = info.objects.filter((object) => object.type === 'camera')
   const shaderGroups = info.nodeGroups.filter((group) => group.tree === 'shader')
   return (
@@ -1131,7 +1234,7 @@ function SceneSection({ info }: { info: SceneInfo }) {
           {info.render.aoDistance != null ? (
             <NumberInput label={t('aoDistance')} value={info.render.aoDistance} min={0.001} max={1000} step={0.05} unit="m" onCommit={(aoDistance) => run('render.set', { aoDistance })} testId="scene-ao-distance" />
           ) : null}
-          <NumberInput label={t('aoStrength')} value={info.render.aoStrength} min={0} max={4} step={0.05} onCommit={(aoStrength) => run('render.set', { aoStrength })} testId="scene-ao-strength" />
+          <NumberInput label={t('aoStrength')} defaultValue={described('render.set', 'aoStrength')} value={info.render.aoStrength} min={0} max={4} step={0.05} onCommit={(aoStrength) => run('render.set', { aoStrength })} testId="scene-ao-strength" />
         </div>
       ) : null}
       <Row label={t('viewTransform')}>
@@ -1167,14 +1270,14 @@ function SceneSection({ info }: { info: SceneInfo }) {
         />
       </Row>
       <Row label={t('exposure')}>
-        <NumberInput label={t('exposure')} value={info.render.exposure} min={-32} max={32} step={0.1} onCommit={(exposure) => run('render.set', { exposure })} testId="scene-exposure" />
+        <NumberInput label={t('exposure')} defaultValue={described('render.set', 'exposure')} value={info.render.exposure} min={-32} max={32} step={0.1} onCommit={(exposure) => run('render.set', { exposure })} testId="scene-exposure" />
       </Row>
       <Row label={t('motionBlur')}>
         <Checkbox label={t('motionBlurOn')} checked={info.render.motionBlur} disabled={readOnly} onChange={(motionBlur) => run('render.set', { motionBlur })} testId="scene-motion-blur" />
       </Row>
       {info.render.motionBlur ? (
         <div className="scene-track">
-          <NumberInput label={t('shutter')} value={info.render.shutter} min={0.01} max={100} step={0.05} onCommit={(shutter) => run('render.set', { shutter })} testId="scene-shutter" />
+          <NumberInput label={t('shutter')} defaultValue={described('render.set', 'shutter')} value={info.render.shutter} min={0.01} max={100} step={0.05} onCommit={(shutter) => run('render.set', { shutter })} testId="scene-shutter" />
           <Choice
             label={t('shutterPosition')}
             quiet

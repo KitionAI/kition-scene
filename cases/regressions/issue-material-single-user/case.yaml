@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-material-single-user
+feature: scene.editor.fields-animation
+intent: >-
+  A material several objects share shows how many beside its drop-down; a click gives the active
+  object a copy of its own (Material.001, with the same settings), one undo step, the others keep
+  the shared one. A mesh with no material shows an empty colour swatch whose click makes a
+  material for it, one step. Before, a copy's colour changed every object's and a new mesh needed
+  Material ▸ New Material first.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, A12 (plan scene-usable-by-hand, phase 8)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/fields.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/fields.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

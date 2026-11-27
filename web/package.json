@@ -19,6 +19,7 @@
     "test:gizmo": "node tests/gizmo.mjs chromium && node tests/gizmo.mjs webkit",
     "test:chrome": "node tests/chrome.mjs chromium && node tests/chrome.mjs webkit",
     "test:select": "node tests/select.mjs chromium && node tests/select.mjs webkit",
+    "test:fields": "node tests/fields.mjs chromium && node tests/fields.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },
   "dependencies": {

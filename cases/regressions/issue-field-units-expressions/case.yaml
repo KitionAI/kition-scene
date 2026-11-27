@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-field-units-expressions
+feature: scene.editor.fields-animation
+intent: >-
+  A number field reads units and arithmetic: 50cm, 2mm, 1.5m, 1m 50cm and 2 + 2mm in a metres
+  field, 45deg and 1rad in a degrees field, 1+1, 2*3, 1/3 and brackets; a bare number is in the
+  field's unit. An entry that does not read (abc, 1+, 45deg in a length) shakes the field, shows
+  its value again and sends no command. The wheel over a field changes nothing; a label drag goes
+  in whole steps with Ctrl/Cmd and finely with Shift; a double click on the label types into the
+  field. Before, 50cm and 1+1 were dropped without a word.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N17 (plan scene-usable-by-hand, phase 8)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/fields.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/fields.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-field-hover-menu
+feature: scene.editor.fields-animation
+intent: >-
+  Over a number field Backspace resets it (the location, rotation or scale vector together; other
+  fields to the default the engine's command describes, such as an index of refraction of 1.5) and
+  deletes nothing, and Ctrl/Cmd+C and Ctrl/Cmd+V copy one field's value into another; the right
+  button opens Copy, Paste, Reset to Default and, on an animatable field, Insert Keyframe, which
+  keys that property only. Before, the right button and these keys did nothing over a field.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N17 (plan scene-usable-by-hand, phase 8)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/fields.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/fields.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

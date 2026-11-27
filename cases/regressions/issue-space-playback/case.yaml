@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-space-playback
+feature: scene.editor.fields-animation
+intent: >-
+  A short tap of Space plays and pauses the timeline (a hold, the frame's hand tool, does not);
+  Escape during playback stops it at the frame it began at; the arrows step a frame, Shift and an
+  arrow go to the start or the end, up and down jump between keys; I keys location, rotation and
+  scale with no menu, and K in object mode offers the keying sets at the pointer. Before, Space did
+  nothing and only the play button played.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N18 (plan scene-usable-by-hand, phase 8)
+  license: owned
+input: []
+steps:
+  - exec: { cmd: [node, web/tests/fields.mjs, chromium] }
+  - exec: { cmd: [node, web/tests/fields.mjs, webkit] }
+expected:
+  - { actual: "out:steps", compare: exit, value: 0 }
+tags: [browser]
+requires: [chromium, webkit]
+since: "2026-11-26"
+timeout_s: 300

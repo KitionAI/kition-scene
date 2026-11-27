@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-auto-key
+feature: scene.editor.fields-animation
+intent: >-
+  Auto-keying is the person's view state (transform.set's autoKey, the timeline's record button):
+  with it on, a confirmed transform keys what it changed at the current frame in its own undo step
+  (a move the location only), and one undo takes the transform and its keys back; with it off,
+  nothing is keyed. Before, there was no auto-keying.
+layer: gate
+source:
+  kind: probe
+  from: kition-plan kit-docs/scene/walkthrough/findings.md, N18 (plan scene-usable-by-hand, phase 8)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-scene-kit
+      test: modal
+      filter: auto_keying_keys_a_confirmed_transform_in_its_own_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 300

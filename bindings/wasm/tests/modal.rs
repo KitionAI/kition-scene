@@ -277,3 +277,38 @@ fn a_tool_press_runs_the_transform_until_the_release() {
     assert!((turned.abs() - 45.0).abs() < 1.0, "a quarter of the way round the pivot turns 45° about the view's axis ({turned})");
     assert_eq!(doc.inspect().unwrap()["selection"]["objects"].as_array().unwrap().len(), 1, "the release selected nothing");
 }
+
+/// Auto-keying (plan scene-usable-by-hand, phase 8): with the timeline's record button on, a
+/// confirmed transform keys what it changed at the current frame in its own step; one undo takes
+/// the transform and its keys back; with it off, nothing is keyed.
+#[test]
+fn auto_keying_keys_a_confirmed_transform_in_its_own_step() {
+    let mut doc = starter();
+    let answer = run(&mut doc, "transform.set", json!({ "autoKey": true }));
+    assert_eq!(answer["autoKey"], true, "{answer}");
+    assert_eq!(doc.view_state()["autoKey"], true, "auto-keying is view state");
+    assert_eq!(doc.inspect().unwrap()["transform"]["autoKey"], true);
+    assert!(!doc.dirty(), "turning it on changes nothing in the file");
+    run(&mut doc, "frame.set", json!({ "frame": 10 }));
+    let at = screen(&doc, Vec3::new(1.0, 0.0, 1.0));
+    run(&mut doc, "modal.begin", json!({ "kind": "move", "at": [at.0, at.1] }));
+    keys(&mut doc, &["z", "2"]);
+    run(&mut doc, "modal.confirm", json!({}));
+    assert!(near(cube(&doc).location, Vec3::new(0.0, 0.0, 2.0)), "{:?}", cube(&doc).location);
+    assert_eq!(undo_label(&doc), "Move", "the keys are in the move's step");
+    let inspected = doc.inspect().unwrap();
+    assert_eq!(inspected["animation"]["selectedKeyFrames"], json!([10.0]), "{}", inspected["animation"]);
+    let named = inspected["objects"].as_array().unwrap().iter().find(|object| object["name"] == "Cube").unwrap().clone();
+    assert_eq!(named["animated"], json!(["location"]), "a move keys the location only");
+    assert_eq!(inspected["animation"]["channels"].as_array().unwrap().len(), 3, "X, Y and Z");
+    run(&mut doc, "edit.undo", json!({}));
+    assert!(near(cube(&doc).location, Vec3::ZERO), "one undo takes the move back");
+    assert_eq!(doc.inspect().unwrap()["animation"]["channels"].as_array().unwrap().len(), 0, "and its keys");
+    // Off: a transform keys nothing.
+    run(&mut doc, "transform.set", json!({ "autoKey": false }));
+    run(&mut doc, "modal.begin", json!({ "kind": "scale", "at": [at.0, at.1] }));
+    keys(&mut doc, &["2"]);
+    run(&mut doc, "modal.confirm", json!({}));
+    assert!(near(cube(&doc).scale, Vec3::splat(2.0)), "{:?}", cube(&doc).scale);
+    assert_eq!(doc.inspect().unwrap()["animation"]["channels"].as_array().unwrap().len(), 0, "nothing keyed with it off");
+}

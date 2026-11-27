@@ -32,6 +32,8 @@ type Pending = {
   cameraFrame: { zoom: number; offset: [number, number] } | null
 }
 
+/** Where a navigation gesture began: the view, or the camera's frame when looking through it. */
+type NavStart = { view: OrbitView | null; frame: { zoom: number; offset: [number, number] } | null }
 const RESTING: () => Pending = () => ({ orbit: [0, 0], pan: [0, 0], distance: null, perspective: false, cameraFrame: null })
 
 const toDegrees = (radians: number) => (radians * 180) / Math.PI
@@ -214,6 +216,8 @@ export function SceneViewport({
     zoomBy: (_factor: number) => {},
     framedBy: (_factor: number, _offset: [number, number]) => {},
     end: () => {},
+    start: (): NavStart => ({ view: null, frame: null }),
+    restore: (_start: NavStart) => {},
   })
   nav.current.current = () => {
     const gl = gpuRef.current
@@ -282,6 +286,12 @@ export function SceneViewport({
   }
   nav.current.end = () => {
     if (gpuRef.current.active) gpuRef.current.commit()
+  }
+  // What a gesture starts from, so that the right button can put it back.
+  nav.current.start = () => {
+    const shown = latest.current.info
+    const frame = shown?.throughCamera ? (cameraFrame.current ?? { zoom: shown.cameraZoom, offset: shown.cameraOffset }) : null
+    return { view: nav.current.current(), frame: frame ? { zoom: frame.zoom, offset: [...frame.offset] as [number, number] } : null }
   }
   /** Moves from `from` to `to` over the smooth view's time on the GPU viewport, then tells the engine. */
   const animate = (from: OrbitView, to: OrbitView) => {
@@ -369,6 +379,20 @@ export function SceneViewport({
     const { location, rotation } = cameraPlacement(view)
     await latest.current.editor.run('object.transform', { objects: [shown.camera], location, rotation })
     await run('view.camera', {})
+  }
+  // The right button during a gesture cancels it: the view (or the camera's frame) it started from.
+  nav.current.restore = (start) => {
+    pending.current = RESTING()
+    if (start.frame) {
+      cameraFrame.current = start.frame
+      pending.current.cameraFrame = start.frame
+      schedule()
+      return
+    }
+    const gl = gpuRef.current
+    // The GPU viewport's gesture is its own until the end: the engine still has the view it began at.
+    if (gl.active) gl.release()
+    else if (start.view) show(start.view, false)
   }
   viewNavigator.hooks = {
     // A key during a change of view steps from where that change ends.
@@ -508,7 +532,20 @@ export function SceneViewport({
         wheelCommit.current = window.setTimeout(() => gpuRef.current.commit(), 180)
       }
     }
-    let drag: { x: number; y: number; mode: NavDrag; id: number } | null = null
+    let drag: { x: number; y: number; mode: NavDrag; id: number; start: NavStart } | null = null
+    /** The right button pressed during a navigation drag: it ends, back where it began. */
+    const cancelNavigation = (event: PointerEvent) => {
+      if (!drag) return
+      event.preventDefault()
+      event.stopPropagation()
+      cancelledMenu = true
+      const { start, id } = drag
+      drag = null
+      altClick = null
+      delete element.dataset.navigating
+      if (element.hasPointerCapture(id)) element.releasePointerCapture(id)
+      nav.current.restore(start)
+    }
     // Shift+right button: the 3D cursor goes under the pointer, and follows it while held (one
     // placement in flight, the latest point waiting).
     let cursorDrag: number | null = null
@@ -562,6 +599,10 @@ export function SceneViewport({
     }
     const selecting = () => ['object', 'edit'].includes(latest.current.info?.mode ?? '')
     const down = (event: PointerEvent) => {
+      if (drag && event.button === 2) {
+        cancelNavigation(event)
+        return
+      }
       if (unready(event) || !(event.target instanceof HTMLCanvasElement)) return
       modal.pointer = documentPoint(event)
       // C's circle: the left button adds, Shift or the middle button takes out, the right ends it.
@@ -649,7 +690,7 @@ export function SceneViewport({
         ? { id: event.pointerId, x: event.clientX, y: event.clientY, at: documentPoint(event), ring: event.ctrlKey || event.metaKey, extend: event.shiftKey }
         : null
       // Shift pans, Ctrl/Cmd zooms (up: out, down: in), otherwise it orbits.
-      drag = { x: event.clientX, y: event.clientY, mode: event.shiftKey ? 'pan' : event.ctrlKey || event.metaKey ? 'zoom' : 'orbit', id: event.pointerId }
+      drag = { x: event.clientX, y: event.clientY, mode: event.shiftKey ? 'pan' : event.ctrlKey || event.metaKey ? 'zoom' : 'orbit', id: event.pointerId, start: nav.current.start() }
       element.setPointerCapture(event.pointerId)
       element.dataset.navigating = drag.mode
     }
@@ -707,6 +748,11 @@ export function SceneViewport({
       }
       if (event.pointerId !== drag.id) return
       event.stopPropagation()
+      // The right button pressed while the middle one drags (a chord comes as a move) cancels it.
+      if (event.button === 2) {
+        cancelNavigation(event)
+        return
+      }
       const dx = event.clientX - drag.x
       const dy = event.clientY - drag.y
       drag.x = event.clientX

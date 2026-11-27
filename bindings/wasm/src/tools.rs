@@ -3,8 +3,9 @@
 //! drag for a box, Shift to add to the selection, Cmd/Ctrl to take from it, both to keep what is
 //! in both), Select Circle (a press and a drag paint the selection with a circle; Shift adds,
 //! Cmd/Ctrl takes out), Select Lasso (drag round what to take, as the box), Move, Rotate, and Scale (a press starts the modal transform,
-//! `modal.rs`, and the release confirms it; a click selects as the Select tool's does), and Loop
-//! Cut in edit mode (hover to see the loop, click to cut). A drag is one undo step; Escape cancels
+//! `modal.rs`, and the release confirms it; a click selects as the Select tool's does), and in edit
+//! mode Loop Cut (hover to see the loop, click to cut), Knife (K: click points, Enter cuts) and Edge
+//! Slide (Shift+G). A double click is two clicks. A drag is one undo step; Escape cancels
 //! it. While a transform runs, the pointer and the keys go to it. The context-menu key selects
 //! the object under the pointer when it is not selected, before the editor opens its menu.
 //! Picking uses rays (`select.rs`), never the software picture; while the editor's GPU viewport
@@ -586,7 +587,9 @@ impl KitTools for SceneDocument {
             // The press cuts the loop under the pointer and slides it until the release, the same
             // modal as Ctrl+R's after its click.
             ("loopCut", PointerAction::Down) => {
-                if self.edge_at(at.0 as f32, at.1 as f32).is_some() && self.modal_begin_operation("loopCut", Some(at), Started::Press { select: false }).is_ok() {
+                if self.edge_at(at.0 as f32, at.1 as f32).is_some()
+                    && self.modal_begin_operation("loopCut", Some(at), Started::Press { select: false }).is_ok()
+                {
                     self.modal_confirm()?;
                     self.tool.hover_edge = None;
                 }
@@ -600,7 +603,13 @@ impl KitTools for SceneDocument {
             ("selectCircle", PointerAction::Down) => {
                 self.tool.hover = Some(at);
                 self.tool.zoom = event.zoom;
-                let pick = if mods.command { Pick::Subtract } else if mods.shift { Pick::Extend } else { Pick::Set };
+                let pick = if mods.command {
+                    Pick::Subtract
+                } else if mods.shift {
+                    Pick::Extend
+                } else {
+                    Pick::Set
+                };
                 self.circle_at(at, event.zoom, pick);
                 self.tool.circle = Some(if pick == Pick::Subtract { Pick::Subtract } else { Pick::Extend });
             }
@@ -661,14 +670,8 @@ impl KitTools for SceneDocument {
             }
             // A press that started no transform (nothing to move): a click on nothing.
             ("move" | "rotate" | "scale", PointerAction::Up) => self.select_at(at, at, mods),
-            (_, PointerAction::DoubleClick)
-                // A double click on a mesh in object mode edits it.
-                if self.session.mode == Mode::Object => {
-                    self.select_at(at, at, ToolMods::default());
-                    if self.session.editor.active.is_some_and(|id| self.scene.object(id).is_ok_and(|object| object.mesh().is_some())) {
-                        self.execute("mode.set", json!({ "mode": "edit" }))?;
-                    }
-                }
+            // A double click is the two clicks it is made of (it no longer enters edit mode, which
+            // Blender does not do and a person did by accident).
             _ => {}
         }
         Ok(self.respond())

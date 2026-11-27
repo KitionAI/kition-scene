@@ -70,6 +70,22 @@ try {
   const tool = async () => (await details()).tool.id
   const undo = async () => (await details()).undo
   const softwareFrames = () => frame.evaluate(() => window.kitScene.engine().invoke('softwareFrames'))
+  /**
+   * The software frames drawn once the repaints already on their way have landed: a command the
+   * test runs itself (`mesh.select`, Tab, `view.set`) repaints the software picture as it should,
+   * a moment after the editor's state shows it, so a count read at once may come before that
+   * frame. The count is taken when it has stayed the same for a while.
+   */
+  const steadyFrames = async () => {
+    let last = await softwareFrames()
+    for (let same = 0, tries = 0; same < 4 && tries < 100; tries += 1) {
+      await page.waitForTimeout(150)
+      const now = await softwareFrames()
+      same = now === last ? same + 1 : 0
+      last = now
+    }
+    return last
+  }
   const onPage = (point) => [box.x + point[0] / dpr, box.y + point[1] / dpr]
   /** Where a world point shows on the page, by the engine's own projection. */
   const project = async (point) => {
@@ -105,7 +121,7 @@ try {
   // software picture (picking is by rays).
   const cube = await project([0, 0, 0])
   await page.mouse.move(cube[0], cube[1])
-  const framesBefore = await softwareFrames()
+  const framesBefore = await steadyFrames()
   await page.mouse.click(cube[0], cube[1])
   await until(async () => (await selectedNames()).join() === 'Cube', 'a click selects the cube')
   await page.mouse.click(empty[0], empty[1])
@@ -261,7 +277,7 @@ try {
   await until(async () => (await state()).mode === 'edit', 'Tab enters edit mode')
   await run([{ command: 'mesh.select', params: { vertices: [] } }])
   await until(async () => (await state()).vertices.length === 0, 'nothing selected')
-  const editFrames = await softwareFrames()
+  const editFrames = await steadyFrames()
   await dragBox([around[0], around[1]], [around[2], around[3]])
   await until(async () => (await state()).vertices.length === 7, async () => `the box takes the seven vertices that show (${(await state()).vertices})`)
   await page.keyboard.press('Alt+KeyZ')

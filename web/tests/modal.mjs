@@ -204,9 +204,9 @@ try {
   assert.equal(await undo(), base, 'no undo step')
   passed('the right button and Escape cancel')
 
-  // X during a Move tool's drag keeps it to X and deletes nothing: one Move step.
-  await page.keyboard.press('KeyW')
-  await until(async () => (await details()).tool.id === 'select', 'W picks the select tool')
+  // X during a Move tool's drag keeps it to X and deletes nothing: one Move step. The transforms
+  // above began from the keys, and each one's end gave back the tool from before: Select Box.
+  await until(async () => (await details()).tool.id === 'select', 'the select tool is back after the keys\' transforms')
   await kit.getByTestId('scene-tool-move').click()
   await until(async () => (await details()).tool.id === 'move', 'the move tool')
   const cube = centre

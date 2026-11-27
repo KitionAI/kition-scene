@@ -206,6 +206,36 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
   // are done: it runs the command or picks the tool it would have, so no key is lost.
   const deferredKey = useRef<(key: string, shift: boolean) => void>(() => {})
   const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', onDeferredKey: (key, shift) => deferredKey.current(key, shift) })
+  const latestTools = useRef(tools)
+  latestTools.current = tools
+  /**
+   * G, R and S (and Shift+D) from the keyboard: the tool active when the key was pressed. The key
+   * picks its own tool too (the frame's tool shortcut), for as long as the transform runs; when
+   * that ends, by a click, Enter, the right button or Escape, the tool from before comes back, so
+   * the next drag on empty space boxes as in Blender. A press the transform hands to the tool (the
+   * key, then a press before anything changed) is the tool's: the key only picked it, and it stays.
+   */
+  const keyTool = useRef<{ before: string; running: boolean } | null>(null)
+  useEffect(
+    () =>
+      modalTransform.subscribe(() => {
+        const remembered = keyTool.current
+        if (!remembered) return
+        const answer = modalTransform.answer
+        if (answer.active && answer.started === 'key') {
+          remembered.running = true
+          return
+        }
+        // Still starting: the engine has not answered yet.
+        if (modalTransform.active && !answer.active) return
+        keyTool.current = null
+        // The key began nothing (nothing to transform), or handed its press to the tool: the tool stays.
+        if (!remembered.running || (answer.active && answer.started === 'press')) return
+        const now = latestTools.current
+        if (now.active !== remembered.before) now.select(remembered.before)
+      }),
+    [],
+  )
   const canvas = useRef<KitCanvasHandle>(null)
   // A text's edit mode takes typed text: the tools answer whether they want it once the mode
   // changes, however it changed (Tab, the panel, an agent).
@@ -569,12 +599,14 @@ export function App({ host, phrase }: { host: HostConnection; phrase: Phrases })
     if (host.readOnly || !TRANSFORM_MODES.includes(mode) || event.metaKey || event.ctrlKey) return false
     const kind = MODAL_START[event.code]
     if (kind && !event.altKey && !event.shiftKey) {
+      if (!modalTransform.active) keyTool.current = { before: tools.active, running: false }
       modalTransform.begin(kind)
       return false
     }
     if (event.code === 'KeyD' && event.shiftKey && !event.altKey && (mode === 'object' || mode === 'edit')) {
       event.preventDefault()
       event.stopPropagation()
+      if (!modalTransform.active) keyTool.current = { before: tools.active, running: false }
       modalTransform.begin('move', { duplicate: true })
       return true
     }

@@ -29,7 +29,7 @@ land work, then this list. The comparison with the target application is in
 - `scene.sculpt.paint` (P1, partial): Sculpting, multiresolution and weight painting. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `scene.uv.editing` (P1, partial): UV projections and UV editing. The engine has these commands; no case yet shows the area working end to end in the editor and surviving save and reopen.
 - `scene.view.viewport` (P1, partial): Viewport shading, views and overlays. The engine has these commands; the navigation a person does is `scene.editor.navigation` (below); no case yet shows shading and overlays working end to end in the editor and surviving save and reopen.
-- `scene.editor.basics` (P1, partial): The viewport's basics by hand. G, R and S also pick the Move, Rotate and Scale tools, which stay picked; the label drag's live preview covers object transforms only; the outline and edit-mode colours are not Blender's.
+- `scene.editor.basics` (P1, partial): The viewport's basics by hand. The label drag's live preview covers object transforms only; the outline and edit-mode colours are not Blender's.
 - `scene.editor.modal-transform` (P0, partial): Modal G, R and S. No units or arithmetic in a typed value; no trackball (R R), automatic constraint (middle button) or G G slide; the side panel shows the values only after the confirm; the pointer stops at the screen's edge.
 - `scene.editor.modal-operators` (P0, partial): E, I, Ctrl/Cmd+B, Ctrl/Cmd+R as modals; X, M, P menus. Inset is per face, with no Outset, Boundary or Individual; no bevel profile; no loop cut smoothness; the Merge and Separate menus have one row each; object mode's X deletes without asking.
 - `scene.editor.adjust-last` (P0, partial): Adjust Last Operation. Only the adjustable commands of `operation.rs`; a field applies on Enter, not while dragged.
@@ -62,7 +62,7 @@ thirty items of `web/tests/first-ten-minutes.mjs`; the full table is kept with t
 notes, outside this repository):
 
 - Object mode's X deletes at once; Blender asks "Delete selected objects?" (`web/tests/delete-focus.mjs` asserts the deletion).
-- G, R and S also pick the Move, Rotate and Scale tools, and the tool stays: afterwards a drag on empty space moves the selection instead of boxing, until W picks the select tool again (`web/tests/basics.mjs` asserts the pick).
+- G, R and S pick the Move, Rotate and Scale tools while their transform runs; the tool from before comes back when it ends. A press right after the key, before anything moved, is the tool's own drag, and that tool stays picked.
 - The main keyboard's `.` opens the pivot menu; framing the selection is keypad `.` (or the View menu).
 - Ctrl+P is Control+P on a Mac only; Cmd+P and other systems' Ctrl+P are Kition's.
 - A tap of Space plays (under 250 ms); holding it is the frame's hand tool.
